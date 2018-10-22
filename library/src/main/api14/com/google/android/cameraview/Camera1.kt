@@ -23,6 +23,11 @@ import android.hardware.Camera
 import android.os.Build
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import com.google.android.cameraview.Modes.Flash.FLASH_AUTO
+import com.google.android.cameraview.Modes.Flash.FLASH_OFF
+import com.google.android.cameraview.Modes.Flash.FLASH_ON
+import com.google.android.cameraview.Modes.Flash.FLASH_RED_EYE
+import com.google.android.cameraview.Modes.Flash.FLASH_TORCH
 import java.io.IOException
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -32,7 +37,7 @@ internal class Camera1(
         preview: PreviewImpl
 ) : CameraViewImpl(callback, preview) {
 
-    private var cameraId: Int = Constants.FACING_BACK
+    private var cameraId: Int = Modes.FACING_BACK
 
     private val isPictureCaptureInProgress = AtomicBoolean(false)
 
@@ -46,7 +51,7 @@ internal class Camera1(
 
     private val pictureSizes = SizeMap()
 
-    override var aspectRatio: AspectRatio = Constants.DEFAULT_ASPECT_RATIO
+    override var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
         private set
 
     private var showingPreview: Boolean = false
@@ -98,26 +103,49 @@ internal class Camera1(
 
     override var autoFocus: Boolean = false
         get() {
-            if (!isCameraOpened) {
-                return field
-            }
+            if (!isCameraOpened) return field
             val focusMode = cameraParameters?.focusMode
             return focusMode != null && focusMode.contains("continuous")
         }
         set(autoFocus) {
-            if (field == autoFocus) {
-                return
-            }
-            if (setAutoFocusInternal(autoFocus)) {
-                camera?.parameters = cameraParameters
-            }
+            if (field == autoFocus) return
+            if (setAutoFocusInternal(autoFocus)) camera?.parameters = cameraParameters
         }
 
-    override var flash: Int = Constants.FLASH_OFF
+    override var touchToFocus: Boolean = false
+        get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
+        set(touchToFocus) {
+            if (touchToFocus == field) return
+            TODO("set internal")
+        }
+
+    override var awb: Boolean = false
+        get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
+        set(awb) {
+            if (awb == field) return
+            TODO("set internal")
+        }
+
+    override var flash: Int = FLASH_OFF
         set(flash) {
-            if (flash == this.flash) return
+            if (flash == field) return
             if (setFlashInternal(flash)) camera?.parameters = cameraParameters
         }
+
+    override var ae: Boolean = false
+        get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
+        set(ae) {
+            if (ae == field) return
+            TODO("set internal")
+        }
+
+    override var opticalStabilization: Boolean
+        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+        set(value) {}
+
+    override var noiseReduction: Int
+        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+        set(value) {}
 
     init {
         preview.setCallback(object : PreviewImpl.Callback {
@@ -251,10 +279,10 @@ internal class Camera1(
     }
 
     private fun chooseAspectRatio(): AspectRatio {
-        var r: AspectRatio = Constants.DEFAULT_ASPECT_RATIO
+        var r: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
         for (ratio in previewSizes.ratios()) {
             r = ratio
-            if (ratio == Constants.DEFAULT_ASPECT_RATIO) {
+            if (ratio == Modes.DEFAULT_ASPECT_RATIO) {
                 return ratio
             }
         }
@@ -372,7 +400,7 @@ internal class Camera1(
      * @return True if in landscape, false if portrait
      */
     private fun isLandscape(orientationDegrees: Int): Boolean {
-        return orientationDegrees == Constants.LANDSCAPE_90 || orientationDegrees == Constants.LANDSCAPE_270
+        return orientationDegrees == Modes.LANDSCAPE_90 || orientationDegrees == Modes.LANDSCAPE_270
     }
 
     /**
@@ -414,7 +442,7 @@ internal class Camera1(
             val currentMode = FLASH_MODES.get(this.flash)
             if (modes == null || !modes.contains(currentMode)) {
                 cameraParameters!!.flashMode = Camera.Parameters.FLASH_MODE_OFF
-                this.flash = Constants.FLASH_OFF
+                this.flash = FLASH_OFF
                 return true
             }
             return false
@@ -431,11 +459,11 @@ internal class Camera1(
         private val FLASH_MODES = SparseArrayCompat<String>()
 
         init {
-            FLASH_MODES.put(Constants.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
-            FLASH_MODES.put(Constants.FLASH_ON, Camera.Parameters.FLASH_MODE_ON)
-            FLASH_MODES.put(Constants.FLASH_TORCH, Camera.Parameters.FLASH_MODE_TORCH)
-            FLASH_MODES.put(Constants.FLASH_AUTO, Camera.Parameters.FLASH_MODE_AUTO)
-            FLASH_MODES.put(Constants.FLASH_RED_EYE, Camera.Parameters.FLASH_MODE_RED_EYE)
+            FLASH_MODES.put(FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
+            FLASH_MODES.put(FLASH_ON, Camera.Parameters.FLASH_MODE_ON)
+            FLASH_MODES.put(FLASH_TORCH, Camera.Parameters.FLASH_MODE_TORCH)
+            FLASH_MODES.put(FLASH_AUTO, Camera.Parameters.FLASH_MODE_AUTO)
+            FLASH_MODES.put(FLASH_RED_EYE, Camera.Parameters.FLASH_MODE_RED_EYE)
         }
     }
 }

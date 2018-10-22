@@ -33,32 +33,23 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
         return this.x == x && this.y == y
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (other == null) {
-            return false
+    override fun equals(other: Any?): Boolean = when {
+        other == null -> false
+        this === other -> true
+        other is AspectRatio -> {
+            val ratio = other as? AspectRatio
+            x == ratio?.x && y == ratio.y
         }
-        if (this === other) {
-            return true
-        }
-        if (other is AspectRatio) {
-            val ratio = other as AspectRatio?
-            return x == ratio!!.x && y == ratio.y
-        }
-        return false
+        else -> false
     }
 
-    override fun toString(): String {
-        return x.toString() + ":" + y
-    }
+    override fun toString(): String = x.toString() + ":" + y
 
-    fun toFloat(): Float {
-        return x.toFloat() / y
-    }
+    fun toFloat(): Float = x.toFloat() / y
 
-    override fun hashCode(): Int {
-        // assuming most sizes are <2^16, doing a rotate will give us perfect hashing
-        return y xor (x shl Integer.SIZE / 2 or x.ushr(Integer.SIZE / 2))
-    }
+    override fun hashCode(): Int =
+    // assuming most sizes are <2^16, doing a rotate will give us perfect hashing
+            y xor (x shl Integer.SIZE / 2 or x.ushr(Integer.SIZE / 2))
 
     override fun compareTo(other: AspectRatio): Int = when {
         equals(other) -> 0
@@ -69,14 +60,11 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
     /**
      * @return The inverse of this [AspectRatio].
      */
-    fun inverse(): AspectRatio {
-
-        return AspectRatio.of(y, x)
-    }
+    fun inverse(): AspectRatio = AspectRatio.of(y, x)
 
     companion object {
 
-        private val sCache = SparseArrayCompat<SparseArrayCompat<AspectRatio>>(16)
+        private val cache = SparseArrayCompat<SparseArrayCompat<AspectRatio>>(16)
 
         /**
          * Returns an instance of [AspectRatio] specified by `x` and `y` values.
@@ -92,12 +80,12 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
             val gcd = gcd(a, b)
             a /= gcd
             b /= gcd
-            var arrayX: SparseArrayCompat<AspectRatio>? = sCache.get(a)
+            var arrayX: SparseArrayCompat<AspectRatio>? = cache.get(a)
             return if (arrayX == null) {
                 val ratio = AspectRatio(a, b)
                 arrayX = SparseArrayCompat()
                 arrayX.put(b, ratio)
-                sCache.put(a, arrayX)
+                cache.put(a, arrayX)
                 ratio
             } else {
                 var ratio: AspectRatio? = arrayX.get(b)
@@ -116,19 +104,10 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
          * @return The aspect ratio
          * @throws IllegalArgumentException when the format is incorrect.
          */
-        fun parse(s: String): AspectRatio {
-            val position = s.indexOf(':')
-            if (position == -1) {
-                throw IllegalArgumentException("Malformed aspect ratio: $s")
-            }
-            try {
-                val x = Integer.parseInt(s.substring(0, position))
-                val y = Integer.parseInt(s.substring(position + 1))
-                return AspectRatio.of(x, y)
-            } catch (e: NumberFormatException) {
-                throw IllegalArgumentException("Malformed aspect ratio: $s", e)
-            }
-
+        fun parse(s: String): AspectRatio = try {
+            s.split(':').let { AspectRatio.of(it[0].trim().toInt(), it[1].trim().toInt()) }
+        } catch (e: NumberFormatException) {
+            throw IllegalArgumentException("Malformed aspect ratio: $s", e)
         }
 
         private fun gcd(x: Int, y: Int): Int {

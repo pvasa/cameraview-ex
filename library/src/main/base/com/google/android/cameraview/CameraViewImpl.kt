@@ -35,7 +35,17 @@ internal abstract class CameraViewImpl(
 
     internal abstract var autoFocus: Boolean
 
+    internal abstract var touchToFocus: Boolean
+
+    internal abstract var awb: Boolean
+
     internal abstract var flash: Int
+
+    internal abstract var ae: Boolean
+
+    internal abstract var opticalStabilization: Boolean
+
+    internal abstract var noiseReduction: Int
 
     internal abstract var displayOrientation: Int
 

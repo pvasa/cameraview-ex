@@ -25,6 +25,17 @@ import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import com.google.android.cameraview.Modes.FACING_BACK
+import com.google.android.cameraview.Modes.Flash.FLASH_AUTO
+import com.google.android.cameraview.Modes.Flash.FLASH_OFF
+import com.google.android.cameraview.Modes.Flash.FLASH_ON
+import com.google.android.cameraview.Modes.Flash.FLASH_RED_EYE
+import com.google.android.cameraview.Modes.Flash.FLASH_TORCH
+import com.google.android.cameraview.Modes.NoiseReduction.NOISE_REDUCTION_FAST
+import com.google.android.cameraview.Modes.NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY
+import com.google.android.cameraview.Modes.NoiseReduction.NOISE_REDUCTION_MINIMAL
+import com.google.android.cameraview.Modes.NoiseReduction.NOISE_REDUCTION_OFF
+import com.google.android.cameraview.Modes.NoiseReduction.NOISE_REDUCTION_ZERO_SHUTTER_LAG
 import kotlinx.android.parcel.Parcelize
 import java.util.ArrayList
 
@@ -97,6 +108,18 @@ class CameraView @JvmOverloads constructor(
             cameraViewImpl.autoFocus = autoFocus
         }
 
+    var touchToFocus: Boolean
+        get() = cameraViewImpl.touchToFocus
+        set(touchToFocus) {
+            cameraViewImpl.touchToFocus = touchToFocus
+        }
+
+    var awb: Boolean
+        get() = cameraViewImpl.awb
+        set(awb) {
+            cameraViewImpl.awb = awb
+        }
+
     /** Current flash mode */
     var flash: Int
         @Flash
@@ -105,14 +128,41 @@ class CameraView @JvmOverloads constructor(
             cameraViewImpl.flash = flash
         }
 
+    var ae: Boolean
+        get() = cameraViewImpl.ae
+        set(ae) {
+            cameraViewImpl.ae = ae
+        }
+
+    var opticalStabilization: Boolean
+        get() = cameraViewImpl.opticalStabilization
+        set(opticalStabilization) {
+            cameraViewImpl.opticalStabilization = opticalStabilization
+        }
+
+    var noiseReduction: Int
+        @NoiseReduction
+        get() = cameraViewImpl.noiseReduction
+        set(@NoiseReduction noiseReduction) {
+            cameraViewImpl.noiseReduction = noiseReduction
+        }
+
     /** Direction the camera faces relative to device screen. */
-    @IntDef(FACING_BACK, FACING_FRONT)
+    @IntDef(Modes.FACING_BACK, Modes.FACING_FRONT)
     @Retention(AnnotationRetention.SOURCE)
     annotation class Facing
 
     /** The mode for for the camera device's flash control */
     @IntDef(FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE)
     annotation class Flash
+
+    /** The mode for for the camera device's flash control */
+    @IntDef(NOISE_REDUCTION_OFF,
+            NOISE_REDUCTION_FAST,
+            NOISE_REDUCTION_HIGH_QUALITY,
+            NOISE_REDUCTION_MINIMAL,
+            NOISE_REDUCTION_ZERO_SHUTTER_LAG)
+    annotation class NoiseReduction
 
     init {
 
@@ -128,11 +178,22 @@ class CameraView @JvmOverloads constructor(
             facing = attr.getInt(R.styleable.CameraView_facing, FACING_BACK)
 
             val aspectRatio = attr.getString(R.styleable.CameraView_aspectRatio)
-            this.aspectRatio = aspectRatio?.let { AspectRatio.parse(it) } ?: Constants.DEFAULT_ASPECT_RATIO
+            this.aspectRatio = aspectRatio?.let { AspectRatio.parse(it) } ?: Modes.DEFAULT_ASPECT_RATIO
 
-            autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, true)
+            autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, false)
 
-            flash = attr.getInt(R.styleable.CameraView_flash, Constants.FLASH_AUTO)
+            touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, false)
+
+            awb = attr.getBoolean(R.styleable.CameraView_awb, false)
+
+            flash = attr.getInt(R.styleable.CameraView_flash, FLASH_AUTO)
+
+            ae = attr.getBoolean(R.styleable.CameraView_ae, false)
+
+            opticalStabilization = attr.getBoolean(R.styleable.CameraView_opticalStabilization, false)
+
+            noiseReduction = attr.getInt(R.styleable.CameraView_noiseReduction, NOISE_REDUCTION_OFF)
+
             attr.recycle()
             // Display orientation detector
             displayOrientationDetector = object : DisplayOrientationDetector(context) {
@@ -212,7 +273,18 @@ class CameraView @JvmOverloads constructor(
     }
 
     override fun onSaveInstanceState(): Parcelable? =
-            SavedState(super.onSaveInstanceState(), facing, aspectRatio, autoFocus, flash)
+            SavedState(
+                    super.onSaveInstanceState(),
+                    facing,
+                    aspectRatio,
+                    autoFocus,
+                    touchToFocus,
+                    awb,
+                    flash,
+                    ae,
+                    opticalStabilization,
+                    noiseReduction
+            )
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         if (state !is SavedState) {
@@ -225,7 +297,11 @@ class CameraView @JvmOverloads constructor(
             facing = it.facing
             aspectRatio = it.ratio
             autoFocus = it.autoFocus
+            awb = it.awb
             flash = it.flash
+            ae = it.ae
+            opticalStabilization = it.opticalStabilization
+            noiseReduction = it.noiseReduction
         }
     }
 
@@ -321,7 +397,12 @@ class CameraView @JvmOverloads constructor(
             @Facing val facing: Int,
             val ratio: AspectRatio,
             val autoFocus: Boolean,
-            @Flash val flash: Int
+            val touchToFocus: Boolean,
+            val awb: Boolean,
+            @Flash val flash: Int,
+            val ae: Boolean,
+            val opticalStabilization: Boolean,
+            @NoiseReduction val noiseReduction: Int
     ) : View.BaseSavedState(parcelable), Parcelable
 
     /**
@@ -352,27 +433,5 @@ class CameraView @JvmOverloads constructor(
         open fun onPictureTaken(cameraView: CameraView, data: ByteArray) {}
     }
 
-    companion object {
-
-        /** The camera device faces the opposite direction as the device's screen.  */
-        const val FACING_BACK = Constants.FACING_BACK
-
-        /** The camera device faces the same direction as the device's screen.  */
-        const val FACING_FRONT = Constants.FACING_FRONT
-
-        /** Flash will not be fired.  */
-        const val FLASH_OFF = Constants.FLASH_OFF
-
-        /** Flash will always be fired during snapshot.  */
-        const val FLASH_ON = Constants.FLASH_ON
-
-        /** Constant emission of light during preview, auto-focus and snapshot.  */
-        const val FLASH_TORCH = Constants.FLASH_TORCH
-
-        /** Flash will be fired automatically when required.  */
-        const val FLASH_AUTO = Constants.FLASH_AUTO
-
-        /** Flash will be fired in red-eye reduction mode.  */
-        const val FLASH_RED_EYE = Constants.FLASH_RED_EYE
-    }
+    companion object
 }

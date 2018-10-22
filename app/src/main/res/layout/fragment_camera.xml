@@ -12,9 +12,13 @@
         android:layout_alignParentTop="true"
         android:adjustViewBounds="true"
         android:background="@android:color/black"
+        app:ae="true"
         app:aspectRatio="18:9"
         app:autoFocus="true"
+        app:awb="true"
         app:facing="front"
-        app:flash="auto" />
+        app:flash="auto"
+        app:noiseReduction="high_quality"
+        app:opticalStabilization="true" />
 
 </android.support.constraint.ConstraintLayout>

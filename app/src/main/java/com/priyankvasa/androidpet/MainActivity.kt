@@ -9,7 +9,7 @@ import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.google.android.cameraview.Constants
+import com.google.android.cameraview.Modes
 import kotlinx.android.synthetic.main.fragment_camera.*
 
 class MainActivity : AppCompatActivity() {
@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
             super.onViewCreated(view, savedInstanceState)
             camera.setOnClickListener {
-                camera.facing = if (camera.facing == Constants.FACING_BACK) Constants.FACING_FRONT else Constants.FACING_BACK
+                camera.facing = if (camera.facing == Modes.FACING_BACK) Modes.FACING_FRONT else Modes.FACING_BACK
             }
         }
 

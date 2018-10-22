@@ -11,6 +11,7 @@
     limitations under the License.
 -->
 <resources>
+
     <declare-styleable name="CameraView">
         <!--
           Set this to true if you want the CameraView to adjust its bounds to preserve the aspect
@@ -28,6 +29,11 @@
         <attr name="aspectRatio" format="string" />
         <!-- Continuous auto focus mode. -->
         <attr name="autoFocus" format="boolean" />
+
+        <attr name="touchToFocus" format="boolean" />
+
+        <attr name="awb" format="boolean" />
+
         <!-- The flash mode. -->
         <attr name="flash" format="enum">
             <!-- Flash will not be fired. -->
@@ -53,5 +59,19 @@
             -->
             <enum name="redEye" value="4" />
         </attr>
+
+        <attr name="ae" format="boolean" />
+
+        <attr name="opticalStabilization" format="boolean" />
+
+        <attr name="noiseReduction" format="enum">
+            <enum name="off" value="0" />
+            <enum name="fast" value="1" />
+            <enum name="high_quality" value="2" />
+            <enum name="minimal" value="3" />
+            <enum name="zero_shutter_lag" value="4" />
+        </attr>
+
     </declare-styleable>
+
 </resources>

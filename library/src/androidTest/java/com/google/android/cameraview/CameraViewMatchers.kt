@@ -14,32 +14,25 @@
  * limitations under the License.
  */
 
-package com.google.android.cameraview;
+package com.google.android.cameraview
 
-import android.app.Activity;
-import android.os.Bundle;
+import android.view.View
 
-public class CameraViewActivity extends Activity {
+import org.hamcrest.Description
+import org.hamcrest.Matcher
+import org.hamcrest.TypeSafeMatcher
 
-    private CameraView mCameraView;
+internal object CameraViewMatchers {
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_camera_view);
-        mCameraView = findViewById(R.id.camera);
+    fun hasAspectRatio(ratio: AspectRatio): Matcher<View> {
+        return object : TypeSafeMatcher<View>() {
+            override fun describeTo(description: Description) {
+                description.appendText("has aspect ratio of $ratio")
+            }
+
+            override fun matchesSafely(view: View): Boolean {
+                return ratio == (view as CameraView).aspectRatio
+            }
+        }
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mCameraView.start();
-    }
-
-    @Override
-    protected void onPause() {
-        mCameraView.stop();
-        super.onPause();
-    }
-
 }
