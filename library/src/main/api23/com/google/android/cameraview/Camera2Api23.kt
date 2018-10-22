@@ -35,8 +35,6 @@ internal class Camera2Api23(
                 sizes.add(Size(size.width, size.height))
             }
         }
-        if (sizes.isEmpty) {
-            super.collectPictureSizes(sizes, map)
-        }
+        if (sizes.isEmpty) super.collectPictureSizes(sizes, map)
     }
 }

@@ -15,6 +15,11 @@
     <public name="aspectRatio" type="attr" />
     <public name="autoFocus" type="attr" />
     <public name="flash" type="attr" />
+    <public name="touchToFocus" type="attr" />
+    <public name="awb" type="attr" />
+    <public name="ae" type="attr" />
+    <public name="opticalStabilization" type="attr" />
+    <public name="noiseReduction" type="attr" />
 
     <public name="Widget.CameraView" type="style" />
 </resources>

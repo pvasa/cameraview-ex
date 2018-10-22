@@ -219,7 +219,7 @@ internal class Camera1(
     override fun takePicture() {
         if (!isCameraOpened) {
             throw IllegalStateException(
-                    "Camera is not ready. Call start() before takePicture().")
+                    "Camera is not ready. Call start() before capture().")
         }
         if (this.autoFocus) {
             camera?.cancelAutoFocus()

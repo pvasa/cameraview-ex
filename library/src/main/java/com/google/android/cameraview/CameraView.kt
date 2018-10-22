@@ -45,9 +45,26 @@ class CameraView @JvmOverloads constructor(
         defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    /** Direction the camera faces relative to device screen. */
+    @IntDef(Modes.FACING_BACK, Modes.FACING_FRONT)
+    @Retention(AnnotationRetention.SOURCE)
+    annotation class Facing
+
+    /** The mode for for the camera device's flash control */
+    @IntDef(FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE)
+    annotation class Flash
+
+    /** The mode for for the camera device's flash control */
+    @IntDef(NOISE_REDUCTION_OFF,
+            NOISE_REDUCTION_FAST,
+            NOISE_REDUCTION_HIGH_QUALITY,
+            NOISE_REDUCTION_MINIMAL,
+            NOISE_REDUCTION_ZERO_SHUTTER_LAG)
+    annotation class NoiseReduction
+
     private val preview = createPreviewImpl(context)
 
-    private var callbacks: CallbackBridge? = CallbackBridge()
+    private val callbacks: CallbackBridge = CallbackBridge()
 
     internal var cameraViewImpl: CameraViewImpl = when {
         Build.VERSION.SDK_INT < 21 -> Camera1(callbacks, preview)
@@ -55,7 +72,8 @@ class CameraView @JvmOverloads constructor(
         else -> Camera2Api23(callbacks, preview, context)
     }
 
-    private var displayOrientationDetector: DisplayOrientationDetector =
+    /** Display orientation detector */
+    private val displayOrientationDetector: DisplayOrientationDetector =
             object : DisplayOrientationDetector(context) {
                 override fun onDisplayOrientationChanged(displayOrientation: Int) {
                     cameraViewImpl.displayOrientation = displayOrientation
@@ -86,8 +104,7 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Gets all the aspect ratios supported by the current camera. */
-    val supportedAspectRatios: Set<AspectRatio>
-        get() = cameraViewImpl.supportedAspectRatios
+    val supportedAspectRatios: Set<AspectRatio> get() = cameraViewImpl.supportedAspectRatios
 
     /** Current aspect ratio of camera. */
     var aspectRatio: AspectRatio
@@ -147,60 +164,33 @@ class CameraView @JvmOverloads constructor(
             cameraViewImpl.noiseReduction = noiseReduction
         }
 
-    /** Direction the camera faces relative to device screen. */
-    @IntDef(Modes.FACING_BACK, Modes.FACING_FRONT)
-    @Retention(AnnotationRetention.SOURCE)
-    annotation class Facing
-
-    /** The mode for for the camera device's flash control */
-    @IntDef(FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE)
-    annotation class Flash
-
-    /** The mode for for the camera device's flash control */
-    @IntDef(NOISE_REDUCTION_OFF,
-            NOISE_REDUCTION_FAST,
-            NOISE_REDUCTION_HIGH_QUALITY,
-            NOISE_REDUCTION_MINIMAL,
-            NOISE_REDUCTION_ZERO_SHUTTER_LAG)
-    annotation class NoiseReduction
-
     init {
-
         if (isInEditMode) {
-            callbacks = null
+            callbacks.disable()
             displayOrientationDetector.disable()
         } else {
-            callbacks = CallbackBridge()
             // Attributes
-            val attr = context.obtainStyledAttributes(attrs, R.styleable.CameraView, defStyleAttr,
-                    R.style.Widget_CameraView)
-            this.adjustViewBounds = attr.getBoolean(R.styleable.CameraView_android_adjustViewBounds, false)
+            val attr = context.obtainStyledAttributes(
+                    attrs,
+                    R.styleable.CameraView,
+                    defStyleAttr,
+                    R.style.Widget_CameraView
+            )
+
+            adjustViewBounds = attr.getBoolean(R.styleable.CameraView_android_adjustViewBounds, false)
             facing = attr.getInt(R.styleable.CameraView_facing, FACING_BACK)
-
-            val aspectRatio = attr.getString(R.styleable.CameraView_aspectRatio)
-            this.aspectRatio = aspectRatio?.let { AspectRatio.parse(it) } ?: Modes.DEFAULT_ASPECT_RATIO
-
+            aspectRatio = attr.getString(R.styleable.CameraView_aspectRatio)
+                    ?.let { AspectRatio.parse(it) }
+                    ?: Modes.DEFAULT_ASPECT_RATIO
             autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, false)
-
             touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, false)
-
             awb = attr.getBoolean(R.styleable.CameraView_awb, false)
-
-            flash = attr.getInt(R.styleable.CameraView_flash, FLASH_AUTO)
-
+            flash = attr.getInt(R.styleable.CameraView_flash, FLASH_OFF)
             ae = attr.getBoolean(R.styleable.CameraView_ae, false)
-
             opticalStabilization = attr.getBoolean(R.styleable.CameraView_opticalStabilization, false)
-
             noiseReduction = attr.getInt(R.styleable.CameraView_noiseReduction, NOISE_REDUCTION_OFF)
 
             attr.recycle()
-            // Display orientation detector
-            displayOrientationDetector = object : DisplayOrientationDetector(context) {
-                override fun onDisplayOrientationChanged(displayOrientation: Int) {
-                    cameraViewImpl.displayOrientation = displayOrientation
-                }
-            }
         }
     }
 
@@ -222,9 +212,9 @@ class CameraView @JvmOverloads constructor(
             return
         }
         // Handle android:adjustViewBounds
-        if (this.adjustViewBounds) {
+        if (adjustViewBounds) {
             if (!isCameraOpened) {
-                callbacks?.reserveRequestLayoutOnOpen()
+                callbacks.reserveRequestLayoutOnOpen()
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
                 return
             }
@@ -335,7 +325,7 @@ class CameraView @JvmOverloads constructor(
      * @see .removeCallback
      */
     fun addCallback(callback: Callback) {
-        callbacks?.add(callback)
+        callbacks.add(callback)
     }
 
     /**
@@ -345,14 +335,14 @@ class CameraView @JvmOverloads constructor(
      * @see .addCallback
      */
     fun removeCallback(callback: Callback) {
-        callbacks?.remove(callback)
+        callbacks.remove(callback)
     }
 
     /**
      * Take a picture. The result will be returned to
      * [Callback.onPictureTaken].
      */
-    fun takePicture() {
+    fun capture() {
         cameraViewImpl.takePicture()
     }
 
@@ -360,19 +350,26 @@ class CameraView @JvmOverloads constructor(
 
         private val callbacks = ArrayList<Callback>()
 
-        private var mRequestLayoutOnOpen: Boolean = false
+        private var enabled = true
+
+        private var requestLayoutOnOpen: Boolean = false
 
         fun add(callback: Callback) {
-            callbacks.add(callback)
+            if (enabled) callbacks.add(callback)
         }
 
         fun remove(callback: Callback) {
             callbacks.remove(callback)
         }
 
+        fun disable() {
+            callbacks.clear()
+            enabled = false
+        }
+
         override fun onCameraOpened() {
-            if (mRequestLayoutOnOpen) {
-                mRequestLayoutOnOpen = false
+            if (requestLayoutOnOpen) {
+                requestLayoutOnOpen = false
                 requestLayout()
             }
             callbacks.forEach { it.onCameraOpened(this@CameraView) }
@@ -387,7 +384,7 @@ class CameraView @JvmOverloads constructor(
         }
 
         fun reserveRequestLayoutOnOpen() {
-            mRequestLayoutOnOpen = true
+            requestLayoutOnOpen = true
         }
     }
 

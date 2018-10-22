@@ -221,7 +221,7 @@ class CameraViewTest {
                 .perform(object : AnythingAction("take picture") {
                     override fun perform(uiController: UiController, view: View) {
                         val cameraView = view as CameraView
-                        cameraView.takePicture()
+                        cameraView.capture()
                     }
                 })
         try {

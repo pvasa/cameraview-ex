@@ -9,6 +9,8 @@ import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.bumptech.glide.Glide
+import com.google.android.cameraview.CameraView
 import com.google.android.cameraview.Modes
 import kotlinx.android.synthetic.main.fragment_camera.*
 
@@ -43,11 +45,24 @@ class MainActivity : AppCompatActivity() {
             camera.setOnClickListener {
                 camera.facing = if (camera.facing == Modes.FACING_BACK) Modes.FACING_FRONT else Modes.FACING_BACK
             }
+            ivPhoto.setOnClickListener { ivPhoto.visibility = View.GONE }
+            camera.addCallback(object : CameraView.Callback() {
+                override fun onPictureTaken(cameraView: CameraView, data: ByteArray) {
+                    super.onPictureTaken(cameraView, data)
+                    ivPhoto.visibility = View.VISIBLE
+                    Glide.with(this@CameraFragment)
+                            .asBitmap()
+                            .load(data)
+                            .into(ivPhoto)
+                }
+            })
+
+            buttonCapture.setOnClickListener { camera.capture() }
         }
 
         override fun onResume() {
             super.onResume()
-            camera.start()
+            camera.run { if (!isCameraOpened) start() }
         }
 
         override fun onPause() {
