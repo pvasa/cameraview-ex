@@ -15,6 +15,8 @@
  */
 package com.google.android.cameraview
 
+import android.annotation.TargetApi
+
 object Modes {
 
     val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
@@ -34,7 +36,9 @@ object Modes {
         const val NOISE_REDUCTION_OFF = 0
         const val NOISE_REDUCTION_FAST = 1
         const val NOISE_REDUCTION_HIGH_QUALITY = 2
+        @TargetApi(23)
         const val NOISE_REDUCTION_MINIMAL = 3
+        @TargetApi(23)
         const val NOISE_REDUCTION_ZERO_SHUTTER_LAG = 4
     }
 
