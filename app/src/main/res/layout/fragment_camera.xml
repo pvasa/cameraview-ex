@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.google.android.cameraview.CameraView
+    <com.priyankvasa.android.cameraview.CameraView
         android:id="@+id/camera"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"

@@ -10,8 +10,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
-import com.google.android.cameraview.CameraView
-import com.google.android.cameraview.Modes
+import com.priyankvasa.android.cameraview.CameraView
+import com.priyankvasa.android.cameraview.Modes
 import kotlinx.android.synthetic.main.fragment_camera.*
 
 class MainActivity : AppCompatActivity() {
