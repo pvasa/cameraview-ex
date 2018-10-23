@@ -25,6 +25,15 @@ import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_AUTO
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_CLOUDY_DAYLIGHT
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_DAYLIGHT
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_FLUORESCENT
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_INCANDESCENT
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_OFF
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_SHADE
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_TWILIGHT
+import com.google.android.cameraview.Modes.AutoWhiteBalance.AWB_WARM_FLUORESCENT
 import com.google.android.cameraview.Modes.FACING_BACK
 import com.google.android.cameraview.Modes.Flash.FLASH_AUTO
 import com.google.android.cameraview.Modes.Flash.FLASH_OFF
@@ -50,17 +59,29 @@ class CameraView @JvmOverloads constructor(
     @Retention(AnnotationRetention.SOURCE)
     annotation class Facing
 
-    /** The mode for for the camera device's flash control */
+    /** The mode for the camera device's flash control */
     @IntDef(FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE)
     annotation class Flash
 
-    /** The mode for for the camera device's flash control */
+    /** The mode for the camera device's noise reduction control */
     @IntDef(NOISE_REDUCTION_OFF,
             NOISE_REDUCTION_FAST,
             NOISE_REDUCTION_HIGH_QUALITY,
             NOISE_REDUCTION_MINIMAL,
             NOISE_REDUCTION_ZERO_SHUTTER_LAG)
     annotation class NoiseReduction
+
+    /** The mode for the camera device's auto white balance control */
+    @IntDef(AWB_OFF,
+            AWB_AUTO,
+            AWB_INCANDESCENT,
+            AWB_FLUORESCENT,
+            AWB_WARM_FLUORESCENT,
+            AWB_DAYLIGHT,
+            AWB_CLOUDY_DAYLIGHT,
+            AWB_TWILIGHT,
+            AWB_SHADE)
+    annotation class Awb
 
     private val preview = createPreviewImpl(context)
 
@@ -125,15 +146,18 @@ class CameraView @JvmOverloads constructor(
             cameraViewImpl.autoFocus = autoFocus
         }
 
-    var touchToFocus: Boolean
+    /** Current touch to focus mode */
+    private var touchToFocus: Boolean
         get() = cameraViewImpl.touchToFocus
         set(touchToFocus) {
             cameraViewImpl.touchToFocus = touchToFocus
         }
 
-    var awb: Boolean
+    /** Current auto white balance mode */
+    var awb: Int
+        @Awb
         get() = cameraViewImpl.awb
-        set(awb) {
+        set(@Awb awb) {
             cameraViewImpl.awb = awb
         }
 
@@ -145,7 +169,8 @@ class CameraView @JvmOverloads constructor(
             cameraViewImpl.flash = flash
         }
 
-    var ae: Boolean
+    /** Current auto exposure mode */
+    private var ae: Boolean
         get() = cameraViewImpl.ae
         set(ae) {
             cameraViewImpl.ae = ae
@@ -183,10 +208,10 @@ class CameraView @JvmOverloads constructor(
                     ?.let { AspectRatio.parse(it) }
                     ?: Modes.DEFAULT_ASPECT_RATIO
             autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, false)
-            touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, false)
-            awb = attr.getBoolean(R.styleable.CameraView_awb, false)
+//            touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, false)
+            awb = attr.getInt(R.styleable.CameraView_awb, AWB_OFF)
             flash = attr.getInt(R.styleable.CameraView_flash, FLASH_OFF)
-            ae = attr.getBoolean(R.styleable.CameraView_ae, false)
+//            ae = attr.getBoolean(R.styleable.CameraView_ae, false)
             opticalStabilization = attr.getBoolean(R.styleable.CameraView_opticalStabilization, false)
             noiseReduction = attr.getInt(R.styleable.CameraView_noiseReduction, NOISE_REDUCTION_OFF)
 
@@ -395,7 +420,7 @@ class CameraView @JvmOverloads constructor(
             val ratio: AspectRatio,
             val autoFocus: Boolean,
             val touchToFocus: Boolean,
-            val awb: Boolean,
+            @Awb val awb: Int,
             @Flash val flash: Int,
             val ae: Boolean,
             val opticalStabilization: Boolean,

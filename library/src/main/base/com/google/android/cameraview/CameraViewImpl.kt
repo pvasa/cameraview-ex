@@ -37,7 +37,7 @@ internal abstract class CameraViewImpl(
 
     internal abstract var touchToFocus: Boolean
 
-    internal abstract var awb: Boolean
+    internal abstract var awb: Int
 
     internal abstract var flash: Int
 

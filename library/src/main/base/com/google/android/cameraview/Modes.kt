@@ -42,6 +42,18 @@ object Modes {
         const val NOISE_REDUCTION_ZERO_SHUTTER_LAG = 4
     }
 
+    object AutoWhiteBalance {
+        const val AWB_OFF = 0
+        const val AWB_AUTO = 1
+        const val AWB_INCANDESCENT = 2
+        const val AWB_FLUORESCENT = 3
+        const val AWB_WARM_FLUORESCENT = 4
+        const val AWB_DAYLIGHT = 5
+        const val AWB_CLOUDY_DAYLIGHT = 6
+        const val AWB_TWILIGHT = 7
+        const val AWB_SHADE = 8
+    }
+
     const val LANDSCAPE_90 = 90
     const val LANDSCAPE_270 = 270
 }

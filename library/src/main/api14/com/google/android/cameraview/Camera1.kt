@@ -119,7 +119,7 @@ internal class Camera1(
             TODO("set internal")
         }
 
-    override var awb: Boolean = false
+    override var awb: Int = Modes.AutoWhiteBalance.AWB_OFF
         get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
         set(awb) {
             if (awb == field) return

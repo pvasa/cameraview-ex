@@ -30,9 +30,19 @@
         <!-- Continuous auto focus mode. -->
         <attr name="autoFocus" format="boolean" />
 
-        <attr name="touchToFocus" format="boolean" />
+        <!--<attr name="touchToFocus" format="boolean" />-->
 
-        <attr name="awb" format="boolean" />
+        <attr name="awb" format="enum">
+            <enum name="off" value="0" />
+            <enum name="auto" value="1" />
+            <enum name="incandescent" value="2" />
+            <enum name="fluorescent" value="3" />
+            <enum name="warm_fluorescent" value="4" />
+            <enum name="daylight" value="5" />
+            <enum name="cloudy_daylight" value="6" />
+            <enum name="twilight" value="7" />
+            <enum name="shade" value="8" />
+        </attr>
 
         <!-- The flash mode. -->
         <attr name="flash" format="enum">
@@ -60,7 +70,7 @@
             <enum name="redEye" value="4" />
         </attr>
 
-        <attr name="ae" format="boolean" />
+        <!--<attr name="ae" format="boolean" />-->
 
         <attr name="opticalStabilization" format="boolean" />
 

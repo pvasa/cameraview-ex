@@ -213,9 +213,10 @@ internal open class Camera2(
             }
         }
 
-    override var awb: Boolean = true
+    override var awb: Int = Modes.AutoWhiteBalance.AWB_OFF
         set(awb) {
             if (field == awb) return
+            val saved = field
             field = awb
             updateAutoWhiteBalance()
             try {
@@ -225,7 +226,7 @@ internal open class Camera2(
                         null
                 )
             } catch (e: CameraAccessException) {
-                field = !field // Revert
+                field = saved // Revert
             }
         }
 
@@ -588,28 +589,13 @@ internal open class Camera2(
     }
 
     private fun updateAutoWhiteBalance() {
-        if (awb) {
+        previewRequestBuilder?.apply {
             val modes = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES)
-            // Auto focus is not supported
-            if (!ae
-                    || modes == null
+            if (modes == null
                     || modes.isEmpty()
                     || (modes.size == 1 && modes[0] == CameraCharacteristics.CONTROL_AWB_MODE_OFF)) {
-                previewRequestBuilder?.set(
-                        CaptureRequest.CONTROL_AWB_MODE,
-                        CaptureRequest.CONTROL_AWB_MODE_OFF
-                )
-            } else {
-                previewRequestBuilder?.set(
-                        CaptureRequest.CONTROL_AWB_MODE,
-                        CaptureRequest.CONTROL_AWB_MODE_AUTO
-                )
-            }
-        } else {
-            previewRequestBuilder?.set(
-                    CaptureRequest.CONTROL_AWB_MODE,
-                    CaptureRequest.CONTROL_AWB_MODE_OFF
-            )
+                set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_OFF)
+            } else if (modes.contains(awb)) set(CaptureRequest.CONTROL_AWB_MODE, awb)
         }
     }
 
