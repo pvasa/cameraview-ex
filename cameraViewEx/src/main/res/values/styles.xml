@@ -13,7 +13,7 @@
 <resources>
 
     <style name="Widget.CameraView" parent="android:Widget">
-        <item name="android:adjustViewBounds">false</item>
+        <item name="android:adjustViewBounds">true</item>
         <item name="facing">back</item>
         <item name="aspectRatio">4:3</item>
         <item name="autoFocus">true</item>
@@ -23,6 +23,7 @@
         <!--<item name="ae">true</item>-->
         <item name="opticalStabilization">true</item>
         <item name="noiseReduction">high_quality</item>
+        <item name="shutter">short_time</item>
     </style>
 
 </resources>

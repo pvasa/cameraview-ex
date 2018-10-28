@@ -1,31 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".camera.CameraActivity"
+    tools:ignore="ContentDescription">
+
+    <ImageView
+        android:id="@+id/ivFlashSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="18dp"
+        android:src="@drawable/ic_flash_auto"
+        app:layout_constraintBottom_toTopOf="@id/camera"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.priyankvasa.android.cameraviewex.CameraView
         android:id="@+id/camera"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="?attr/actionBarSize"
         android:adjustViewBounds="true"
-        android:background="@android:color/black"
-        app:aspectRatio="4:3"
+        android:keepScreenOn="true"
         app:autoFocus="true"
         app:awb="auto"
         app:facing="back"
         app:flash="auto"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:noiseReduction="high_quality"
-        app:opticalStabilization="true" />
+        app:opticalStabilization="true"
+        app:shutter="short_time" />
 
-    <Button
-        android:id="@+id/buttonCapture"
+    <ImageView
+        android:id="@+id/ivCaptureButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="36dp"
-        android:text="Capture"
+        android:src="@drawable/ic_camera_capture"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

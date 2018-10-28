@@ -64,9 +64,7 @@
               driver.
             -->
             <enum name="auto" value="3" />
-            <!--
-              Flash will be fired in red-eye reduction mode.
-            -->
+            <!--Flash will be fired in red-eye reduction mode.-->
             <enum name="redEye" value="4" />
         </attr>
 
@@ -80,6 +78,12 @@
             <enum name="high_quality" value="2" />
             <enum name="minimal" value="3" />
             <enum name="zero_shutter_lag" value="4" />
+        </attr>
+
+        <attr name="shutter" format="enum">
+            <enum name="off" value="0" />
+            <enum name="short_time" value="200" />
+            <enum name="long_time" value="400" />
         </attr>
 
     </declare-styleable>
