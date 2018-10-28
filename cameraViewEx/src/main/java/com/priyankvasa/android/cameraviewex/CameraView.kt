@@ -19,6 +19,7 @@ package com.priyankvasa.android.cameraviewex
 import android.app.Activity
 import android.content.Context
 import android.os.Build
+import android.os.Bundle
 import android.os.Parcelable
 import android.support.annotation.IntDef
 import android.support.v4.view.ViewCompat
@@ -45,6 +46,9 @@ import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION
 import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_MINIMAL
 import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_OFF
 import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_ZERO_SHUTTER_LAG
+import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_LONG
+import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_OFF
+import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_SHORT
 import kotlinx.android.parcel.Parcelize
 import java.util.ArrayList
 
@@ -56,11 +60,14 @@ class CameraView @JvmOverloads constructor(
 
     /** Direction the camera faces relative to device screen. */
     @IntDef(Modes.FACING_BACK, Modes.FACING_FRONT)
-    @Retention(AnnotationRetention.SOURCE)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Facing
 
     /** The mode for the camera device's flash control */
     @IntDef(FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Flash
 
     /** The mode for the camera device's noise reduction control */
@@ -69,6 +76,8 @@ class CameraView @JvmOverloads constructor(
             NOISE_REDUCTION_HIGH_QUALITY,
             NOISE_REDUCTION_MINIMAL,
             NOISE_REDUCTION_ZERO_SHUTTER_LAG)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class NoiseReduction
 
     /** The mode for the camera device's auto white balance control */
@@ -81,7 +90,17 @@ class CameraView @JvmOverloads constructor(
             AWB_CLOUDY_DAYLIGHT,
             AWB_TWILIGHT,
             AWB_SHADE)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Awb
+
+    /** Shutter time in milliseconds */
+    @IntDef(SHUTTER_OFF,
+            SHUTTER_SHORT,
+            SHUTTER_LONG)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
+    annotation class Shutter
 
     private val preview = createPreviewImpl(context)
 
@@ -117,10 +136,11 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Direction that the current camera faces. */
+    @get:Facing
+    @setparam:Facing
     var facing: Int
-        @Facing
         get() = cameraViewImpl.facing
-        set(@Facing facing) {
+        set(facing) {
             cameraViewImpl.facing = facing
         }
 
@@ -131,9 +151,7 @@ class CameraView @JvmOverloads constructor(
     var aspectRatio: AspectRatio
         get() = cameraViewImpl.aspectRatio
         set(ratio) {
-            if (cameraViewImpl.setAspectRatio(ratio)) {
-                requestLayout()
-            }
+            if (cameraViewImpl.setAspectRatio(ratio)) requestLayout()
         }
 
     /**
@@ -154,18 +172,20 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current auto white balance mode */
+    @get:Awb
+    @setparam:Awb
     var awb: Int
-        @Awb
         get() = cameraViewImpl.awb
-        set(@Awb awb) {
+        set(awb) {
             cameraViewImpl.awb = awb
         }
 
     /** Current flash mode */
+    @get:Flash
+    @setparam:Flash
     var flash: Int
-        @Flash
         get() = cameraViewImpl.flash
-        set(@Flash flash) {
+        set(flash) {
             cameraViewImpl.flash = flash
         }
 
@@ -176,17 +196,29 @@ class CameraView @JvmOverloads constructor(
             cameraViewImpl.ae = ae
         }
 
+    /** Current optical stabilization mode */
     var opticalStabilization: Boolean
         get() = cameraViewImpl.opticalStabilization
         set(opticalStabilization) {
             cameraViewImpl.opticalStabilization = opticalStabilization
         }
 
+    /** Current noise reduction mode */
+    @get:NoiseReduction
+    @setparam:NoiseReduction
     var noiseReduction: Int
-        @NoiseReduction
         get() = cameraViewImpl.noiseReduction
-        set(@NoiseReduction noiseReduction) {
+        set(noiseReduction) {
             cameraViewImpl.noiseReduction = noiseReduction
+        }
+
+    /** Current shutter time in milliseconds */
+    @get:Shutter
+    @setparam:Shutter
+    var shutter: Int
+        get() = cameraViewImpl.shutter
+        set(shutter) {
+            cameraViewImpl.shutter = shutter
         }
 
     init {
@@ -202,20 +234,25 @@ class CameraView @JvmOverloads constructor(
                     R.style.Widget_CameraView
             )
 
-            adjustViewBounds = attr.getBoolean(R.styleable.CameraView_android_adjustViewBounds, false)
+            adjustViewBounds = attr.getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
             facing = attr.getInt(R.styleable.CameraView_facing, FACING_BACK)
             aspectRatio = attr.getString(R.styleable.CameraView_aspectRatio)
                     ?.let { AspectRatio.parse(it) }
                     ?: Modes.DEFAULT_ASPECT_RATIO
-            autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, false)
-//            touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, false)
-            awb = attr.getInt(R.styleable.CameraView_awb, AWB_OFF)
-            flash = attr.getInt(R.styleable.CameraView_flash, FLASH_OFF)
-//            ae = attr.getBoolean(R.styleable.CameraView_ae, false)
-            opticalStabilization = attr.getBoolean(R.styleable.CameraView_opticalStabilization, false)
-            noiseReduction = attr.getInt(R.styleable.CameraView_noiseReduction, NOISE_REDUCTION_OFF)
+            autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
+//            touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+            awb = attr.getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
+            flash = attr.getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
+//            ae = attr.getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
+            opticalStabilization = attr.getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
+            noiseReduction = attr.getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
+            shutter = attr.getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
 
             attr.recycle()
+
+            // Add shutter view
+            addView(preview.shutterView)
+            preview.shutterView.layoutParams = preview.view.layoutParams
         }
     }
 
@@ -274,22 +311,26 @@ class CameraView @JvmOverloads constructor(
         if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) {
             ratio = ratio.inverse()
         }
-        if (height < width * ratio.y / ratio.x) {
-            cameraViewImpl.view.measure(
-                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(width * ratio.y / ratio.x,
-                            View.MeasureSpec.EXACTLY))
-        } else {
-            cameraViewImpl.view.measure(
-                    View.MeasureSpec.makeMeasureSpec(height * ratio.x / ratio.y,
-                            View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
-        }
+        if (height < width * ratio.y / ratio.x) cameraViewImpl.view.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(
+                        width * ratio.y / ratio.x,
+                        View.MeasureSpec.EXACTLY
+                )
+        ) else cameraViewImpl.view.measure(
+                View.MeasureSpec.makeMeasureSpec(
+                        height * ratio.x / ratio.y,
+                        View.MeasureSpec.EXACTLY
+                ),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+        )
+
+        preview.shutterView.layoutParams = preview.view.layoutParams
     }
 
     override fun onSaveInstanceState(): Parcelable? =
             SavedState(
-                    super.onSaveInstanceState(),
+                    super.onSaveInstanceState() ?: Bundle(),
                     facing,
                     aspectRatio,
                     autoFocus,
@@ -298,7 +339,8 @@ class CameraView @JvmOverloads constructor(
                     flash,
                     ae,
                     opticalStabilization,
-                    noiseReduction
+                    noiseReduction,
+                    shutter
             )
 
     override fun onRestoreInstanceState(state: Parcelable?) {
@@ -317,6 +359,7 @@ class CameraView @JvmOverloads constructor(
             ae = it.ae
             opticalStabilization = it.opticalStabilization
             noiseReduction = it.noiseReduction
+            shutter = it.shutter
         }
     }
 
@@ -329,7 +372,7 @@ class CameraView @JvmOverloads constructor(
             //store the state ,and restore this state after fall back o Camera1
             val state = onSaveInstanceState()
             // Camera2 uses legacy hardware layer; fall back to Camera1
-            cameraViewImpl = Camera1(callbacks, createPreviewImpl(context))
+            cameraViewImpl = Camera1(callbacks, preview)
             onRestoreInstanceState(state)
             cameraViewImpl.start()
         }
@@ -424,7 +467,8 @@ class CameraView @JvmOverloads constructor(
             @Flash val flash: Int,
             val ae: Boolean,
             val opticalStabilization: Boolean,
-            @NoiseReduction val noiseReduction: Int
+            @NoiseReduction val noiseReduction: Int,
+            @Shutter val shutter: Int
     ) : View.BaseSavedState(parcelable), Parcelable
 
     /**
@@ -454,6 +498,4 @@ class CameraView @JvmOverloads constructor(
          */
         open fun onPictureTaken(cameraView: CameraView, data: ByteArray) {}
     }
-
-    companion object
 }

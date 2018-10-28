@@ -20,6 +20,7 @@
     <!--<public name="ae" type="attr" />-->
     <public name="opticalStabilization" type="attr" />
     <public name="noiseReduction" type="attr" />
+    <public name="shutter" type="attr" />
 
     <public name="Widget.CameraView" type="style" />
 </resources>
