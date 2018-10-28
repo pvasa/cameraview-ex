@@ -35,7 +35,6 @@ import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_ON
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_RED_EYE
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_TORCH
-import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY
 import timber.log.Timber
 import java.util.Arrays
 
@@ -171,7 +170,7 @@ internal open class Camera2(
 
     override val isCameraOpened: Boolean get() = camera != null
 
-    override var facing: Int = Modes.FACING_BACK
+    override var facing: Int = Modes.DEFAULT_FACING
         set(facing) {
             if (field == facing) return
             field = facing
@@ -183,7 +182,7 @@ internal open class Camera2(
 
     override val supportedAspectRatios: Set<AspectRatio> get() = previewSizes.ratios()
 
-    override var autoFocus: Boolean = false
+    override var autoFocus: Boolean = Modes.DEFAULT_AUTO_FOCUS
         set(autoFocus) {
             if (field == autoFocus) return
             field = autoFocus
@@ -199,7 +198,7 @@ internal open class Camera2(
             }
         }
 
-    override var touchToFocus: Boolean = false
+    override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
         set(touchToFocus) {
             if (field == touchToFocus) return
             field = touchToFocus
@@ -215,7 +214,7 @@ internal open class Camera2(
             }
         }
 
-    override var awb: Int = Modes.AutoWhiteBalance.AWB_OFF
+    override var awb: Int = Modes.DEFAULT_AWB
         set(awb) {
             if (field == awb) return
             val saved = field
@@ -232,7 +231,7 @@ internal open class Camera2(
             }
         }
 
-    override var flash: Int = Modes.Flash.FLASH_OFF
+    override var flash: Int = Modes.DEFAULT_FLASH
         set(flash) {
             if (field == flash) return
             val saved = field
@@ -249,7 +248,7 @@ internal open class Camera2(
             }
         }
 
-    override var ae: Boolean = true
+    override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
         set(ae) {
             if (field == ae) return
             field = ae
@@ -265,7 +264,7 @@ internal open class Camera2(
             }
         }
 
-    override var opticalStabilization: Boolean = true
+    override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
         set(opticalStabilization) {
             if (field == opticalStabilization) return
             field = opticalStabilization
@@ -281,7 +280,7 @@ internal open class Camera2(
             }
         }
 
-    override var noiseReduction: Int = NOISE_REDUCTION_HIGH_QUALITY
+    override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         set(noiseReduction) {
             if (field == noiseReduction) return
             val saved = field
@@ -296,6 +295,12 @@ internal open class Camera2(
             } catch (e: CameraAccessException) {
                 field = saved // Revert
             }
+        }
+
+    override var shutter: Int
+        get() = preview.shutterView.shutterTime
+        set(shutter) {
+            preview.shutterView.shutterTime = shutter
         }
 
     override var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
@@ -724,6 +729,16 @@ internal open class Camera2(
             captureSession?.capture(
                     captureRequestBuilder.build(),
                     object : CameraCaptureSession.CaptureCallback() {
+
+                        override fun onCaptureStarted(
+                                session: CameraCaptureSession,
+                                request: CaptureRequest,
+                                timestamp: Long,
+                                frameNumber: Long
+                        ) {
+                            preview.shutterView.show()
+                        }
+
                         override fun onCaptureCompleted(
                                 session: CameraCaptureSession,
                                 request: CaptureRequest,

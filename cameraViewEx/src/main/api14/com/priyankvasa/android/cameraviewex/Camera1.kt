@@ -147,6 +147,10 @@ internal class Camera1(
         get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
         set(value) {}
 
+    override var shutter: Int
+        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+        set(value) {}
+
     init {
         preview.setCallback(object : PreviewImpl.Callback {
             override fun onSurfaceChanged() {
