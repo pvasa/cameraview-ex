@@ -56,6 +56,7 @@ dependencies {
     // Android support
     implementation "com.android.support:support-annotations:${rootProject.ext.supportVersion}"
     implementation "com.android.support:support-v4:${rootProject.ext.supportVersion}"
+    implementation "com.android.support:transition:${rootProject.ext.supportVersion}"
 
     // Timber
     implementation "com.jakewharton.timber:timber:${rootProject.ext.timberVersion}"
