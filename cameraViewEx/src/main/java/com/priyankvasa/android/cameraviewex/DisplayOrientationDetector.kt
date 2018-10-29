@@ -1,4 +1,6 @@
 /*
+ * Copyright 2018 Priyank Vasa
+ *
  * Copyright (C) 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,26 +29,26 @@ import android.view.Surface
  */
 internal abstract class DisplayOrientationDetector(context: Context) {
 
-    private val mOrientationEventListener: OrientationEventListener
+    private val orientationEventListener: OrientationEventListener
 
-    var mDisplay: Display? = null
+    var display: Display? = null
 
     var lastKnownDisplayOrientation = 0
         private set
 
     init {
-        mOrientationEventListener = object : OrientationEventListener(context) {
+        orientationEventListener = object : OrientationEventListener(context) {
 
             /** This is either Surface.Rotation_0, _90, _180, _270, or -1 (invalid).  */
-            private var mLastKnownRotation = -1
+            private var lastKnownRotation = -1
 
             override fun onOrientationChanged(orientation: Int) {
-                if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN || mDisplay == null) {
+                if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN || display == null) {
                     return
                 }
-                val rotation = mDisplay!!.rotation
-                if (mLastKnownRotation != rotation) {
-                    mLastKnownRotation = rotation
+                val rotation = display?.rotation ?: lastKnownRotation
+                if (lastKnownRotation != rotation) {
+                    lastKnownRotation = rotation
                     dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(rotation))
                 }
             }
@@ -54,15 +56,15 @@ internal abstract class DisplayOrientationDetector(context: Context) {
     }
 
     fun enable(display: Display) {
-        mDisplay = display
-        mOrientationEventListener.enable()
+        this.display = display
+        orientationEventListener.enable()
         // Immediately dispatch the first callback
         dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(display.rotation))
     }
 
     fun disable() {
-        mOrientationEventListener.disable()
-        mDisplay = null
+        orientationEventListener.disable()
+        display = null
     }
 
     fun dispatchOnDisplayOrientationChanged(displayOrientation: Int) {

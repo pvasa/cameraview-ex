@@ -1,4 +1,6 @@
 /*
+ * Copyright 2018 Priyank Vasa
+ *
  * Copyright (C) 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
@@ -800,15 +803,17 @@ internal open class Camera2(
                     when (result.get(CaptureResult.CONTROL_AF_STATE) ?: return) { // af state
                         CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED,
                         CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED -> {
-                            when (result.get(CaptureResult.CONTROL_AE_STATE)) { // ae state
-                                null, CaptureResult.CONTROL_AE_STATE_CONVERGED -> {
-                                    setState(STATE_CAPTURING)
-                                    onReady()
-                                }
-                                else -> {
-                                    setState(STATE_LOCKED)
-                                    onPreCaptureRequired()
-                                }
+
+                            val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
+                            val awbState = result.get(CaptureResult.CONTROL_AWB_STATE)
+
+                            if ((aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED)
+                                    && (awbState == null || awbState == CaptureResult.CONTROL_AWB_STATE_CONVERGED)) {
+                                setState(STATE_CAPTURING)
+                                onReady()
+                            } else {
+                                setState(STATE_LOCKED)
+                                onPreCaptureRequired()
                             }
                         }
                     }
