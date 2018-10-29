@@ -1,4 +1,6 @@
 /*
+ * Copyright 2018 Priyank Vasa
+ *
  * Copyright (C) 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 @file:Suppress("DEPRECATION")
 
 package com.priyankvasa.android.cameraviewex
@@ -45,7 +48,7 @@ internal class Camera1(
 
     private var cameraParameters: Camera.Parameters? = null
 
-    private val mCameraInfo = Camera.CameraInfo()
+    private val cameraInfo = Camera.CameraInfo()
 
     private val previewSizes = SizeMap()
 
@@ -78,13 +81,9 @@ internal class Camera1(
                 cameraParameters?.setRotation(calcCameraRotation(displayOrientation))
                 camera?.parameters = cameraParameters
                 val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
-                if (needsToStopPreview) {
-                    camera?.stopPreview()
-                }
+                if (needsToStopPreview) camera?.stopPreview()
                 camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
-                if (needsToStopPreview) {
-                    camera?.startPreview()
-                }
+                if (needsToStopPreview) camera?.startPreview()
             }
         }
 
@@ -101,7 +100,7 @@ internal class Camera1(
             return idealAspectRatios.ratios()
         }
 
-    override var autoFocus: Boolean = false
+    override var autoFocus: Boolean = Modes.DEFAULT_AUTO_FOCUS
         get() {
             if (!isCameraOpened) return field
             val focusMode = cameraParameters?.focusMode
@@ -112,52 +111,58 @@ internal class Camera1(
             if (setAutoFocusInternal(autoFocus)) camera?.parameters = cameraParameters
         }
 
-    override var touchToFocus: Boolean = false
-        get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
+    override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
+        get() = if (!isCameraOpened) field else false // TODO("Check cameraParameters")
         set(touchToFocus) {
             if (touchToFocus == field) return
-            TODO("set internal")
+            // TODO("set internal")
         }
 
-    override var awb: Int = Modes.AutoWhiteBalance.AWB_OFF
-        get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
+    override var awb: Int = Modes.DEFAULT_AWB
+        get() = if (!isCameraOpened) field else Modes.DEFAULT_AWB // TODO("Check cameraParameters")
         set(awb) {
             if (awb == field) return
-            TODO("set internal")
+            // TODO("set internal")
         }
 
-    override var flash: Int = FLASH_OFF
+    override var flash: Int = Modes.DEFAULT_FLASH
         set(flash) {
             if (flash == field) return
             if (setFlashInternal(flash)) camera?.parameters = cameraParameters
         }
 
-    override var ae: Boolean = false
-        get() = if (!isCameraOpened) field else TODO("Check cameraParameters")
+    override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
+        get() = if (!isCameraOpened) field else Modes.DEFAULT_AUTO_EXPOSURE // TODO("Check cameraParameters")
         set(ae) {
             if (ae == field) return
-            TODO("set internal")
+            // TODO("set internal")
         }
 
-    override var opticalStabilization: Boolean
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
-        set(value) {}
+    override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
+        get() = if (!isCameraOpened) field else Modes.DEFAULT_OPTICAL_STABILIZATION // TODO("Check cameraParameters")
+        set(opticalStabilization) {
+            if (opticalStabilization == field) return
+            // TODO("set internal")
+        }
 
-    override var noiseReduction: Int
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
-        set(value) {}
+    override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
+        get() = if (!isCameraOpened) field else Modes.DEFAULT_NOISE_REDUCTION // TODO("Check cameraParameters")
+        set(noiseReduction) {
+            if (noiseReduction == field) return
+            // TODO("set internal")
+        }
 
     override var shutter: Int
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
-        set(value) {}
+        get() = preview.shutterView.shutterTime
+        set(shutter) {
+            preview.shutterView.shutterTime = shutter
+        }
 
     init {
         preview.setCallback(object : PreviewImpl.Callback {
             override fun onSurfaceChanged() {
-                if (camera != null) {
-                    setUpPreview()
-                    adjustCameraParameters()
-                }
+                setUpPreview()
+                adjustCameraParameters()
             }
         })
     }
@@ -165,18 +170,14 @@ internal class Camera1(
     override fun start(): Boolean {
         chooseCamera()
         openCamera()
-        if (preview.isReady) {
-            setUpPreview()
-        }
+        if (preview.isReady) setUpPreview()
         showingPreview = true
-        camera!!.startPreview()
+        camera?.startPreview()
         return true
     }
 
     override fun stop() {
-        if (camera != null) {
-            camera!!.stopPreview()
-        }
+        camera?.stopPreview()
         showingPreview = false
         releaseCamera()
     }
@@ -188,14 +189,14 @@ internal class Camera1(
             if (preview.outputClass === SurfaceHolder::class.java) {
                 val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
                 if (needsToStopPreview) {
-                    camera!!.stopPreview()
+                    camera?.stopPreview()
                 }
-                camera!!.setPreviewDisplay(preview.surfaceHolder)
+                camera?.setPreviewDisplay(preview.surfaceHolder)
                 if (needsToStopPreview) {
-                    camera!!.startPreview()
+                    camera?.startPreview()
                 }
             } else {
-                camera!!.setPreviewTexture(preview.surfaceTexture as SurfaceTexture)
+                camera?.setPreviewTexture(preview.surfaceTexture as SurfaceTexture)
             }
         } catch (e: IOException) {
             throw RuntimeException(e)
@@ -235,24 +236,24 @@ internal class Camera1(
 
     private fun takePictureInternal() {
         if (!isPictureCaptureInProgress.getAndSet(true)) {
-            camera!!.takePicture(null, null, null, Camera.PictureCallback { data, camera ->
+            camera?.takePicture(null, null, null, Camera.PictureCallback { data, camera ->
                 isPictureCaptureInProgress.set(false)
-                callback!!.onPictureTaken(data)
-                camera.cancelAutoFocus()
-                camera.startPreview()
+                callback?.onPictureTaken(data)
+                camera?.cancelAutoFocus()
+                camera?.startPreview()
             })
         }
     }
 
     /**
-     * This rewrites [.cameraId] and [.mCameraInfo].
+     * This rewrites [.cameraId] and [.cameraInfo].
      */
     private fun chooseCamera() {
         var i = 0
         val count = Camera.getNumberOfCameras()
         while (i < count) {
-            Camera.getCameraInfo(i, mCameraInfo)
-            if (mCameraInfo.facing == facing) {
+            Camera.getCameraInfo(i, cameraInfo)
+            if (cameraInfo.facing == facing) {
                 cameraId = i
                 return
             }
@@ -262,19 +263,17 @@ internal class Camera1(
     }
 
     private fun openCamera() {
-        if (camera != null) {
-            releaseCamera()
-        }
+        releaseCamera()
         camera = Camera.open(cameraId)
-        cameraParameters = camera!!.parameters
+        cameraParameters = camera?.parameters
         // Supported preview sizes
         previewSizes.clear()
-        for (size in cameraParameters!!.supportedPreviewSizes) {
+        cameraParameters?.supportedPreviewSizes?.forEach { size ->
             previewSizes.add(Size(size.width, size.height))
         }
         // Supported picture sizes;
         pictureSizes.clear()
-        for (size in cameraParameters!!.supportedPictureSizes) {
+        cameraParameters?.supportedPictureSizes?.forEach { size ->
             pictureSizes.add(Size(size.width, size.height))
         }
         adjustCameraParameters()
@@ -304,21 +303,17 @@ internal class Camera1(
         // Always re-apply camera parameters
         // Largest picture size in this ratio
         val pictureSize = pictureSizes.sizes(aspectRatio).last()
-        if (showingPreview) {
-            camera!!.stopPreview()
-        }
-        cameraParameters?.setPreviewSize(size!!.width, size.height)
+        if (showingPreview) camera?.stopPreview()
+        cameraParameters?.setPreviewSize(size.width, size.height)
         cameraParameters?.setPictureSize(pictureSize.width, pictureSize.height)
         cameraParameters?.setRotation(calcCameraRotation(displayOrientation))
         setAutoFocusInternal(this.autoFocus)
         setFlashInternal(this.flash)
-        camera!!.parameters = cameraParameters
-        if (showingPreview) {
-            camera!!.startPreview()
-        }
+        camera?.parameters = cameraParameters
+        if (showingPreview) camera?.startPreview()
     }
 
-    private fun chooseOptimalSize(sizes: SortedSet<Size>): Size? {
+    private fun chooseOptimalSize(sizes: SortedSet<Size>): Size {
         if (!preview.isReady) { // Not yet laid out
             return sizes.first() // Return the smallest size
         }
@@ -333,23 +328,16 @@ internal class Camera1(
             desiredWidth = surfaceWidth
             desiredHeight = surfaceHeight
         }
-        var result: Size? = null
         for (size in sizes) { // Iterate from small to large
-            if (desiredWidth <= size.width && desiredHeight <= size.height) {
-                return size
-
-            }
-            result = size
+            if (desiredWidth <= size.width && desiredHeight <= size.height) return size
         }
-        return result
+        return sizes.last()
     }
 
     private fun releaseCamera() {
-        if (camera != null) {
-            camera!!.release()
-            camera = null
-            callback!!.onCameraClosed()
-        }
+        camera?.release()
+        camera = null
+        callback?.onCameraClosed()
     }
 
     /**
@@ -366,10 +354,10 @@ internal class Camera1(
      * @return Number of degrees required to rotate preview
      */
     private fun calcDisplayOrientation(screenOrientationDegrees: Int): Int {
-        return if (mCameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            (360 - (mCameraInfo.orientation + screenOrientationDegrees) % 360) % 360
+        return if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            (360 - (cameraInfo.orientation + screenOrientationDegrees) % 360) % 360
         } else {  // back-facing
-            (mCameraInfo.orientation - screenOrientationDegrees + 360) % 360
+            (cameraInfo.orientation - screenOrientationDegrees + 360) % 360
         }
     }
 
@@ -387,12 +375,12 @@ internal class Camera1(
      * @return Number of degrees to rotate image in order for it to view correctly.
      */
     private fun calcCameraRotation(screenOrientationDegrees: Int): Int {
-        return when (mCameraInfo.facing) {
+        return when (cameraInfo.facing) {
             Camera.CameraInfo.CAMERA_FACING_FRONT ->
-                (mCameraInfo.orientation + screenOrientationDegrees) % 360
+                (cameraInfo.orientation + screenOrientationDegrees) % 360
             else -> {  // back-facing
                 val landscapeFlip = if (isLandscape(screenOrientationDegrees)) 180 else 0
-                (mCameraInfo.orientation + screenOrientationDegrees + landscapeFlip) % 360
+                (cameraInfo.orientation + screenOrientationDegrees + landscapeFlip) % 360
             }
         }
     }
@@ -436,16 +424,16 @@ internal class Camera1(
      */
     private fun setFlashInternal(flash: Int): Boolean {
         if (isCameraOpened) {
-            val modes = cameraParameters!!.supportedFlashModes
+            val modes = cameraParameters?.supportedFlashModes
             val mode = FLASH_MODES.get(flash)
-            if (modes != null && modes.contains(mode)) {
-                cameraParameters!!.flashMode = mode
+            if (modes?.contains(mode) == true) {
+                cameraParameters?.flashMode = mode
                 this.flash = flash
                 return true
             }
             val currentMode = FLASH_MODES.get(this.flash)
             if (modes == null || !modes.contains(currentMode)) {
-                cameraParameters!!.flashMode = Camera.Parameters.FLASH_MODE_OFF
+                cameraParameters?.flashMode = Camera.Parameters.FLASH_MODE_OFF
                 this.flash = FLASH_OFF
                 return true
             }
