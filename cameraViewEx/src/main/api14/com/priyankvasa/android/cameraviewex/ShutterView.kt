@@ -20,8 +20,8 @@ import android.content.Context
 import android.content.res.Resources
 import android.os.Handler
 import android.support.annotation.ColorRes
+import android.support.transition.TransitionManager
 import android.support.v4.app.ActivityCompat
-import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
