@@ -1,3 +1,5 @@
+// Copyright 2018 Priyank Vasa
+//
 // Copyright (C) 2016 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +28,7 @@ android {
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
-        consumerProguardFiles 'lib-proguard-rules.txt'
+        consumerProguardFiles 'proguard-rules.pro'
     }
 
     buildTypes {
@@ -76,3 +78,5 @@ dependencies {
 androidExtensions {
     experimental = true
 }
+
+apply from: 'publish.gradle'
