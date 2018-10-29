@@ -14,8 +14,8 @@ import com.priyankvasa.android.cameraviewex.CameraView
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.cameraviewexsample.OnSwipeListener
 import com.priyankvasa.cameraviewexsample.R
-import kotlinx.android.synthetic.main.fragment_camera.buttonCapture
 import kotlinx.android.synthetic.main.fragment_camera.camera
+import kotlinx.android.synthetic.main.fragment_camera.ivCaptureButton
 import kotlinx.android.synthetic.main.fragment_camera.ivFlashSwitch
 import kotlinx.android.synthetic.main.fragment_camera.ivPhoto
 
@@ -57,7 +57,7 @@ class CameraFragment : Fragment() {
 
         setupCamera()
 
-        buttonCapture.setOnClickListener { camera.capture() }
+        ivCaptureButton.setOnClickListener { camera.capture() }
 
         ivFlashSwitch.setOnClickListener { _ ->
 

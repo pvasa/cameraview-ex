@@ -26,7 +26,7 @@ import android.view.View
  */
 internal abstract class PreviewImpl {
 
-    private var mCallback: Callback? = null
+    private var callback: Callback? = null
 
     var width: Int = 0
         private set
@@ -37,6 +37,8 @@ internal abstract class PreviewImpl {
     internal abstract val surface: Surface?
 
     internal abstract val view: View
+
+    internal val shutterView: ShutterView by lazy { ShutterView(view.context) }
 
     internal abstract val outputClass: Class<*>
 
@@ -53,13 +55,13 @@ internal abstract class PreviewImpl {
     }
 
     fun setCallback(callback: Callback) {
-        mCallback = callback
+        this.callback = callback
     }
 
     internal abstract fun setDisplayOrientation(displayOrientation: Int)
 
     protected fun dispatchSurfaceChanged() {
-        mCallback?.onSurfaceChanged()
+        callback?.onSurfaceChanged()
     }
 
     internal open fun setBufferSize(width: Int, height: Int) {}

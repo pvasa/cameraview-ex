@@ -22,7 +22,8 @@ import android.annotation.TargetApi
 
 object Modes {
 
-    val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
+    const val LANDSCAPE_90 = 90
+    const val LANDSCAPE_270 = 270
 
     const val FACING_BACK = 0
     const val FACING_FRONT = 1
@@ -45,6 +46,12 @@ object Modes {
         const val NOISE_REDUCTION_ZERO_SHUTTER_LAG = 4
     }
 
+    object Shutter {
+        const val SHUTTER_OFF = 0 // ms
+        const val SHUTTER_SHORT = 200 // ms
+        const val SHUTTER_LONG = 400 // ms
+    }
+
     object AutoWhiteBalance {
         const val AWB_OFF = 0
         const val AWB_AUTO = 1
@@ -57,6 +64,15 @@ object Modes {
         const val AWB_SHADE = 8
     }
 
-    const val LANDSCAPE_90 = 90
-    const val LANDSCAPE_270 = 270
+    const val DEFAULT_ADJUST_VIEW_BOUNDS = false
+    val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
+    const val DEFAULT_FACING = FACING_BACK
+    const val DEFAULT_AUTO_FOCUS = false
+    const val DEFAULT_AUTO_EXPOSURE = false
+    const val DEFAULT_TOUCH_TO_FOCUS = false
+    const val DEFAULT_OPTICAL_STABILIZATION = false
+    const val DEFAULT_FLASH = Flash.FLASH_OFF
+    const val DEFAULT_NOISE_REDUCTION = NoiseReduction.NOISE_REDUCTION_OFF
+    const val DEFAULT_SHUTTER = Shutter.SHUTTER_OFF
+    const val DEFAULT_AWB = AutoWhiteBalance.AWB_OFF
 }

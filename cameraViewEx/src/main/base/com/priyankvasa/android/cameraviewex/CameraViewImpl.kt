@@ -35,6 +35,8 @@ internal abstract class CameraViewImpl(
 
     internal abstract val aspectRatio: AspectRatio
 
+    internal abstract var shutter: Int
+
     internal abstract var autoFocus: Boolean
 
     internal abstract var touchToFocus: Boolean

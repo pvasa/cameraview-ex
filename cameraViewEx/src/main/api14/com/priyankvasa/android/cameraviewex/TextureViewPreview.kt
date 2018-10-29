@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
@@ -30,7 +29,9 @@ import android.view.ViewGroup
 @TargetApi(14)
 internal class TextureViewPreview(context: Context, parent: ViewGroup) : PreviewImpl() {
 
-    private val textureView: TextureView
+    private val textureView: TextureView =
+            View.inflate(context, R.layout.texture_view, parent)
+                    .findViewById(R.id.textureView)
 
     private var displayOrientation: Int = 0
 
@@ -50,8 +51,6 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
         get() = textureView.surfaceTexture != null
 
     init {
-        val view = View.inflate(context, R.layout.texture_view, parent)
-        textureView = view.findViewById(R.id.texture_view)
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
 
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
