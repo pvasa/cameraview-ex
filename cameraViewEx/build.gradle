@@ -18,6 +18,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+ext {
+    majorVersion = 1
+    minorVersion = 0
+    patchVersion = 1
+    preRelease = 'beta'
+}
+
 android {
 
     compileSdkVersion rootProject.ext.sdkVersion
@@ -25,8 +32,8 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkLibVersion
         targetSdkVersion rootProject.ext.sdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode generateVersionCode()
+        versionName generateVersionName()
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         consumerProguardFiles 'proguard-rules.pro'
     }
@@ -74,6 +81,21 @@ dependencies {
     androidTestImplementation("com.android.support.test.espresso:espresso-core:${rootProject.ext.espressoCoreVersion}") {
         exclude module: 'support-annotations'
     }
+}
+
+private Integer generateVersionCode() {
+    return rootProject.ext.minSdkVersion * 10000000 +
+            ext.majorVersion * 10000 +
+            ext.minorVersion * 100 +
+            ext.patchVersion
+}
+
+private String generateVersionName() {
+    String versionName = "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
+    if (ext.preRelease != null && !ext.preRelease.isEmpty()) {
+        versionName = "$versionName-${ext.preRelease}"
+    }
+    return versionName
 }
 
 androidExtensions {
