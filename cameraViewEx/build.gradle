@@ -22,7 +22,6 @@ ext {
     majorVersion = 1
     minorVersion = 0
     patchVersion = 1
-    preRelease = 'beta'
 }
 
 android {
@@ -38,20 +37,38 @@ android {
         consumerProguardFiles 'proguard-rules.pro'
     }
 
+    testBuildType "stage"
+
     buildTypes {
 
-        release {
+        debug {
             minifyEnabled false
+            useProguard false
+            debuggable true
+            versionNameSuffix "-debug"
+        }
+
+        stage {
+            initWith debug
+            versionNameSuffix "-stage"
+        }
+
+        release {
+            minifyEnabled true
+            useProguard true
+            debuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
     sourceSets {
-        main.java.srcDirs += 'src/main/base'
-        main.java.srcDirs += 'src/main/api9'
-        main.java.srcDirs += 'src/main/api14'
-        main.java.srcDirs += 'src/main/api21'
-        main.java.srcDirs += 'src/main/api23'
+        main.java.srcDirs += [
+                'src/main/base',
+                'src/main/api9',
+                'src/main/api14',
+                'src/main/api21',
+                'src/main/api23'
+        ]
     }
 }
 
@@ -91,11 +108,7 @@ private Integer generateVersionCode() {
 }
 
 private String generateVersionName() {
-    String versionName = "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
-    if (ext.preRelease != null && !ext.preRelease.isEmpty()) {
-        versionName = "$versionName-${ext.preRelease}"
-    }
-    return versionName
+    return "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
 }
 
 androidExtensions {
