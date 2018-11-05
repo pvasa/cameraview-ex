@@ -76,6 +76,7 @@ cache:
     - $HOME/.android/build-cache
 
 deploy:
+  skip_cleanup: true
   provider: script
   script: ./gradlew clean install bintrayUpload
   on:
