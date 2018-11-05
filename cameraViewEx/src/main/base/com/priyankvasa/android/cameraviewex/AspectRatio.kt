@@ -16,15 +16,14 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.os.Parcel
 import android.os.Parcelable
 import android.support.v4.util.SparseArrayCompat
-import kotlinx.android.parcel.Parcelize
 
 /**
  * Immutable class for describing proportional relationship between width and height.
  */
-@Parcelize
-class AspectRatio internal constructor(val x: Int, val y: Int) : Comparable<AspectRatio>, Parcelable {
+class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<AspectRatio>, Parcelable {
 
     fun matches(size: Size): Boolean {
         val gcd = gcd(size.width, size.height)
@@ -120,5 +119,21 @@ class AspectRatio internal constructor(val x: Int, val y: Int) : Comparable<Aspe
             }
             return a
         }
+
+        @JvmField
+        val CREATOR = object : Parcelable.Creator<AspectRatio> {
+            override fun createFromParcel(parcel: Parcel): AspectRatio = AspectRatio(parcel)
+
+            override fun newArray(size: Int): Array<AspectRatio?> = arrayOfNulls(size)
+        }
     }
+
+    constructor(parcel: Parcel) : this(parcel.readInt(), parcel.readInt())
+
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeInt(x)
+        parcel.writeInt(y)
+    }
+
+    override fun describeContents(): Int = 0
 }
