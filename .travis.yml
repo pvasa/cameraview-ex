@@ -15,7 +15,6 @@
 branches:
   only:
     - master
-    - development
     - - /^release-.*$/
 
 language: android
