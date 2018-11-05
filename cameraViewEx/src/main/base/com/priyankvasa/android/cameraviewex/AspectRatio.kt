@@ -24,7 +24,7 @@ import kotlinx.android.parcel.Parcelize
  * Immutable class for describing proportional relationship between width and height.
  */
 @Parcelize
-class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<AspectRatio>, Parcelable {
+class AspectRatio internal constructor(val x: Int, val y: Int) : Comparable<AspectRatio>, Parcelable {
 
     fun matches(size: Size): Boolean {
         val gcd = gcd(size.width, size.height)
@@ -43,7 +43,7 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
         else -> false
     }
 
-    override fun toString(): String = x.toString() + ":" + y
+    override fun toString(): String = "$x:$y"
 
     fun toFloat(): Float = x.toFloat() / y
 
