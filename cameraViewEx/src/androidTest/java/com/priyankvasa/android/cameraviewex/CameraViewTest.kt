@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.priyankvasa.android.cameraviewex
 
 import android.os.SystemClock
@@ -69,7 +70,7 @@ class CameraViewTest : GrantPermissionsRule() {
         if (android.os.Build.VERSION.SDK_INT < 14) return@ViewAssertion
 
         val cameraView = view as CameraView
-        val textureView = cameraView.findViewById<TextureView>(R.id.texture_view)
+        val textureView = cameraView.findViewById<TextureView>(R.id.textureView)
         val bitmap = textureView.bitmap
         val topLeft = bitmap.getPixel(0, 0)
         val center = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
@@ -98,7 +99,7 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
                 .check(matches(isDisplayed()))
         try {
-            onView(withId(R.id.texture_view))
+            onView(withId(R.id.textureView))
                     .check(matches(isDisplayed()))
         } catch (e: NoMatchingViewException) {
             onView(withId(R.id.surface_view))
@@ -157,7 +158,7 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
                     val cameraView = view as CameraView
-                    var preview: View? = view.findViewById(R.id.texture_view)
+                    var preview: View? = view.findViewById(R.id.textureView)
                     if (preview == null) {
                         preview = view.findViewById(R.id.surface_view)
                     }
