@@ -18,6 +18,12 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+ext {
+    majorVersion = 1
+    minorVersion = 0
+    patchVersion = 1
+}
+
 android {
 
     compileSdkVersion rootProject.ext.sdkVersion
@@ -25,26 +31,42 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkLibVersion
         targetSdkVersion rootProject.ext.sdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode generateVersionCode()
+        versionName generateVersionName()
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         consumerProguardFiles 'proguard-rules.pro'
     }
 
+    testBuildType "stage"
+
     buildTypes {
 
-        release {
+        debug {
             minifyEnabled false
+            useProguard false
+            debuggable true
+            versionNameSuffix "-debug"
+        }
+
+        stage {
+            initWith debug
+            versionNameSuffix "-stage"
+        }
+
+        release {
+            debuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
     sourceSets {
-        main.java.srcDirs += 'src/main/base'
-        main.java.srcDirs += 'src/main/api9'
-        main.java.srcDirs += 'src/main/api14'
-        main.java.srcDirs += 'src/main/api21'
-        main.java.srcDirs += 'src/main/api23'
+        main.java.srcDirs += [
+                'src/main/base',
+                'src/main/api9',
+                'src/main/api14',
+                'src/main/api21',
+                'src/main/api23'
+        ]
     }
 }
 
@@ -74,6 +96,17 @@ dependencies {
     androidTestImplementation("com.android.support.test.espresso:espresso-core:${rootProject.ext.espressoCoreVersion}") {
         exclude module: 'support-annotations'
     }
+}
+
+private Integer generateVersionCode() {
+    return rootProject.ext.minSdkVersion * 10000000 +
+            ext.majorVersion * 10000 +
+            ext.minorVersion * 100 +
+            ext.patchVersion
+}
+
+private String generateVersionName() {
+    return "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
 }
 
 androidExtensions {
