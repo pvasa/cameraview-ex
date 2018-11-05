@@ -76,4 +76,10 @@ cache:
     - $HOME/.gradle/wrapper/
     - $HOME/.android/build-cache
 
+deploy:
+  provider: script
+  script: ./gradlew clean install bintrayUpload
+  on:
+    branch: master
+
 after_failure: "cat $TRAVIS_BUILD_DIR/app/build/reports/lint-results.xml"
