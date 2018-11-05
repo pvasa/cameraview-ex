@@ -15,11 +15,13 @@
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
+version generateVersionName()
+group 'com.priyankvasa.android'
+
 ext {
     bintrayRepo = 'android'
     bintrayName = 'cameraview-ex'
 
-    publishedGroupId = 'com.priyankvasa.android'
     libraryName = 'CameraViewEx'
     artifact = 'cameraview-ex'
 
@@ -42,7 +44,7 @@ install {
     repositories.mavenInstaller {
         pom.project {
             packaging 'aar'
-            groupId publishedGroupId
+            groupId this.group
             artifactId artifact
 
             name libraryName
@@ -97,10 +99,10 @@ bintray {
         publish = true
         publicDownloadNumbers = true
         version {
-            name = generateVersionName()
+            name = this.version
             desc = libraryDescription
             released = new Date()
-            vcsTag = generateVersionName()
+            vcsTag = this.version
         }
     }
 }
