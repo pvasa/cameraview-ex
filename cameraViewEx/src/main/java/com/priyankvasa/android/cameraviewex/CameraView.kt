@@ -408,6 +408,10 @@ class CameraView @JvmOverloads constructor(
         callbacks.remove(callback)
     }
 
+    fun nextFrame() {
+        cameraViewImpl.capturePreviewFrame()
+    }
+
     /**
      * Take a picture. The result will be returned to
      * [Callback.onPictureTaken].
@@ -447,6 +451,10 @@ class CameraView @JvmOverloads constructor(
 
         override fun onCameraClosed() {
             callbacks.forEach { it.onCameraClosed(this@CameraView) }
+        }
+
+        override fun onPreviewFrame(data: ByteArray) {
+            callbacks.forEach { it.onPreviewFrame(this@CameraView, data) }
         }
 
         override fun onPictureTaken(data: ByteArray) {
@@ -491,6 +499,14 @@ class CameraView @JvmOverloads constructor(
          * @param cameraView The associated [CameraView].
          */
         open fun onCameraClosed(cameraView: CameraView) {}
+
+        /**
+         * Called when a preview frame is available.
+         *
+         * @param cameraView The associated [CameraView].
+         * @param data       JPEG data.
+         */
+        open fun onPreviewFrame(cameraView: CameraView, data: ByteArray) {}
 
         /**
          * Called when a picture is taken.

@@ -19,9 +19,9 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 ext {
-    majorVersion = 1
+    majorVersion = 2
     minorVersion = 0
-    patchVersion = 1
+    patchVersion = 0
 }
 
 android {
@@ -80,6 +80,14 @@ dependencies {
     implementation "com.android.support:support-v4:${rootProject.ext.supportVersion}"
     implementation "com.android.support:transition:${rootProject.ext.supportVersion}"
 
+    // Firebase
+    implementation "com.google.firebase:firebase-core:${rootProject.ext.firebaseCore}"
+    implementation "com.google.firebase:firebase-ml-vision:${rootProject.ext.firebaseMlVision}"
+
+    // KotlinX
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:${rootProject.ext.coroutines}"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.coroutines}"
+
     // Timber
     implementation "com.jakewharton.timber:timber:${rootProject.ext.timberVersion}"
 
@@ -96,6 +104,14 @@ dependencies {
     androidTestImplementation("com.android.support.test.espresso:espresso-core:${rootProject.ext.espressoCoreVersion}") {
         exclude module: 'support-annotations'
     }
+
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'com.android.support') {
+                details.useVersion rootProject.ext.supportVersion
+            }
+        }
+    }
 }
 
 private Integer generateVersionCode() {
@@ -109,8 +125,7 @@ private String generateVersionName() {
     return "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
 }
 
-androidExtensions {
-    experimental = true
-}
+androidExtensions { experimental = true }
 
 apply from: 'publish.gradle'
+apply plugin: 'com.google.gms.google-services'

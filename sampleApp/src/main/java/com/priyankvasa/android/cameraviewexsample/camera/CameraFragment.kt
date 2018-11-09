@@ -1,4 +1,4 @@
-package com.priyankvasa.cameraviewexsample.camera
+package com.priyankvasa.android.cameraviewexsample.camera
 
 import android.os.Bundle
 import android.support.annotation.DrawableRes
@@ -12,12 +12,13 @@ import android.view.ViewGroup
 import com.bumptech.glide.Glide
 import com.priyankvasa.android.cameraviewex.CameraView
 import com.priyankvasa.android.cameraviewex.Modes
-import com.priyankvasa.cameraviewexsample.OnSwipeListener
+import com.priyankvasa.android.cameraviewexsample.OnSwipeListener
 import com.priyankvasa.cameraviewexsample.R
 import kotlinx.android.synthetic.main.fragment_camera.camera
 import kotlinx.android.synthetic.main.fragment_camera.ivCaptureButton
 import kotlinx.android.synthetic.main.fragment_camera.ivFlashSwitch
 import kotlinx.android.synthetic.main.fragment_camera.ivPhoto
+import timber.log.Timber
 
 class CameraFragment : Fragment() {
 
@@ -57,9 +58,12 @@ class CameraFragment : Fragment() {
 
         setupCamera()
 
-        ivCaptureButton.setOnClickListener { camera.capture() }
+        ivCaptureButton.setOnClickListener {
+            camera.nextFrame()
+//            camera.capture()
+        }
 
-        ivFlashSwitch.setOnClickListener { _ ->
+        ivFlashSwitch.setOnClickListener {
 
             camera.flash = when (camera.flash) {
                 Modes.Flash.FLASH_OFF -> Modes.Flash.FLASH_AUTO
@@ -84,8 +88,12 @@ class CameraFragment : Fragment() {
 
         camera.addCallback(object : CameraView.Callback() {
 
+            override fun onPreviewFrame(cameraView: CameraView, data: ByteArray) {
+                Timber.i("Preview frame available.")
+                cameraView.nextFrame()
+            }
+
             override fun onPictureTaken(cameraView: CameraView, data: ByteArray) {
-                super.onPictureTaken(cameraView, data)
 
                 ivPhoto.visibility = View.VISIBLE
 

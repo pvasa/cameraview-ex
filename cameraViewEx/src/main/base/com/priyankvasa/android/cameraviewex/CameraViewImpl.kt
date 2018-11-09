@@ -65,11 +65,14 @@ internal abstract class CameraViewImpl(
      */
     internal abstract fun setAspectRatio(ratio: AspectRatio): Boolean
 
+    internal abstract fun capturePreviewFrame()
+
     internal abstract fun takePicture()
 
     internal interface Callback {
         fun onCameraOpened()
         fun onCameraClosed()
         fun onPictureTaken(data: ByteArray)
+        fun onPreviewFrame(data: ByteArray)
     }
 }

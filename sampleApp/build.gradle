@@ -20,7 +20,6 @@ ext {
     majorVersion = 1
     minorVersion = 0
     patchVersion = 0
-    preRelease = 'beta'
 }
 
 android {
@@ -28,7 +27,7 @@ android {
     compileSdkVersion rootProject.ext.sdkVersion
 
     defaultConfig {
-        applicationId "com.priyankvasa.cameraviewexsample"
+        applicationId "com.priyankvasa.android.cameraviewexsample"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.sdkVersion
         versionCode generateVersionCode()
@@ -101,9 +100,5 @@ private Integer generateVersionCode() {
 }
 
 private String generateVersionName() {
-    String versionName = "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
-    if (ext.preRelease != null && !ext.preRelease.isEmpty()) {
-        versionName = "$versionName-${ext.preRelease}"
-    }
-    return versionName
+    return "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
 }

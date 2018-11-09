@@ -16,7 +16,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="com.priyankvasa.cameraviewexsample.camera.CameraActivity"
+            android:name="com.priyankvasa.android.cameraviewexsample.camera.CameraActivity"
             android:screenOrientation="userPortrait"
             android:theme="@style/AppTheme.FullScreen">
 

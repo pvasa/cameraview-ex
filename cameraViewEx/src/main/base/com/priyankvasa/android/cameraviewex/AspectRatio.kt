@@ -35,10 +35,7 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
     override fun equals(other: Any?): Boolean = when {
         other == null -> false
         this === other -> true
-        other is AspectRatio -> {
-            val ratio = other as? AspectRatio
-            x == ratio?.x && y == ratio.y
-        }
+        other is AspectRatio -> x == other.x && y == other.y
         else -> false
     }
 
