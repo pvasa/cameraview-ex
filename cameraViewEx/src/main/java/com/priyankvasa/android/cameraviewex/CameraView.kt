@@ -117,6 +117,12 @@ class CameraView @JvmOverloads constructor(
 
     private val preview = createPreviewImpl(context)
 
+    /** Listeners for monitoring events about [CameraView]. */
+    private val cameraOpenedListeners = HashSet<() -> Unit>()
+    private val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
+    private var previewFrameListener: ((image: Image) -> Unit)? = null
+    private val cameraClosedListeners = HashSet<() -> Unit>()
+
     private val listener = object : CameraInterface.Listener {
 
         private var requestLayoutOnOpen: Boolean = false
@@ -451,6 +457,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Stop camera preview and close the device. This is typically called from
      * [Activity.onPause].
+     * @param removeAllListeners if `true`, removes all listeners previously set. See [listener.clear]
      */
     fun stop(removeAllListeners: Boolean = false) {
         if (removeAllListeners) listener.clear()
@@ -458,56 +465,72 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * Called when camera is opened.
+     * Add a new camera opened [listener].
+     * @param listener lambda
      */
     fun addCameraOpenedListener(listener: () -> Unit): CameraView {
         if (this.listener.isEnabled) cameraOpenedListeners.add(listener)
         return this
     }
 
+    /**
+     * Remove camera opened [listener].
+     * @param listener that was previously added.
+     */
     fun removeCameraOpenedListener(listener: () -> Unit): CameraView {
         cameraOpenedListeners.remove(listener)
         return this
     }
 
+    /**
+     * Set preview frame [listener].
+     * @param listener lambda
+     */
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
         if (this.listener.isEnabled) previewFrameListener = listener
         return this
     }
 
+    /** Remove preview frame [listener]. */
     fun removePreviewFrameListener(): CameraView {
         previewFrameListener = null
         return this
     }
 
     /**
-     * Called when a picture is taken.
-     *
-     * @param imageData Image data.
+     * Add a new picture taken [listener].
+     * @param listener lambda
      */
     fun addPictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
         if (this.listener.isEnabled) pictureTakenListeners.add(listener)
         return this
     }
 
+    /** Remove picture taken [listener]. */
     fun removePictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
         pictureTakenListeners.remove(listener)
         return this
     }
 
     /**
-     * Called when camera is closed.
+     * Add a new camera closed [listener].
+     * @param listener lambda
      */
     fun addCameraClosedListener(listener: () -> Unit): CameraView {
         if (this.listener.isEnabled) cameraClosedListeners.add(listener)
         return this
     }
 
+    /**
+     * Remove camera closed [listener].
+     * @param listener that was previously added.
+     */
     fun removeCameraClosedListener(listener: () -> Unit): CameraView {
         cameraClosedListeners.remove(listener)
         return this
     }
 
+    /** Remove all listeners previously set. */
     fun removeAllListeners() {
         listener.clear()
     }
@@ -515,14 +538,6 @@ class CameraView @JvmOverloads constructor(
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
     fun capture() {
         camera.takePicture()
-    }
-
-    private companion object {
-        /** Listeners for monitoring events about [CameraView]. */
-        val cameraOpenedListeners = HashSet<() -> Unit>()
-        val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
-        var previewFrameListener: ((image: Image) -> Unit)? = null
-        val cameraClosedListeners = HashSet<() -> Unit>()
     }
 
     @Parcelize
