@@ -1,5 +1,7 @@
-package com.priyankvasa.android.cameraviewexsample
+package com.priyankvasa.android.cameraviewex
 
+import android.support.test.InstrumentationRegistry
+import android.support.test.runner.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,6 +17,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getTargetContext()
-        assertEquals("com.priyankvasa.cameraviewexsample", appContext.packageName)
+        assertEquals("com.priyankvasa.android.cameraviewex", appContext.packageName)
     }
 }

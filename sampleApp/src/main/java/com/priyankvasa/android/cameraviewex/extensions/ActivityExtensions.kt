@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewexsample.extensions
+package com.priyankvasa.android.cameraviewex.extensions
 
 import android.app.Activity
 import android.view.View

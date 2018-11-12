@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewexsample
+package com.priyankvasa.android.cameraviewex
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

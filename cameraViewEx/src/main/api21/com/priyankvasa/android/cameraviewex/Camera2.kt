@@ -31,30 +31,32 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.StreamConfigurationMap
-import android.media.Image
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.renderscript.RenderScript
 import android.util.SparseIntArray
+import android.view.Surface
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_AUTO
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_ON
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_RED_EYE
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_TORCH
-import kotlinx.coroutines.Deferred
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.JPEG
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.RGBA_8888
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.YUV_420_888
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.ArrayList
 
 @TargetApi(21)
 internal open class Camera2(
-        callback: Callback?,
-        preview: PreviewImpl,
+        final override val listener: CameraInterface.Listener,
+        final override val preview: PreviewImpl,
         context: Context
-) : CameraViewImpl(callback, preview) {
+) : CameraInterface {
 
     init {
         preview.setCallback(object : PreviewImpl.Callback {
@@ -64,17 +66,17 @@ internal open class Camera2(
         })
     }
 
-    private val rs = RenderScript.create(preview.view.context)
+    private val rs = RenderScript.create(context)
 
     /**
      * An additional thread for running tasks that shouldn't block the UI.
      */
-    private var backgroundThread: HandlerThread? = null
+    private var backgroundThread: HandlerThread? = HandlerThread("CameraViewExBackground").also { it.start() }
 
     /**
      * A [Handler] for running tasks in the background.
      */
-    private var backgroundHandler: Handler? = null
+    private var backgroundHandler: Handler? = Handler(backgroundThread?.looper)
 
     private val cameraManager: CameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
@@ -82,12 +84,12 @@ internal open class Camera2(
 
         override fun onOpened(camera: CameraDevice) {
             this@Camera2.camera = camera
-            this@Camera2.callback?.onCameraOpened()
+            listener.onCameraOpened()
             startCaptureSession()
         }
 
         override fun onClosed(camera: CameraDevice) {
-            this@Camera2.callback?.onCameraClosed()
+            listener.onCameraClosed()
         }
 
         override fun onDisconnected(camera: CameraDevice) {
@@ -124,6 +126,10 @@ internal open class Camera2(
         override fun onClosed(session: CameraCaptureSession) {
             if (captureSession != null && captureSession == session) captureSession = null
         }
+
+        override fun onReady(session: CameraCaptureSession) {
+//            capturePreviewFrame()
+        }
     }
 
     private val captureCallback: PictureCaptureCallback = object : PictureCaptureCallback() {
@@ -136,8 +142,7 @@ internal open class Camera2(
             setState(STATE_PRE_CAPTURE)
             try {
                 captureSession?.capture(
-                        previewRequestBuilder
-                                ?.build()
+                        previewRequestBuilder?.build()
                                 ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR),
                         this,
                         backgroundHandler
@@ -157,20 +162,16 @@ internal open class Camera2(
     }
 
     private val onPreviewImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
-        val image = reader.acquireNextImage()
-        if (image.planes.isNotEmpty()) GlobalScope.launch(Dispatchers.Main) {
-            decode(image).await().also {
-                callback?.onPreviewFrame(it)
-                image.close()
-            }
-        }
+        listener.onPreviewFrame(reader)
+        capturePreviewFrame()
     }
 
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
         val image = reader.acquireLatestImage()
-        if (image.planes.isNotEmpty()) GlobalScope.launch(Dispatchers.Main) {
-            decode(image).await().also {
-                callback?.onPictureTaken(it)
+        if (image.format == internalOutputFormat
+                && image.planes.isNotEmpty()) GlobalScope.launch(Dispatchers.Main) {
+            image.decode(outputFormat, rs).await().also {
+                listener.onPictureTaken(it)
                 image.close()
             }
         }
@@ -194,30 +195,51 @@ internal open class Camera2(
 
     private val pictureSizes = SizeMap()
 
+    internal var internalOutputFormat = ImageFormat.JPEG
+
+    override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
+        set(value) {
+            field = value
+            internalOutputFormat = when (value) {
+                JPEG -> ImageFormat.JPEG
+                YUV_420_888, RGBA_8888 -> ImageFormat.YUV_420_888
+                else -> ImageFormat.UNKNOWN
+            }
+        }
+
     override var displayOrientation: Int = 0
-        set(displayOrientation) {
-            field = displayOrientation
-            preview.setDisplayOrientation(displayOrientation)
+        set(value) {
+            field = value
+            preview.setDisplayOrientation(value)
         }
 
     override val isCameraOpened: Boolean get() = camera != null
 
     override var facing: Int = Modes.DEFAULT_FACING
-        set(facing) {
-            if (field == facing) return
-            field = facing
+        set(value) {
+            if (field == value) {
+                if (!isCameraOpened) {
+                    chooseCameraIdByFacing()
+                    collectCameraInfo()
+                }
+                return
+            }
+            field = value
             if (isCameraOpened) {
                 stop()
                 start()
+            } else {
+                chooseCameraIdByFacing()
+                collectCameraInfo()
             }
         }
 
     override val supportedAspectRatios: Set<AspectRatio> get() = previewSizes.ratios()
 
     override var autoFocus: Boolean = Modes.DEFAULT_AUTO_FOCUS
-        set(autoFocus) {
-            if (field == autoFocus) return
-            field = autoFocus
+        set(value) {
+            if (field == value) return
+            field = value
             updateAutoFocus()
             try {
                 captureSession?.setRepeatingRequest(
@@ -227,13 +249,14 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = !field // Revert
+                updateAutoFocus()
             }
         }
 
     override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
-        set(touchToFocus) {
-            if (field == touchToFocus) return
-            field = touchToFocus
+        set(value) {
+            if (field == value) return
+            field = value
             updateTouchOnFocus()
             try {
                 captureSession?.setRepeatingRequest(
@@ -243,14 +266,15 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = !field // Revert
+                updateTouchOnFocus()
             }
         }
 
     override var awb: Int = Modes.DEFAULT_AWB
-        set(awb) {
-            if (field == awb) return
+        set(value) {
+            if (field == value) return
             val saved = field
-            field = awb
+            field = value
             updateAutoWhiteBalance()
             try {
                 captureSession?.setRepeatingRequest(
@@ -260,14 +284,15 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = saved // Revert
+                updateAutoWhiteBalance()
             }
         }
 
     override var flash: Int = Modes.DEFAULT_FLASH
-        set(flash) {
-            if (field == flash) return
+        set(value) {
+            if (field == value) return
             val saved = field
-            field = flash
+            field = value
             updateFlash()
             try {
                 captureSession?.setRepeatingRequest(
@@ -277,13 +302,14 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = saved // Revert
+                updateFlash()
             }
         }
 
     override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
-        set(ae) {
-            if (field == ae) return
-            field = ae
+        set(value) {
+            if (field == value) return
+            field = value
             updateAutoExposure()
             try {
                 captureSession?.setRepeatingRequest(
@@ -293,13 +319,14 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = !field // Revert
+                updateAutoExposure()
             }
         }
 
     override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
-        set(opticalStabilization) {
-            if (field == opticalStabilization) return
-            field = opticalStabilization
+        set(value) {
+            if (field == value) return
+            field = value
             updateOpticalStabilization()
             try {
                 captureSession?.setRepeatingRequest(
@@ -309,14 +336,15 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = !field // Revert
+                updateOpticalStabilization()
             }
         }
 
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
-        set(noiseReduction) {
-            if (field == noiseReduction) return
+        set(value) {
+            if (field == value) return
             val saved = field
-            field = noiseReduction
+            field = value
             updateFlash()
             try {
                 captureSession?.setRepeatingRequest(
@@ -326,13 +354,8 @@ internal open class Camera2(
                 )
             } catch (e: CameraAccessException) {
                 field = saved // Revert
+                updateFlash()
             }
-        }
-
-    override var shutter: Int
-        get() = preview.shutterView.shutterTime
-        set(shutter) {
-            preview.shutterView.shutterTime = shutter
         }
 
     override var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
@@ -359,31 +382,11 @@ internal open class Camera2(
         }
     }
 
-    /**
-     * Decode [Image] generated by [previewImageReader] and [captureImageReader] based on format of the [image]
-     *
-     * @param image to be decoded
-     * @return [ByteArray] image data
-     */
-    private fun decode(image: Image): Deferred<ByteArray> = GlobalScope.async {
-
-        when (image.format) {
-
-            ImageFormat.JPEG -> with(image.planes[0].buffer) { ByteArray(remaining()).also { get(it) } }
-
-            ImageFormat.YUV_420_888 -> {
-                ByteArray(0)
-            }
-
-            else -> throw IllegalArgumentException("${image.format} is not supported.")
-        }
-    }
-
     override fun start(): Boolean {
         if (!chooseCameraIdByFacing()) return false
         if (backgroundThread == null && backgroundHandler == null) startBackgroundThread()
-        updateModes()
         collectCameraInfo()
+        updateModes()
         prepareImageReaders()
         startOpeningCamera()
         return true
@@ -475,7 +478,6 @@ internal open class Camera2(
     }
 
     /**
-     *
      * Collects some information from [.cameraCharacteristics].
      *
      * This rewrites [.previewSizes], [.pictureSizes], and optionally,
@@ -488,54 +490,48 @@ internal open class Camera2(
 
         previewSizes.clear()
 
-        for (size in map.getOutputSizes(preview.outputClass)) {
-            val width = size.width
-            val height = size.height
-            if (width <= MAX_PREVIEW_WIDTH && height <= MAX_PREVIEW_HEIGHT) {
-                previewSizes.add(Size(width, height))
-            }
-        }
+        map.getOutputSizes(preview.outputClass)
+                .asSequence()
+                .filter { it.width <= MAX_PREVIEW_WIDTH && it.height <= MAX_PREVIEW_HEIGHT }
+                .forEach { previewSizes.add(Size(it.width, it.height)) }
 
         pictureSizes.clear()
 
         collectPictureSizes(pictureSizes, map)
 
-        for (ratio in previewSizes.ratios()) {
-            if (!pictureSizes.ratios().contains(ratio)) {
-                previewSizes.remove(ratio)
-            }
-        }
+        previewSizes.ratios()
+                .asSequence()
+                .filterNot { pictureSizes.ratios().contains(it) }
+                .forEach { previewSizes.remove(it) }
 
-        if (!previewSizes.ratios().contains(aspectRatio)) {
-            aspectRatio = previewSizes.ratios().iterator().next()
-        }
+        previewSizes.ratios().run { if (!contains(aspectRatio)) aspectRatio = iterator().next() }
     }
 
     protected open fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
-        for (size in map.getOutputSizes(ImageFormat.JPEG)) {
-            pictureSizes.add(Size(size.width, size.height))
-        }
+        map.getOutputSizes(internalOutputFormat).forEach { pictureSizes.add(Size(it.width, it.height)) }
     }
 
     private fun prepareImageReaders() {
 
-        val largest = pictureSizes.sizes(aspectRatio).last()
+        val largestPreview = previewSizes.sizes(aspectRatio).last()
 
         previewImageReader?.close()
 
         previewImageReader = ImageReader.newInstance(
-                largest.width,
-                largest.height,
-                ImageFormat.JPEG,
+                largestPreview.width,
+                largestPreview.height,
+                internalOutputFormat,
                 4 // maxImages
         ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
+
+        val largestPicture = pictureSizes.sizes(aspectRatio).last()
 
         captureImageReader?.close()
 
         captureImageReader = ImageReader.newInstance(
-                largest.width,
-                largest.height,
-                ImageFormat.JPEG,
+                largestPicture.width,
+                largestPicture.height,
+                internalOutputFormat,
                 2 // maxImages
         ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
     }
@@ -568,24 +564,25 @@ internal open class Camera2(
                 || previewImageReader == null
                 || captureImageReader == null) return
 
-        val previewSize = chooseOptimalSize()
-        preview.setBufferSize(previewSize.width, previewSize.height)
+        chooseOptimalSize().run { preview.setBufferSize(width, height) }
+
         val surface = preview.surface
+                ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
         try {
             previewRequestBuilder = camera?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                    ?.apply { addTarget(surface) }
                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
-            surface?.let { previewRequestBuilder?.addTarget(it) }
-            camera?.createCaptureSession(
-                    arrayListOf(
-                            surface,
-                            previewImageReader?.surface
-                                    ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR),
-                            captureImageReader?.surface
-                                    ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
-                    ),
-                    sessionCallback,
-                    null
+
+            val surfaces: ArrayList<Surface> = arrayListOf(
+                    surface,
+//                    previewImageReader?.surface
+//                            ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR),
+                    captureImageReader?.surface
+                            ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
             )
+
+            camera?.createCaptureSession(surfaces, sessionCallback, backgroundHandler)
+
         } catch (e: CameraAccessException) {
             throw RuntimeException("Failed to start camera session")
         }
@@ -611,11 +608,9 @@ internal open class Camera2(
         val candidates = previewSizes.sizes(aspectRatio)
 
         // Pick the smallest of those big enough
-        for (size in candidates) {
-            if (size.width >= surfaceLonger && size.height >= surfaceShorter) {
-                return size
-            }
-        }
+        candidates.firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
+                ?.also { return it }
+
         // If no size is big enough, pick the largest one.
         return candidates.last()
     }
@@ -764,16 +759,29 @@ internal open class Camera2(
         }
     }
 
+    /**
+     * Captures a preview frame.
+     */
     override fun capturePreviewFrame() {
 
         try {
-            previewRequestBuilder?.addTarget(previewImageReader?.surface
-                    ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR))
+            val surface = previewImageReader?.surface
+                    ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
+
+            previewRequestBuilder?.addTarget(surface)
 
             captureSession?.capture(
                     previewRequestBuilder?.build()
                             ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR),
-                    null,
+                    object : CameraCaptureSession.CaptureCallback() {
+                        override fun onCaptureCompleted(
+                                session: CameraCaptureSession,
+                                request: CaptureRequest,
+                                result: TotalCaptureResult
+                        ) {
+                            previewRequestBuilder?.removeTarget(surface)
+                        }
+                    },
                     backgroundHandler
             )
         } catch (e: CameraAccessException) {
@@ -787,11 +795,13 @@ internal open class Camera2(
     private fun captureStillPicture() {
 
         try {
+            val surface = captureImageReader?.surface
+                    ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
+
             val captureRequestBuilder = (camera?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)).apply {
 
-                addTarget(captureImageReader?.surface
-                        ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR))
+                addTarget(surface)
 
                 set(CaptureRequest.CONTROL_AF_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AF_MODE))
 
@@ -805,14 +815,16 @@ internal open class Camera2(
 
                 set(CaptureRequest.FLASH_MODE, previewRequestBuilder?.get(CaptureRequest.FLASH_MODE))
 
-                // Calculate JPEG orientation.
-                val sensorOrientation = cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION)
-                        ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
-                set(CaptureRequest.JPEG_ORIENTATION,
-                        (sensorOrientation
-                                + (displayOrientation * if (facing == Modes.FACING_FRONT) 1 else -1)
-                                + 360) % 360
-                )
+                if (captureImageReader?.imageFormat == ImageFormat.JPEG) {
+                    // Calculate JPEG orientation.
+                    val sensorOrientation = cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION)
+                            ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
+                    set(CaptureRequest.JPEG_ORIENTATION,
+                            (sensorOrientation
+                                    + (displayOrientation * if (facing == Modes.FACING_FRONT) 1 else -1)
+                                    + 360) % 360
+                    )
+                }
             }
 
             // Stop preview and capture a still picture.

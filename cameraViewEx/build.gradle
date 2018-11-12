@@ -35,6 +35,7 @@ android {
         versionName generateVersionName()
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         consumerProguardFiles 'proguard-rules.pro'
+        renderscriptTargetApi 21
     }
 
     testBuildType "stage"
@@ -80,10 +81,6 @@ dependencies {
     implementation "com.android.support:support-v4:${rootProject.ext.supportVersion}"
     implementation "com.android.support:transition:${rootProject.ext.supportVersion}"
 
-    // Firebase
-    implementation "com.google.firebase:firebase-core:${rootProject.ext.firebaseCore}"
-    implementation "com.google.firebase:firebase-ml-vision:${rootProject.ext.firebaseMlVision}"
-
     // KotlinX
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:${rootProject.ext.coroutines}"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.coroutines}"
@@ -128,4 +125,3 @@ private String generateVersionName() {
 androidExtensions { experimental = true }
 
 apply from: 'publish.gradle'
-apply plugin: 'com.google.gms.google-services'

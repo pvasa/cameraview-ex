@@ -64,7 +64,7 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
 
         /**
          * Returns an instance of [AspectRatio] specified by `x` and `y` values.
-         * The values `x` and `` will be reduced by their greatest common divider.
+         * The values `x` and `y` will be reduced by their greatest common divider.
          *
          * @param x The width
          * @param y The height
@@ -76,20 +76,11 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
             val gcd = gcd(a, b)
             a /= gcd
             b /= gcd
-            var arrayX: SparseArrayCompat<AspectRatio>? = cache.get(a)
-            return if (arrayX == null) {
-                val ratio = AspectRatio(a, b)
-                arrayX = SparseArrayCompat()
-                arrayX.put(b, ratio)
-                cache.put(a, arrayX)
-                ratio
-            } else {
-                var ratio: AspectRatio? = arrayX.get(b)
-                if (ratio == null) {
-                    ratio = AspectRatio(a, b)
-                    arrayX.put(b, ratio)
-                }
-                ratio
+
+            return cache.get(a)?.run {
+                get(b) ?: run { AspectRatio(a, b).also { put(b, it) } }
+            } ?: AspectRatio(a, b).also {
+                cache.put(a, SparseArrayCompat<AspectRatio>().apply { put(b, it) })
             }
         }
 

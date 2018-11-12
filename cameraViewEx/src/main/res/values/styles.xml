@@ -24,6 +24,7 @@
         <item name="opticalStabilization">true</item>
         <item name="noiseReduction">high_quality</item>
         <item name="shutter">short_time</item>
+        <item name="outputFormat">jpeg</item>
     </style>
 
 </resources>

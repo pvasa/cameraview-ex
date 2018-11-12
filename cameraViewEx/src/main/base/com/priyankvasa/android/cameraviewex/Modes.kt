@@ -28,6 +28,12 @@ object Modes {
     const val FACING_BACK = 0
     const val FACING_FRONT = 1
 
+    internal object OutputFormat {
+        const val JPEG = 0
+        const val YUV_420_888 = 1
+        const val RGBA_8888 = 2
+    }
+
     object Flash {
         const val FLASH_OFF = 0
         const val FLASH_ON = 1
@@ -66,6 +72,7 @@ object Modes {
 
     const val DEFAULT_ADJUST_VIEW_BOUNDS = false
     val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
+    const val DEFAULT_OUTPUT_FORMAT = OutputFormat.JPEG
     const val DEFAULT_FACING = FACING_BACK
     const val DEFAULT_AUTO_FOCUS = false
     const val DEFAULT_AUTO_EXPOSURE = false

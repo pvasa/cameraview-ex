@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewexsample
+package com.priyankvasa.android.cameraviewex
 
 import android.view.GestureDetector
 import android.view.MotionEvent
