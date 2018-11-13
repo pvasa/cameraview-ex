@@ -20,20 +20,29 @@ ext {
     majorVersion = 1
     minorVersion = 0
     patchVersion = 0
-    preRelease = 'beta'
 }
 
 android {
 
+    signingConfigs {
+        config {
+            storeFile file("${System.getenv('TRAVIS_BUILD_DIR')}/keystore.jks")
+            storePassword System.getenv('KEYSTORE_PASSWORD')
+            keyAlias 'android-release'
+            keyPassword System.getenv('KEYALIAS_PASSWORD')
+        }
+    }
+
     compileSdkVersion rootProject.ext.sdkVersion
 
     defaultConfig {
-        applicationId "com.priyankvasa.cameraviewexsample"
+        applicationId "com.priyankvasa.android.cameraviewex"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.sdkVersion
         versionCode generateVersionCode()
         versionName generateVersionName()
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        renderscriptTargetApi 21
     }
 
     buildTypes {
@@ -57,11 +66,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
 
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     // cameraviewex
     implementation project(':cameraViewEx')
@@ -72,6 +85,10 @@ dependencies {
     // Android support
     implementation "com.android.support:appcompat-v7:${rootProject.ext.supportVersion}"
     implementation "com.android.support.constraint:constraint-layout:${rootProject.ext.constraintLayoutVersion}"
+
+    // Firebase
+    implementation "com.google.firebase:firebase-core:${rootProject.ext.firebaseCore}"
+    implementation "com.google.firebase:firebase-ml-vision:${rootProject.ext.firebaseMlVision}"
 
     // Glide
     implementation("com.github.bumptech.glide:glide:${rootProject.ext.glideVersion}") {
@@ -91,6 +108,14 @@ dependencies {
     androidTestImplementation("com.android.support.test.espresso:espresso-core:${rootProject.ext.espressoCoreVersion}") {
         exclude module: 'support-annotations'
     }
+
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'com.android.support') {
+                details.useVersion rootProject.ext.supportVersion
+            }
+        }
+    }
 }
 
 private Integer generateVersionCode() {
@@ -101,9 +126,7 @@ private Integer generateVersionCode() {
 }
 
 private String generateVersionName() {
-    String versionName = "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
-    if (ext.preRelease != null && !ext.preRelease.isEmpty()) {
-        versionName = "$versionName-${ext.preRelease}"
-    }
-    return versionName
+    return "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
 }
+
+apply plugin: 'com.google.gms.google-services'

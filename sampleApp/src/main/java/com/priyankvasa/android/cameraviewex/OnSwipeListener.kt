@@ -1,4 +1,4 @@
-package com.priyankvasa.cameraviewexsample
+package com.priyankvasa.android.cameraviewex
 
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -94,10 +94,10 @@ abstract class OnSwipeListener : GestureDetector.SimpleOnGestureListener() {
              * @return the direction of an angle
              */
             fun fromAngle(angle: Double): Direction = when {
-                inRange(angle, 45f, 135f) -> Direction.Up
-                inRange(angle, 0f, 45f) || inRange(angle, 315f, 360f) -> Direction.Right
-                inRange(angle, 225f, 315f) -> Direction.Down
-                else -> Direction.Left
+                inRange(angle, 45f, 135f) -> Up
+                inRange(angle, 0f, 45f) || inRange(angle, 315f, 360f) -> Right
+                inRange(angle, 225f, 315f) -> Down
+                else -> Left
             }
 
             /**

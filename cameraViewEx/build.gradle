@@ -19,12 +19,21 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 ext {
-    majorVersion = 1
+    majorVersion = 2
     minorVersion = 0
-    patchVersion = 1
+    patchVersion = 0
 }
 
 android {
+
+    signingConfigs {
+        config {
+            storeFile file("${System.getenv('TRAVIS_BUILD_DIR')}/keystore.jks")
+            storePassword System.getenv('KEYSTORE_PASSWORD')
+            keyAlias 'android-release'
+            keyPassword System.getenv('KEYALIAS_PASSWORD')
+        }
+    }
 
     compileSdkVersion rootProject.ext.sdkVersion
 
@@ -35,6 +44,7 @@ android {
         versionName generateVersionName()
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         consumerProguardFiles 'proguard-rules.pro'
+        renderscriptTargetApi 21
     }
 
     testBuildType "stage"
@@ -80,6 +90,10 @@ dependencies {
     implementation "com.android.support:support-v4:${rootProject.ext.supportVersion}"
     implementation "com.android.support:transition:${rootProject.ext.supportVersion}"
 
+    // KotlinX
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:${rootProject.ext.coroutines}"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.coroutines}"
+
     // Timber
     implementation "com.jakewharton.timber:timber:${rootProject.ext.timberVersion}"
 
@@ -96,6 +110,14 @@ dependencies {
     androidTestImplementation("com.android.support.test.espresso:espresso-core:${rootProject.ext.espressoCoreVersion}") {
         exclude module: 'support-annotations'
     }
+
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'com.android.support') {
+                details.useVersion rootProject.ext.supportVersion
+            }
+        }
+    }
 }
 
 private Integer generateVersionCode() {
@@ -109,8 +131,6 @@ private String generateVersionName() {
     return "${ext.majorVersion}.${ext.minorVersion}.${ext.patchVersion}"
 }
 
-androidExtensions {
-    experimental = true
-}
+androidExtensions { experimental = true }
 
 apply from: 'publish.gradle'

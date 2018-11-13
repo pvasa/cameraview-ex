@@ -21,6 +21,7 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
+import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.os.Build
@@ -31,14 +32,17 @@ import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_ON
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_RED_EYE
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_TORCH
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.JPEG
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.RGBA_8888
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.YUV_420_888
 import java.io.IOException
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class Camera1(
-        callback: CameraViewImpl.Callback?,
-        preview: PreviewImpl
-) : CameraViewImpl(callback, preview) {
+        override val listener: CameraInterface.Listener,
+        override val preview: PreviewImpl
+) : CameraInterface {
 
     private var cameraId: Int = Modes.FACING_BACK
 
@@ -59,12 +63,22 @@ internal class Camera1(
 
     private var showingPreview: Boolean = false
 
-    override var facing: Int = 0
-        set(facing) {
-            if (this.facing == facing) {
-                return
+    private var internalOutputFormat = ImageFormat.JPEG
+
+    override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
+        set(value) {
+            field = value
+            internalOutputFormat = when (value) {
+                JPEG -> ImageFormat.JPEG
+                YUV_420_888, RGBA_8888 -> ImageFormat.NV21
+                else -> ImageFormat.UNKNOWN
             }
-            field = facing
+        }
+
+    override var facing: Int = Modes.DEFAULT_FACING
+        set(value) {
+            if (value == field) return
+            field = value
             if (isCameraOpened) {
                 stop()
                 start()
@@ -72,17 +86,15 @@ internal class Camera1(
         }
 
     override var displayOrientation: Int = 0
-        set(displayOrientation) {
-            if (field == displayOrientation) {
-                return
-            }
-            field = displayOrientation
+        set(value) {
+            if (value == field) return
+            field = value
             if (isCameraOpened) {
-                cameraParameters?.setRotation(calcCameraRotation(displayOrientation))
+                cameraParameters?.setRotation(calcCameraRotation(value))
                 camera?.parameters = cameraParameters
                 val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
                 if (needsToStopPreview) camera?.stopPreview()
-                camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
+                camera?.setDisplayOrientation(calcDisplayOrientation(value))
                 if (needsToStopPreview) camera?.startPreview()
             }
         }
@@ -106,56 +118,50 @@ internal class Camera1(
             val focusMode = cameraParameters?.focusMode
             return focusMode != null && focusMode.contains("continuous")
         }
-        set(autoFocus) {
-            if (field == autoFocus) return
-            if (setAutoFocusInternal(autoFocus)) camera?.parameters = cameraParameters
+        set(value) {
+            if (value == field) return
+            if (setAutoFocusInternal(value)) camera?.parameters = cameraParameters
         }
 
     override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
         get() = if (!isCameraOpened) field else false // TODO("Check cameraParameters")
-        set(touchToFocus) {
-            if (touchToFocus == field) return
+        set(value) {
+            if (value == field) return
             // TODO("set internal")
         }
 
     override var awb: Int = Modes.DEFAULT_AWB
         get() = if (!isCameraOpened) field else Modes.DEFAULT_AWB // TODO("Check cameraParameters")
-        set(awb) {
-            if (awb == field) return
+        set(value) {
+            if (value == field) return
             // TODO("set internal")
         }
 
     override var flash: Int = Modes.DEFAULT_FLASH
-        set(flash) {
-            if (flash == field) return
-            if (setFlashInternal(flash)) camera?.parameters = cameraParameters
+        set(value) {
+            if (value == field) return
+            if (setFlashInternal(value)) camera?.parameters = cameraParameters
         }
 
     override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
         get() = if (!isCameraOpened) field else Modes.DEFAULT_AUTO_EXPOSURE // TODO("Check cameraParameters")
-        set(ae) {
-            if (ae == field) return
+        set(value) {
+            if (value == field) return
             // TODO("set internal")
         }
 
     override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_OPTICAL_STABILIZATION // TODO("Check cameraParameters")
-        set(opticalStabilization) {
-            if (opticalStabilization == field) return
+        set(value) {
+            if (value == field) return
             // TODO("set internal")
         }
 
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_NOISE_REDUCTION // TODO("Check cameraParameters")
-        set(noiseReduction) {
-            if (noiseReduction == field) return
+        set(value) {
+            if (value == field) return
             // TODO("set internal")
-        }
-
-    override var shutter: Int
-        get() = preview.shutterView.shutterTime
-        set(shutter) {
-            preview.shutterView.shutterTime = shutter
         }
 
     init {
@@ -221,6 +227,10 @@ internal class Camera1(
         return false
     }
 
+    override fun capturePreviewFrame() {
+
+    }
+
     override fun takePicture() {
         if (!isCameraOpened) {
             throw IllegalStateException(
@@ -238,7 +248,7 @@ internal class Camera1(
         if (!isPictureCaptureInProgress.getAndSet(true)) {
             camera?.takePicture(null, null, null, Camera.PictureCallback { data, camera ->
                 isPictureCaptureInProgress.set(false)
-                callback?.onPictureTaken(data)
+                listener.onPictureTaken(data)
                 camera?.cancelAutoFocus()
                 camera?.startPreview()
             })
@@ -278,7 +288,7 @@ internal class Camera1(
         }
         adjustCameraParameters()
         camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
-        callback?.onCameraOpened()
+        listener.onCameraOpened()
     }
 
     private fun chooseAspectRatio(): AspectRatio {
@@ -337,7 +347,7 @@ internal class Camera1(
     private fun releaseCamera() {
         camera?.release()
         camera = null
-        callback?.onCameraClosed()
+        listener.onCameraClosed()
     }
 
     /**

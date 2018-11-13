@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.priyankvasa.cameraviewexsample">
+    package="com.priyankvasa.android.cameraviewex">
 
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -16,7 +16,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="com.priyankvasa.cameraviewexsample.camera.CameraActivity"
+            android:name="com.priyankvasa.android.cameraviewex.camera.CameraActivity"
             android:screenOrientation="userPortrait"
             android:theme="@style/AppTheme.FullScreen">
 

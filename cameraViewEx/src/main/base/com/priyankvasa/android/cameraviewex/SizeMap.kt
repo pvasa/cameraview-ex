@@ -27,8 +27,7 @@ internal class SizeMap {
 
     private val ratios = ArrayMap<AspectRatio, SortedSet<Size>>()
 
-    val isEmpty: Boolean
-        get() = ratios.isEmpty
+    val isEmpty: Boolean get() = ratios.isEmpty
 
     /**
      * Add a new [Size] to this collection.
