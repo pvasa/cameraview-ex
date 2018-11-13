@@ -1,8 +1,8 @@
 # CameraViewEx
 
-*This is a preview release. The API is subject to change.*
-
 _This is an extended version of [Google's cameraview library](https://github.com/google/cameraview)_
+
+*This is a preview release. The API is subject to change.*
 
 CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
 
