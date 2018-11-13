@@ -19,3 +19,22 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Glide
+-dontnote com.bumptech.glide.**
+
+# Google
+-dontnote com.google.android.**
+-dontnote com.google.android.gms.**
+-dontnote com.google.firebase.**
+
+# Kotlin
+-dontnote kotlin.internal.**
+-dontnote kotlin.jvm.internal.**
+-dontnote kotlin.coroutines.**
+
+# Project
+-dontnote com.priyankvasa.android.cameraviewex.**
+
+# Sample app
+-dontwarn com.priyankvasa.android.cameraviewex.camera.**

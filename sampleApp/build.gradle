@@ -24,6 +24,15 @@ ext {
 
 android {
 
+    signingConfigs {
+        config {
+            storeFile file("${System.getenv('TRAVIS_BUILD_DIR')}/keystore.jks")
+            storePassword System.getenv('KEYSTORE_PASSWORD')
+            keyAlias 'android-release'
+            keyPassword System.getenv('KEYALIAS_PASSWORD')
+        }
+    }
+
     compileSdkVersion rootProject.ext.sdkVersion
 
     defaultConfig {

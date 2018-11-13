@@ -105,7 +105,7 @@ class CameraFragment : Fragment() {
                         .addOnSuccessListener { barcodes ->
                             barcodes.forEachIndexed { i, barcode -> Timber.i("Barcode $i: ${barcode.rawValue}") }
                         }
-                        .addOnFailureListener { t -> Timber.e(t) }
+                        .addOnFailureListener { e -> Timber.e(e) }
             }
 
             addPictureTakenListener { imageData: ByteArray ->
