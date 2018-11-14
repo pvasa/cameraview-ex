@@ -77,7 +77,7 @@ internal class Camera1(
 
     override var facing: Int = Modes.DEFAULT_FACING
         set(value) {
-            if (value == field) return
+            if (field == value) return
             field = value
             if (isCameraOpened) {
                 stop()
@@ -87,7 +87,7 @@ internal class Camera1(
 
     override var displayOrientation: Int = 0
         set(value) {
-            if (value == field) return
+            if (field == value) return
             field = value
             if (isCameraOpened) {
                 cameraParameters?.setRotation(calcCameraRotation(value))
@@ -119,48 +119,54 @@ internal class Camera1(
             return focusMode != null && focusMode.contains("continuous")
         }
         set(value) {
-            if (value == field) return
+            if (field == value) return
             if (setAutoFocusInternal(value)) camera?.parameters = cameraParameters
         }
 
     override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
         get() = if (!isCameraOpened) field else false // TODO("Check cameraParameters")
         set(value) {
-            if (value == field) return
+            if (field == value) return
             // TODO("set internal")
         }
 
     override var awb: Int = Modes.DEFAULT_AWB
         get() = if (!isCameraOpened) field else Modes.DEFAULT_AWB // TODO("Check cameraParameters")
         set(value) {
-            if (value == field) return
+            if (field == value) return
             // TODO("set internal")
         }
 
     override var flash: Int = Modes.DEFAULT_FLASH
         set(value) {
-            if (value == field) return
+            if (field == value) return
             if (setFlashInternal(value)) camera?.parameters = cameraParameters
         }
 
     override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
         get() = if (!isCameraOpened) field else Modes.DEFAULT_AUTO_EXPOSURE // TODO("Check cameraParameters")
         set(value) {
-            if (value == field) return
+            if (field == value) return
             // TODO("set internal")
         }
 
     override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_OPTICAL_STABILIZATION // TODO("Check cameraParameters")
         set(value) {
-            if (value == field) return
+            if (field == value) return
             // TODO("set internal")
         }
 
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_NOISE_REDUCTION // TODO("Check cameraParameters")
         set(value) {
-            if (value == field) return
+            if (field == value) return
+            // TODO("set internal")
+        }
+
+    override var zsl: Boolean = Modes.DEFAULT_ZSL
+        set(value) {
+            if (field == value) return
             // TODO("set internal")
         }
 

@@ -22,6 +22,7 @@
     <public name="noiseReduction" type="attr" />
     <public name="shutter" type="attr" />
     <public name="imageFormat" type="attr" />
+    <public name="zsl" type="attr" />
 
     <public name="Widget.CameraView" type="style" />
 </resources>

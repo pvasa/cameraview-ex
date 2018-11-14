@@ -29,12 +29,18 @@ sealed class Orientation {
     companion object {
 
         private val portraitRange1 = IntRange(350, 359)
-        private val portraitRange2 = IntRange(350, 10)
+        private val portraitRange2 = IntRange(0, 10)
         private val portraitInvertedRange = IntRange(170, 190)
 
         private val landscapeRange = IntRange(260, 280)
         private val landscapeInvertedRange = IntRange(80, 100)
 
+        /**
+         * Parse sensor orientation read from [android.view.OrientationEventListener] to one of
+         * [Portrait], [PortraitInverted], [Landscape], or [LandscapeInverted]
+         *
+         * @param orientation available from [android.view.OrientationEventListener.onOrientationChanged]
+         */
         fun parse(orientation: Int): Orientation = when {
             portraitRange1.contains(orientation) || portraitRange2.contains(orientation) -> Portrait
             portraitInvertedRange.contains(orientation) -> PortraitInverted

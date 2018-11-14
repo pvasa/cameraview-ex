@@ -55,6 +55,8 @@ internal interface CameraInterface {
 
     var noiseReduction: Int
 
+    var zsl: Boolean
+
     var displayOrientation: Int
 
     /**
