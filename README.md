@@ -53,7 +53,7 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     
-    camera.addCameraClosedListener { Timber.i("Camera opened.") }
+    camera.addCameraOpenedListener { Timber.i("Camera opened.") }
         .setPreviewFrameListener { image: Image -> Timber.i("Preview frame available.") }
         .addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken.") }
         .addCameraClosedListener { Timber.i("Camera closed.") }
