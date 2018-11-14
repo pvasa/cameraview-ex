@@ -168,7 +168,7 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    internal var camera: CameraInterface = when {
+    private var camera: CameraInterface = when {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview)
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, context)
         else -> Camera2Api23(listener, preview, context)
@@ -292,6 +292,13 @@ class CameraView @JvmOverloads constructor(
         get() = preview.shutterView.shutterTime
         set(value) {
             preview.shutterView.shutterTime = value
+        }
+
+    /** Zero shutter lag mode capture. */
+    var zsl: Boolean
+        get() = camera.zsl
+        set(value) {
+            camera.zsl = value
         }
 
     init {
@@ -457,7 +464,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Stop camera preview and close the device. This is typically called from
      * [Activity.onPause].
-     * @param removeAllListeners if `true`, removes all listeners previously set. See [listener.clear]
+     * @param removeAllListeners if `true`, removes all listeners previously set. See [CameraView.removeAllListeners]
      */
     fun stop(removeAllListeners: Boolean = false) {
         if (removeAllListeners) listener.clear()

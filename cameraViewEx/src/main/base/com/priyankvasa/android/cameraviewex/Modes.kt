@@ -82,4 +82,5 @@ object Modes {
     const val DEFAULT_NOISE_REDUCTION = NoiseReduction.NOISE_REDUCTION_OFF
     const val DEFAULT_SHUTTER = Shutter.SHUTTER_OFF
     const val DEFAULT_AWB = AutoWhiteBalance.AWB_OFF
+    const val DEFAULT_ZSL = true
 }
