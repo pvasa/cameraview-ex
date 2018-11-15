@@ -28,7 +28,7 @@ android {
 
     signingConfigs {
         config {
-            storeFile file("${rootProject.buildDir}/keystore.jks")
+            storeFile file("$rootDir/keystore.jks")
             storePassword rootProject.ext.keyStorePassword
             keyAlias 'android-release'
             keyPassword rootProject.ext.keyAliasPassword
@@ -66,6 +66,7 @@ android {
         release {
             debuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
 
