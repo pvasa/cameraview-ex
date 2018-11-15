@@ -28,10 +28,10 @@ android {
 
     signingConfigs {
         config {
-            storeFile file("${System.getenv('TRAVIS_BUILD_DIR')}/keystore.jks")
-            storePassword System.getenv('KEYSTORE_PASSWORD')
+            storeFile file("${rootProject.buildDir}/keystore.jks")
+            storePassword rootProject.ext.keyStorePassword
             keyAlias 'android-release'
-            keyPassword System.getenv('KEYALIAS_PASSWORD')
+            keyPassword rootProject.ext.keyAliasPassword
         }
     }
 

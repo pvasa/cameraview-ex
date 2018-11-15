@@ -26,10 +26,10 @@ android {
 
     signingConfigs {
         config {
-            storeFile file("${System.getenv('TRAVIS_BUILD_DIR')}/keystore.jks")
-            storePassword System.getenv('KEYSTORE_PASSWORD')
+            storeFile file("${rootProject.buildDir}/keystore.jks")
+            storePassword rootProject.ext.keyStorePassword
             keyAlias 'android-release'
-            keyPassword System.getenv('KEYALIAS_PASSWORD')
+            keyPassword rootProject.ext.keyAliasPassword
         }
     }
 
@@ -77,8 +77,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     // cameraviewex
-    implementation project(':cameraViewEx')
-
+    //    implementation project(':cameraViewEx')
+    implementation 'com.priyankvasa.android:cameraview-ex:2.0.0'
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${rootProject.ext.kotlinVersion}"
 
