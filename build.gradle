@@ -20,6 +20,9 @@ buildscript {
         minSdkLibVersion = 14
         sdkVersion = 28
 
+        keyStorePassword = System.getenv('KEYSTORE_PASSWORD')
+        keyAliasPassword = System.getenv('KEYALIAS_PASSWORD')
+
         kotlinVersion = '1.3.0'
         supportVersion = '28.0.0'
         constraintLayoutVersion = '1.1.3'
