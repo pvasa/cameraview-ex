@@ -77,8 +77,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     // cameraviewex
-    //    implementation project(':cameraViewEx')
-    implementation 'com.priyankvasa.android:cameraview-ex:2.0.0'
+    implementation project(':cameraViewEx')
+
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${rootProject.ext.kotlinVersion}"
 
