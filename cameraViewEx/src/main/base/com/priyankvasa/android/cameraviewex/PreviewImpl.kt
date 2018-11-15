@@ -44,11 +44,9 @@ internal abstract class PreviewImpl {
 
     internal abstract val isReady: Boolean
 
-    internal open val surfaceHolder: SurfaceHolder?
-        get() = null
+    internal open val surfaceHolder: SurfaceHolder? get() = null
 
-    internal open val surfaceTexture: Any?
-        get() = null
+    internal open val surfaceTexture: Any? get() = null
 
     internal interface Callback {
         fun onSurfaceChanged()

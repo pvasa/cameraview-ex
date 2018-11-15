@@ -1,5 +1,6 @@
-package com.priyankvasa.cameraviewexsample.camera
+package com.priyankvasa.android.cameraviewex.camera
 
+import android.media.Image
 import android.os.Bundle
 import android.support.annotation.DrawableRes
 import android.support.v4.app.ActivityCompat
@@ -10,14 +11,19 @@ import android.view.OrientationEventListener
 import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
-import com.priyankvasa.android.cameraviewex.CameraView
+import com.google.firebase.ml.vision.FirebaseVision
+import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
+import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
+import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.priyankvasa.android.cameraviewex.Modes
-import com.priyankvasa.cameraviewexsample.OnSwipeListener
-import com.priyankvasa.cameraviewexsample.R
+import com.priyankvasa.android.cameraviewex.OnSwipeListener
+import com.priyankvasa.android.cameraviewex.R
 import kotlinx.android.synthetic.main.fragment_camera.camera
 import kotlinx.android.synthetic.main.fragment_camera.ivCaptureButton
 import kotlinx.android.synthetic.main.fragment_camera.ivFlashSwitch
 import kotlinx.android.synthetic.main.fragment_camera.ivPhoto
+import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraFragment : Fragment() {
 
@@ -44,6 +50,12 @@ class CameraFragment : Fragment() {
         })
     }
 
+    private val options = FirebaseVisionBarcodeDetectorOptions.Builder()
+            .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
+            .build()
+
+    private val detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options)
+
     override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
@@ -57,9 +69,11 @@ class CameraFragment : Fragment() {
 
         setupCamera()
 
-        ivCaptureButton.setOnClickListener { camera.capture() }
+        ivCaptureButton.setOnClickListener {
+            camera.capture()
+        }
 
-        ivFlashSwitch.setOnClickListener { _ ->
+        ivFlashSwitch.setOnClickListener {
 
             camera.flash = when (camera.flash) {
                 Modes.Flash.FLASH_OFF -> Modes.Flash.FLASH_AUTO
@@ -82,29 +96,39 @@ class CameraFragment : Fragment() {
 
     private fun setupCamera() {
 
-        camera.addCallback(object : CameraView.Callback() {
+        with(camera) {
 
-            override fun onPictureTaken(cameraView: CameraView, data: ByteArray) {
-                super.onPictureTaken(cameraView, data)
+            val decoding = AtomicBoolean(false)
 
+            addCameraOpenedListener { Timber.i("Camera opened.") }
+
+            setPreviewFrameListener { image: Image ->
+                if (!decoding.get()) {
+                    decoding.set(true)
+                    val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
+                    detector.detectInImage(visionImage)
+                            .addOnCompleteListener { decoding.set(false) }
+                            .addOnSuccessListener { barcodes ->
+                                barcodes.forEachIndexed { i, barcode -> Timber.i("Barcode $i: ${barcode.rawValue}") }
+                            }
+                            .addOnFailureListener { e -> Timber.e(e) }
+                }
+            }
+
+            addPictureTakenListener { imageData: ByteArray ->
                 ivPhoto.visibility = View.VISIBLE
-
                 Glide.with(this@CameraFragment)
-                        .asBitmap()
-                        .load(data)
+                        .load(imageData)
                         .into(ivPhoto)
             }
-        })
 
-        camera.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
-            return@setOnTouchListener true
+            addCameraClosedListener { Timber.i("Camera closed.") }
+
+            setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
+                return@setOnTouchListener true
+            }
         }
-    }
-
-    override fun onDestroyView() {
-        orientationEventListener.disable()
-        super.onDestroyView()
     }
 
     override fun onResume() {
@@ -113,7 +137,18 @@ class CameraFragment : Fragment() {
     }
 
     override fun onPause() {
-        camera.run { if (isCameraOpened) stop() }
+        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
         super.onPause()
+    }
+
+    override fun onStop() {
+        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+        super.onStop()
+    }
+
+    override fun onDestroyView() {
+        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+        orientationEventListener.disable()
+        super.onDestroyView()
     }
 }

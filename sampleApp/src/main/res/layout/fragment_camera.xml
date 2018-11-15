@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    tools:context=".camera.CameraActivity"
+    tools:context="com.priyankvasa.android.cameraviewex.camera.CameraActivity"
     tools:ignore="ContentDescription">
 
     <ImageView
@@ -25,6 +25,7 @@
         android:layout_marginTop="?attr/actionBarSize"
         android:adjustViewBounds="true"
         android:keepScreenOn="true"
+        app:aspectRatio="4:3"
         app:autoFocus="true"
         app:awb="auto"
         app:facing="back"
@@ -34,13 +35,15 @@
         app:layout_constraintTop_toTopOf="parent"
         app:noiseReduction="high_quality"
         app:opticalStabilization="true"
-        app:shutter="short_time" />
+        app:outputFormat="jpeg"
+        app:shutter="short_time"
+        app:zsl="true" />
 
     <ImageView
         android:id="@+id/ivCaptureButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="36dp"
+        android:layout_margin="64dp"
         android:src="@drawable/ic_camera_capture"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

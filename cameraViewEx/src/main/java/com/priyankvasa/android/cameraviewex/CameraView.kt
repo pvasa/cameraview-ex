@@ -18,8 +18,11 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
+import android.media.Image
+import android.media.ImageReader
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -48,17 +51,30 @@ import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION
 import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_MINIMAL
 import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_OFF
 import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_ZERO_SHUTTER_LAG
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.JPEG
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.RGBA_8888
+import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.YUV_420_888
 import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_LONG
 import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_OFF
 import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_SHORT
 import kotlinx.android.parcel.Parcelize
-import java.util.ArrayList
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraView @JvmOverloads constructor(
         context: Context,
         attrs: AttributeSet? = null,
         defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
+
+    /** Direction the camera faces relative to device screen. */
+    @IntDef(JPEG, YUV_420_888, RGBA_8888)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
+    annotation class OutputFormat
 
     /** Direction the camera faces relative to device screen. */
     @IntDef(Modes.FACING_BACK, Modes.FACING_FRONT)
@@ -106,54 +122,114 @@ class CameraView @JvmOverloads constructor(
 
     private val preview = createPreviewImpl(context)
 
-    private val callbacks: CallbackBridge = CallbackBridge()
+    /** Listeners for monitoring events about [CameraView]. */
+    private val cameraOpenedListeners = HashSet<() -> Unit>()
+    private val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
+    private var previewFrameListener: ((image: Image) -> Unit)? = null
+    private val cameraClosedListeners = HashSet<() -> Unit>()
 
-    internal var cameraViewImpl: CameraViewImpl = when {
-        Build.VERSION.SDK_INT < 21 -> Camera1(callbacks, preview)
-        Build.VERSION.SDK_INT < 23 -> Camera2(callbacks, preview, context)
-        else -> Camera2Api23(callbacks, preview, context)
+    private val listener = object : CameraInterface.Listener {
+
+        private var requestLayoutOnOpen: Boolean = false
+
+        var isEnabled: Boolean = true
+            private set
+
+        fun reserveRequestLayoutOnOpen() {
+            requestLayoutOnOpen = true
+        }
+
+        fun disable() {
+            isEnabled = false
+            clear()
+        }
+
+        fun clear() {
+            cameraOpenedListeners.clear()
+            previewFrameListener = null
+            pictureTakenListeners.clear()
+            cameraClosedListeners.clear()
+        }
+
+        override fun onCameraOpened() {
+            if (requestLayoutOnOpen) {
+                requestLayoutOnOpen = false
+                requestLayout()
+            }
+            cameraOpenedListeners.forEach { it() }
+        }
+
+        @TargetApi(Build.VERSION_CODES.KITKAT)
+        override fun onPreviewFrame(reader: ImageReader) {
+            previewFrameListener?.run { reader.acquireNextImage().use { invoke(it) } }
+        }
+
+        override fun onPictureTaken(imageData: ByteArray) {
+            pictureTakenListeners.forEach { it(imageData) }
+        }
+
+        override fun onCameraClosed() {
+            cameraClosedListeners.forEach { it() }
+        }
+    }
+
+    private var camera: CameraInterface = when {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, context)
+        else -> Camera2Api23(listener, preview, context)
     }
 
     /** Display orientation detector */
     private val displayOrientationDetector: DisplayOrientationDetector =
             object : DisplayOrientationDetector(context) {
                 override fun onDisplayOrientationChanged(displayOrientation: Int) {
-                    cameraViewImpl.displayOrientation = displayOrientation
+                    camera.displayOrientation = displayOrientation
                 }
             }
 
-    /** `true` if the camera is opened. */
-    val isCameraOpened: Boolean get() = cameraViewImpl.isCameraOpened
+    /** `true` if the camera is opened `false` otherwise. */
+    val isCameraOpened: Boolean get() = camera.isCameraOpened
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
      * camera.
      */
     var adjustViewBounds: Boolean = false
-        set(adjustViewBounds) {
-            if (field != adjustViewBounds) {
-                field = adjustViewBounds
-                requestLayout()
-            }
+        set(value) {
+            if (value == field) return
+            field = value
+            requestLayout()
         }
 
-    /** Direction that the current camera faces. */
+    /** Format of the output of image data produced from the camera. Supported values [Modes.OutputFormat]. */
+    @get:OutputFormat
+    @setparam:OutputFormat
+    var outputFormat: Int
+        get() = camera.outputFormat
+        private set(value) {
+            camera.outputFormat = value
+        }
+
+    /**
+     * Direction that the current camera faces.
+     * Supported values are [Modes.FACING_BACK] and [Modes.FACING_FRONT].
+     */
     @get:Facing
     @setparam:Facing
     var facing: Int
-        get() = cameraViewImpl.facing
-        set(facing) {
-            cameraViewImpl.facing = facing
+        get() = camera.facing
+        set(value) {
+            camera.facing = value
         }
 
     /** Gets all the aspect ratios supported by the current camera. */
-    val supportedAspectRatios: Set<AspectRatio> get() = cameraViewImpl.supportedAspectRatios
+    val supportedAspectRatios: Set<AspectRatio> get() = camera.supportedAspectRatios
 
-    /** Current aspect ratio of camera. */
+    /** Current aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
     var aspectRatio: AspectRatio
-        get() = cameraViewImpl.aspectRatio
-        set(ratio) {
-            if (cameraViewImpl.setAspectRatio(ratio)) requestLayout()
+        get() = camera.aspectRatio
+        set(value) {
+            if (camera.setAspectRatio(value)) requestLayout()
         }
 
     /**
@@ -161,71 +237,78 @@ class CameraView @JvmOverloads constructor(
      * disabled, or if it is not supported by the current camera.
      */
     var autoFocus: Boolean
-        get() = cameraViewImpl.autoFocus
-        set(autoFocus) {
-            cameraViewImpl.autoFocus = autoFocus
+        get() = camera.autoFocus
+        set(value) {
+            camera.autoFocus = value
         }
 
-    /** Current touch to focus mode */
+    /** Current touch to focus mode. True is on and false if off. */
     private var touchToFocus: Boolean
-        get() = cameraViewImpl.touchToFocus
-        set(touchToFocus) {
-            cameraViewImpl.touchToFocus = touchToFocus
+        get() = camera.touchToFocus
+        set(value) {
+            camera.touchToFocus = value
         }
 
-    /** Current auto white balance mode */
+    /** Current auto white balance mode. Supported values [Modes.AutoWhiteBalance]. */
     @get:Awb
     @setparam:Awb
     var awb: Int
-        get() = cameraViewImpl.awb
-        set(awb) {
-            cameraViewImpl.awb = awb
+        get() = camera.awb
+        set(value) {
+            camera.awb = value
         }
 
-    /** Current flash mode */
+    /** Current flash mode. Supported values [Modes.Flash]. */
     @get:Flash
     @setparam:Flash
     var flash: Int
-        get() = cameraViewImpl.flash
-        set(flash) {
-            cameraViewImpl.flash = flash
+        get() = camera.flash
+        set(value) {
+            camera.flash = value
         }
 
     /** Current auto exposure mode */
     private var ae: Boolean
-        get() = cameraViewImpl.ae
-        set(ae) {
-            cameraViewImpl.ae = ae
+        get() = camera.ae
+        set(value) {
+            camera.ae = value
         }
 
     /** Current optical stabilization mode */
     var opticalStabilization: Boolean
-        get() = cameraViewImpl.opticalStabilization
-        set(opticalStabilization) {
-            cameraViewImpl.opticalStabilization = opticalStabilization
+        get() = camera.opticalStabilization
+        set(value) {
+            camera.opticalStabilization = value
         }
 
-    /** Current noise reduction mode */
+    /** Current noise reduction mode. Supported values [Modes.NoiseReduction]. */
     @get:NoiseReduction
     @setparam:NoiseReduction
     var noiseReduction: Int
-        get() = cameraViewImpl.noiseReduction
-        set(noiseReduction) {
-            cameraViewImpl.noiseReduction = noiseReduction
+        get() = camera.noiseReduction
+        set(value) {
+            camera.noiseReduction = value
         }
 
-    /** Current shutter time in milliseconds */
+    /** Current shutter time in milliseconds. Supported values [Modes.Shutter]. */
     @get:Shutter
     @setparam:Shutter
     var shutter: Int
-        get() = cameraViewImpl.shutter
-        set(shutter) {
-            cameraViewImpl.shutter = shutter
+        get() = preview.shutterView.shutterTime
+        set(value) {
+            preview.shutterView.shutterTime = value
+        }
+
+    /** Zero shutter lag mode capture. */
+    var zsl: Boolean
+        get() = camera.zsl
+        set(value) {
+            camera.zsl = value
         }
 
     init {
         if (isInEditMode) {
-            callbacks.disable()
+            listener.disable()
             displayOrientationDetector.disable()
         } else {
             // Attributes
@@ -237,6 +320,7 @@ class CameraView @JvmOverloads constructor(
             )
 
             adjustViewBounds = attr.getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
+            outputFormat = attr.getInt(R.styleable.CameraView_outputFormat, JPEG)
             facing = attr.getInt(R.styleable.CameraView_facing, FACING_BACK)
             aspectRatio = attr.getString(R.styleable.CameraView_aspectRatio)
                     ?.let { AspectRatio.parse(it) }
@@ -278,7 +362,7 @@ class CameraView @JvmOverloads constructor(
         // Handle android:adjustViewBounds
         if (adjustViewBounds) {
             if (!isCameraOpened) {
-                callbacks.reserveRequestLayoutOnOpen()
+                listener.reserveRequestLayoutOnOpen()
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
                 return
             }
@@ -313,13 +397,13 @@ class CameraView @JvmOverloads constructor(
         if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) {
             ratio = ratio.inverse()
         }
-        if (height < width * ratio.y / ratio.x) cameraViewImpl.view.measure(
+        if (height < width * ratio.y / ratio.x) camera.view.measure(
                 View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(
                         width * ratio.y / ratio.x,
                         View.MeasureSpec.EXACTLY
                 )
-        ) else cameraViewImpl.view.measure(
+        ) else camera.view.measure(
                 View.MeasureSpec.makeMeasureSpec(
                         height * ratio.x / ratio.y,
                         View.MeasureSpec.EXACTLY
@@ -333,6 +417,7 @@ class CameraView @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable? =
             SavedState(
                     super.onSaveInstanceState() ?: Bundle(),
+                    outputFormat,
                     facing,
                     aspectRatio,
                     autoFocus,
@@ -353,6 +438,7 @@ class CameraView @JvmOverloads constructor(
         val ss = state as? SavedState?
         super.onRestoreInstanceState(ss?.superState)
         ss?.let {
+            outputFormat = it.outputFormat
             facing = it.facing
             aspectRatio = it.ratio
             autoFocus = it.autoFocus
@@ -370,97 +456,161 @@ class CameraView @JvmOverloads constructor(
      * [Activity.onResume].
      */
     fun start() {
-        if (!cameraViewImpl.start()) {
+        if (!camera.start()) {
             //store the state ,and restore this state after fall back o Camera1
             val state = onSaveInstanceState()
             // Camera2 uses legacy hardware layer; fall back to Camera1
-            cameraViewImpl = Camera1(callbacks, preview)
+            camera = Camera1(listener, preview)
             onRestoreInstanceState(state)
-            cameraViewImpl.start()
+            camera.start()
         }
     }
 
     /**
      * Stop camera preview and close the device. This is typically called from
      * [Activity.onPause].
+     * @param removeAllListeners if `true`, removes all listeners previously set. See [CameraView.removeAllListeners]
      */
-    fun stop() {
-        cameraViewImpl.stop()
+    fun stop(removeAllListeners: Boolean = false) {
+        if (removeAllListeners) listener.clear()
+        camera.stop()
     }
 
     /**
-     * Add a new callback.
+     * Add a new camera opened [listener].
+     * @param listener lambda
+     * @return instance of [CameraView] it is called on
+     */
+    fun addCameraOpenedListener(listener: () -> Unit): CameraView {
+        if (this.listener.isEnabled) cameraOpenedListeners.add(listener)
+        return this
+    }
+
+    /**
+     * Remove camera opened [listener].
+     * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeCameraOpenedListener(listener: () -> Unit): CameraView {
+        cameraOpenedListeners.remove(listener)
+        return this
+    }
+
+    /**
+     * Set preview frame [listener]. Be careful while using this listener as it is invoked on each frame,
+     * which could be 60 times per second if frame rate is 60 fps.
+     * Ideally you should only process next frame once you are done processing previous frame.
+     * Don't continuously launch background tasks for each frame,
+     * it is not memory efficient, the device will run out of memory very quickly and force close the app.
      *
-     * @param callback The [Callback] to add.
-     * @see .removeCallback
+     * @param listener lambda with image of type [Image] as its argument which is the preview frame.
+     *        It is always of type [android.graphics.ImageFormat.YUV_420_888]
+     * @return instance of [CameraView] it is called on
+     * @sample setupCameraSample
      */
-    fun addCallback(callback: Callback) {
-        callbacks.add(callback)
+    fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
+        if (this.listener.isEnabled) previewFrameListener = listener
+        return this
     }
 
     /**
-     * Remove a callback.
-     *
-     * @param callback The [Callback] to remove.
-     * @see .addCallback
+     * This is a sample setup method to show appropriate and safe usage of [setPreviewFrameListener]
      */
-    fun removeCallback(callback: Callback) {
-        callbacks.remove(callback)
-    }
+    @ExperimentalCoroutinesApi
+    @Suppress("unused", "UNUSED_ANONYMOUS_PARAMETER")
+    private fun setupCameraSample() {
 
-    /**
-     * Take a picture. The result will be returned to
-     * [Callback.onPictureTaken].
-     */
-    fun capture() {
-        cameraViewImpl.takePicture()
-    }
+        CameraView(context).apply {
 
-    private inner class CallbackBridge internal constructor() : CameraViewImpl.Callback {
+            val processing = AtomicBoolean(false)
 
-        private val callbacks = ArrayList<Callback>()
+            addCameraOpenedListener { Timber.i("Camera opened.") }
 
-        private var enabled = true
+            setPreviewFrameListener { image: Image ->
 
-        private var requestLayoutOnOpen: Boolean = false
+                if (!processing.get()) {
 
-        fun add(callback: Callback) {
-            if (enabled) callbacks.add(callback)
-        }
+                    processing.set(true)
 
-        fun remove(callback: Callback) {
-            callbacks.remove(callback)
-        }
+                    val result = GlobalScope.async { /* Some background image processing task */ }
 
-        fun disable() {
-            callbacks.clear()
-            enabled = false
-        }
-
-        override fun onCameraOpened() {
-            if (requestLayoutOnOpen) {
-                requestLayoutOnOpen = false
-                requestLayout()
+                    result.invokeOnCompletion { t ->
+                        val output = result.getCompleted()
+                        /* ...  use the output ... */
+                        // Set processing flag to false
+                        processing.set(false)
+                    }
+                }
             }
-            callbacks.forEach { it.onCameraOpened(this@CameraView) }
-        }
 
-        override fun onCameraClosed() {
-            callbacks.forEach { it.onCameraClosed(this@CameraView) }
-        }
+            addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken successfully.") }
 
-        override fun onPictureTaken(data: ByteArray) {
-            callbacks.forEach { it.onPictureTaken(this@CameraView, data) }
+            addCameraClosedListener { Timber.i("Camera closed.") }
         }
+    }
 
-        fun reserveRequestLayoutOnOpen() {
-            requestLayoutOnOpen = true
-        }
+    /**
+     * Remove preview frame [listener].
+     * @return instance of [CameraView] it is called on
+     */
+    fun removePreviewFrameListener(): CameraView {
+        previewFrameListener = null
+        return this
+    }
+
+    /**
+     * Add a new picture taken [listener].
+     * @param listener lambda
+     * @return instance of [CameraView] it is called on
+     */
+    fun addPictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
+        if (this.listener.isEnabled) pictureTakenListeners.add(listener)
+        return this
+    }
+
+    /**
+     * Remove picture taken [listener].
+     * @return instance of [CameraView] it is called on
+     */
+    fun removePictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
+        pictureTakenListeners.remove(listener)
+        return this
+    }
+
+    /**
+     * Add a new camera closed [listener].
+     * @param listener lambda
+     * @return instance of [CameraView] it is called on
+     */
+    fun addCameraClosedListener(listener: () -> Unit): CameraView {
+        if (this.listener.isEnabled) cameraClosedListeners.add(listener)
+        return this
+    }
+
+    /**
+     * Remove camera closed [listener].
+     * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeCameraClosedListener(listener: () -> Unit): CameraView {
+        cameraClosedListeners.remove(listener)
+        return this
+    }
+
+    /** Remove all listeners previously set. */
+    fun removeAllListeners() {
+        listener.clear()
+    }
+
+    /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
+    fun capture() {
+        camera.takePicture()
     }
 
     @Parcelize
     data class SavedState(
             val parcelable: Parcelable,
+            @OutputFormat val outputFormat: Int,
             @Facing val facing: Int,
             val ratio: AspectRatio,
             val autoFocus: Boolean,
@@ -472,32 +622,4 @@ class CameraView @JvmOverloads constructor(
             @NoiseReduction val noiseReduction: Int,
             @Shutter val shutter: Int
     ) : View.BaseSavedState(parcelable), Parcelable
-
-    /**
-     * Callback for monitoring events about [CameraView].
-     */
-    abstract class Callback {
-
-        /**
-         * Called when camera is opened.
-         *
-         * @param cameraView The associated [CameraView].
-         */
-        open fun onCameraOpened(cameraView: CameraView) {}
-
-        /**
-         * Called when camera is closed.
-         *
-         * @param cameraView The associated [CameraView].
-         */
-        open fun onCameraClosed(cameraView: CameraView) {}
-
-        /**
-         * Called when a picture is taken.
-         *
-         * @param cameraView The associated [CameraView].
-         * @param data       JPEG data.
-         */
-        open fun onPictureTaken(cameraView: CameraView, data: ByteArray) {}
-    }
 }

@@ -35,20 +35,15 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
 
     private var displayOrientation: Int = 0
 
-    override val surface: Surface
-        get() = Surface(textureView.surfaceTexture)
+    override val surface: Surface get() = Surface(textureView.surfaceTexture)
 
-    override val surfaceTexture: SurfaceTexture?
-        get() = textureView.surfaceTexture
+    override val surfaceTexture: SurfaceTexture? get() = textureView.surfaceTexture
 
-    override val view: View
-        get() = textureView
+    override val view: View get() = textureView
 
-    override val outputClass: Class<*>
-        get() = SurfaceTexture::class.java
+    override val outputClass: Class<*> get() = SurfaceTexture::class.java
 
-    override val isReady: Boolean
-        get() = textureView.surfaceTexture != null
+    override val isReady: Boolean get() = textureView.surfaceTexture != null
 
     init {
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {

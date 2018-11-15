@@ -164,7 +164,7 @@ class CameraViewTest : GrantPermissionsRule() {
                     }
                     val cameraRatio = cameraView.aspectRatio
                     val textureRatio = AspectRatio.of(
-                            preview?.width ?: return@check,
+                            preview.width,
                             preview.height
                     )
                     assertThat<AspectRatio>(
@@ -280,27 +280,18 @@ class CameraViewTest : GrantPermissionsRule() {
         private var resourceCallback: IdlingResource.ResourceCallback? = null
         private var isIdleNow: Boolean = false
 
-        private val callback = object : CameraView.Callback() {
-
-            override fun onCameraOpened(cameraView: CameraView) {
+        init {
+            cameraView.addCameraOpenedListener {
                 if (!isIdleNow) {
                     isIdleNow = true
-                    resourceCallback?.onTransitionToIdle()
+                    resourceCallback.onTransitionToIdle()
                 }
-            }
-
-            override fun onCameraClosed(cameraView: CameraView) {
-                isIdleNow = false
-            }
-        }
-
-        init {
-            cameraView.addCallback(callback)
+            }.addCameraClosedListener { isIdleNow = false }
             isIdleNow = cameraView.isCameraOpened
         }
 
         override fun close() {
-            cameraView.removeCallback(callback)
+            cameraView.removeAllListeners()
         }
 
         override fun getName(): String = CameraViewIdlingResource::class.java.simpleName
@@ -320,24 +311,19 @@ class CameraViewTest : GrantPermissionsRule() {
         private var isIdleNow: Boolean = false
         private var validJpeg: Boolean = false
 
-        private val callback = object : CameraView.Callback() {
-
-            override fun onPictureTaken(cameraView: CameraView, data: ByteArray) {
+        init {
+            cameraView.addPictureTakenListener { imageData ->
                 if (!isIdleNow) {
                     isIdleNow = true
-                    validJpeg = data.size > 2 &&
-                            data[0] == 0xFF.toByte() && data[1] == 0xD8.toByte()
-                    resourceCallback?.onTransitionToIdle()
+                    validJpeg = imageData.size > 2 &&
+                            imageData[0] == 0xFF.toByte() && imageData[1] == 0xD8.toByte()
+                    resourceCallback.onTransitionToIdle()
                 }
             }
         }
 
-        init {
-            cameraView.addCallback(callback)
-        }
-
         override fun close() {
-            cameraView.removeCallback(callback)
+            cameraView.removeAllListeners()
         }
 
         override fun getName(): String = TakePictureIdlingResource::class.java.simpleName

@@ -4,4 +4,4 @@
     android:id="@+id/mainContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".camera.CameraActivity" />
+    tools:context="com.priyankvasa.android.cameraviewex.camera.CameraActivity" />

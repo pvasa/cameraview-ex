@@ -86,6 +86,15 @@
             <enum name="long_time" value="400" />
         </attr>
 
+        <attr name="outputFormat" format="enum">
+            <enum name="jpeg" value="0" />
+            <enum name="yuv_420_888" value="1" />
+            <enum name="rgba_8888" value="2" />
+        </attr>
+
+        <!-- Zero shutter lag capture -->
+        <attr name="zsl" format="boolean" />
+
     </declare-styleable>
 
 </resources>
