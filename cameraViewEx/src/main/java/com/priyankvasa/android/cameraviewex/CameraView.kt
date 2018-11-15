@@ -58,6 +58,11 @@ import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_LONG
 import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_OFF
 import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_SHORT
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraView @JvmOverloads constructor(
         context: Context,
@@ -474,6 +479,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Add a new camera opened [listener].
      * @param listener lambda
+     * @return instance of [CameraView] it is called on
      */
     fun addCameraOpenedListener(listener: () -> Unit): CameraView {
         if (this.listener.isEnabled) cameraOpenedListeners.add(listener)
@@ -483,6 +489,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Remove camera opened [listener].
      * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
      */
     fun removeCameraOpenedListener(listener: () -> Unit): CameraView {
         cameraOpenedListeners.remove(listener)
@@ -490,15 +497,62 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * Set preview frame [listener].
-     * @param listener lambda
+     * Set preview frame [listener]. Be careful while using this listener as it is invoked on each frame,
+     * which could be 60 times per second if frame rate is 60 fps.
+     * Ideally you should only process next frame once you are done processing previous frame.
+     * Don't continuously launch background tasks for each frame,
+     * it is not memory efficient, the device will run out of memory very quickly and force close the app.
+     *
+     * @param listener lambda with image of type [Image] as its argument which is the preview frame.
+     *        It is always of type [android.graphics.ImageFormat.YUV_420_888]
+     * @return instance of [CameraView] it is called on
+     * @sample setupCameraSample
      */
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
         if (this.listener.isEnabled) previewFrameListener = listener
         return this
     }
 
-    /** Remove preview frame [listener]. */
+    /**
+     * This is a sample setup method to show appropriate and safe usage of [setPreviewFrameListener]
+     */
+    @ExperimentalCoroutinesApi
+    @Suppress("unused", "UNUSED_ANONYMOUS_PARAMETER")
+    private fun setupCameraSample() {
+
+        CameraView(context).apply {
+
+            val processing = AtomicBoolean(false)
+
+            addCameraOpenedListener { Timber.i("Camera opened.") }
+
+            setPreviewFrameListener { image: Image ->
+
+                if (!processing.get()) {
+
+                    processing.set(true)
+
+                    val result = GlobalScope.async { /* Some background image processing task */ }
+
+                    result.invokeOnCompletion { t ->
+                        val output = result.getCompleted()
+                        /* ...  use the output ... */
+                        // Set processing flag to false
+                        processing.set(false)
+                    }
+                }
+            }
+
+            addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken successfully.") }
+
+            addCameraClosedListener { Timber.i("Camera closed.") }
+        }
+    }
+
+    /**
+     * Remove preview frame [listener].
+     * @return instance of [CameraView] it is called on
+     */
     fun removePreviewFrameListener(): CameraView {
         previewFrameListener = null
         return this
@@ -507,13 +561,17 @@ class CameraView @JvmOverloads constructor(
     /**
      * Add a new picture taken [listener].
      * @param listener lambda
+     * @return instance of [CameraView] it is called on
      */
     fun addPictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
         if (this.listener.isEnabled) pictureTakenListeners.add(listener)
         return this
     }
 
-    /** Remove picture taken [listener]. */
+    /**
+     * Remove picture taken [listener].
+     * @return instance of [CameraView] it is called on
+     */
     fun removePictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
         pictureTakenListeners.remove(listener)
         return this
@@ -522,6 +580,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Add a new camera closed [listener].
      * @param listener lambda
+     * @return instance of [CameraView] it is called on
      */
     fun addCameraClosedListener(listener: () -> Unit): CameraView {
         if (this.listener.isEnabled) cameraClosedListeners.add(listener)
@@ -531,6 +590,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Remove camera closed [listener].
      * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
      */
     fun removeCameraClosedListener(listener: () -> Unit): CameraView {
         cameraClosedListeners.remove(listener)

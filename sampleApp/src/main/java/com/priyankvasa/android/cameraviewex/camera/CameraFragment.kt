@@ -23,6 +23,7 @@ import kotlinx.android.synthetic.main.fragment_camera.ivCaptureButton
 import kotlinx.android.synthetic.main.fragment_camera.ivFlashSwitch
 import kotlinx.android.synthetic.main.fragment_camera.ivPhoto
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraFragment : Fragment() {
 
@@ -97,15 +98,21 @@ class CameraFragment : Fragment() {
 
         with(camera) {
 
-            addCameraClosedListener { Timber.i("Camera opened.") }
+            val decoding = AtomicBoolean(false)
+
+            addCameraOpenedListener { Timber.i("Camera opened.") }
 
             setPreviewFrameListener { image: Image ->
-                val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
-                detector.detectInImage(visionImage)
-                        .addOnSuccessListener { barcodes ->
-                            barcodes.forEachIndexed { i, barcode -> Timber.i("Barcode $i: ${barcode.rawValue}") }
-                        }
-                        .addOnFailureListener { e -> Timber.e(e) }
+                if (!decoding.get()) {
+                    decoding.set(true)
+                    val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
+                    detector.detectInImage(visionImage)
+                            .addOnCompleteListener { decoding.set(false) }
+                            .addOnSuccessListener { barcodes ->
+                                barcodes.forEachIndexed { i, barcode -> Timber.i("Barcode $i: ${barcode.rawValue}") }
+                            }
+                            .addOnFailureListener { e -> Timber.e(e) }
+                }
             }
 
             addPictureTakenListener { imageData: ByteArray ->
