@@ -543,7 +543,7 @@ internal open class Camera2(
         previewImageReader = ImageReader.newInstance(
                 largestPreview.width,
                 largestPreview.height,
-                internalOutputFormat,
+                ImageFormat.YUV_420_888,
                 4 // maxImages
         ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
 
@@ -603,10 +603,13 @@ internal open class Camera2(
             val template = if (zsl) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG else CameraDevice.TEMPLATE_PREVIEW
 
             previewRequestBuilder = camera?.createCaptureRequest(template)
-                    ?.apply { addTarget(surface) }
+                    ?.apply {
+                        addTarget(surface)
+                        addTarget(previewIRSurface)
+                    }
                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
-            val surfaces: ArrayList<Surface> = arrayListOf(surface, /*previewIRSurface,*/ captureSurface)
+            val surfaces: ArrayList<Surface> = arrayListOf(surface, previewIRSurface, captureSurface)
 
             camera?.createCaptureSession(surfaces, sessionCallback, backgroundHandler)
 
