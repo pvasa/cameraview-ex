@@ -70,6 +70,10 @@ class CameraView @JvmOverloads constructor(
         defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    init {
+        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
+    }
+
     /** Direction the camera faces relative to device screen. */
     @IntDef(JPEG, YUV_420_888, RGBA_8888)
     @Retention(AnnotationRetention.RUNTIME)

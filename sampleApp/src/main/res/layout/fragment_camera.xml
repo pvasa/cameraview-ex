@@ -39,6 +39,17 @@
         app:shutter="short_time"
         app:zsl="true" />
 
+    <TextView
+        android:id="@+id/tvBarcodes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="48dp"
+        android:lineSpacingExtra="2dp"
+        android:maxLines="20"
+        android:textColor="@color/black"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch" />
+
     <ImageView
         android:id="@+id/ivCaptureButton"
         android:layout_width="wrap_content"

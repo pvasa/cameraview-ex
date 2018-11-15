@@ -22,6 +22,7 @@ import kotlinx.android.synthetic.main.fragment_camera.camera
 import kotlinx.android.synthetic.main.fragment_camera.ivCaptureButton
 import kotlinx.android.synthetic.main.fragment_camera.ivFlashSwitch
 import kotlinx.android.synthetic.main.fragment_camera.ivPhoto
+import kotlinx.android.synthetic.main.fragment_camera.tvBarcodes
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -106,10 +107,16 @@ class CameraFragment : Fragment() {
                 if (!decoding.get()) {
                     decoding.set(true)
                     val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
+                    val sbBarcodes = StringBuilder()
                     detector.detectInImage(visionImage)
                             .addOnCompleteListener { decoding.set(false) }
                             .addOnSuccessListener { barcodes ->
-                                barcodes.forEachIndexed { i, barcode -> Timber.i("Barcode $i: ${barcode.rawValue}") }
+                                barcodes.forEachIndexed { i, barcode ->
+                                    sbBarcodes.appendln(barcode.rawValue)
+                                    Timber.i("Barcode $i: ${barcode.rawValue}")
+                                }
+                                tvBarcodes.text = sbBarcodes.toString()
+                                sbBarcodes.clear()
                             }
                             .addOnFailureListener { e -> Timber.e(e) }
                 }

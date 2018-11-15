@@ -20,7 +20,7 @@
         android:name="android.hardware.camera.autofocus"
         android:required="false" />
 
-    <application android:name=".App">
+    <application>
 
         <meta-data
             android:name="com.google.firebase.ml.vision.DEPENDENCIES"
