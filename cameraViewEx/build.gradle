@@ -29,9 +29,9 @@ android {
     signingConfigs {
         config {
             storeFile file("$rootDir/keystore.jks")
-            storePassword rootProject.ext.keyStorePassword
+            storePassword System.getenv('KEYSTORE_PASSWORD')
             keyAlias 'android-release'
-            keyPassword rootProject.ext.keyAliasPassword
+            keyPassword System.getenv('KEYALIAS_PASSWORD')
         }
     }
 
