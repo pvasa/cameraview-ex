@@ -28,6 +28,15 @@ object Modes {
     const val FACING_BACK = 0
     const val FACING_FRONT = 1
 
+    internal object CameraMode {
+        /** Output format is according to [CameraView.outputFormat] */
+        const val SINGLE_CAPTURE = 0
+        //const val BURST_CAPTURE = 1
+        /** Output format is always [android.graphics.ImageFormat.YUV_420_888] */
+        const val CONTINUOUS_FRAME = 2
+        //const val VIDEO = 3
+    }
+
     internal object OutputFormat {
         const val JPEG = 0
         const val YUV_420_888 = 1
@@ -70,8 +79,9 @@ object Modes {
         const val AWB_SHADE = 8
     }
 
-    const val DEFAULT_ADJUST_VIEW_BOUNDS = false
+    const val DEFAULT_ADJUST_VIEW_BOUNDS = true
     val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
+    const val DEFAULT_CAMERA_MODE = CameraMode.SINGLE_CAPTURE
     const val DEFAULT_OUTPUT_FORMAT = OutputFormat.JPEG
     const val DEFAULT_FACING = FACING_BACK
     const val DEFAULT_AUTO_FOCUS = false
@@ -82,5 +92,5 @@ object Modes {
     const val DEFAULT_NOISE_REDUCTION = NoiseReduction.NOISE_REDUCTION_OFF
     const val DEFAULT_SHUTTER = Shutter.SHUTTER_OFF
     const val DEFAULT_AWB = AutoWhiteBalance.AWB_OFF
-    const val DEFAULT_ZSL = true
+    const val DEFAULT_ZSL = false
 }
