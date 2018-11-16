@@ -40,6 +40,8 @@ import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_OFF
 import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_SHADE
 import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_TWILIGHT
 import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_WARM_FLUORESCENT
+import com.priyankvasa.android.cameraviewex.Modes.CameraMode.CONTINUOUS_FRAME
+import com.priyankvasa.android.cameraviewex.Modes.CameraMode.SINGLE_CAPTURE
 import com.priyankvasa.android.cameraviewex.Modes.FACING_BACK
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_AUTO
 import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
@@ -71,8 +73,14 @@ class CameraView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
+        @Suppress("ConstantConditionIf")
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
+
+    @IntDef(SINGLE_CAPTURE, /*BURST_CAPTURE,*/ CONTINUOUS_FRAME/*, VIDEO*/)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
+    annotation class CameraMode
 
     /** Direction the camera faces relative to device screen. */
     @IntDef(JPEG, YUV_420_888, RGBA_8888)
@@ -193,6 +201,15 @@ class CameraView @JvmOverloads constructor(
 
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean get() = camera.isCameraOpened
+
+    /** The mode in which camera starts. Supported values [Modes.CameraMode]. */
+    @get:CameraMode
+    @setparam:CameraMode
+    var cameraMode: Int
+        get() = camera.cameraMode
+        private set(value) {
+            camera.cameraMode = value
+        }
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
@@ -316,29 +333,31 @@ class CameraView @JvmOverloads constructor(
             displayOrientationDetector.disable()
         } else {
             // Attributes
-            val attr = context.obtainStyledAttributes(
+            context.obtainStyledAttributes(
                     attrs,
                     R.styleable.CameraView,
                     defStyleAttr,
                     R.style.Widget_CameraView
-            )
+            ).run {
+                adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
+                cameraMode = getInt(R.styleable.CameraView_camera_mode, Modes.DEFAULT_CAMERA_MODE)
+                outputFormat = getInt(R.styleable.CameraView_outputFormat, JPEG)
+                facing = getInt(R.styleable.CameraView_facing, FACING_BACK)
+                aspectRatio = getString(R.styleable.CameraView_aspectRatio)
+                        ?.let { AspectRatio.parse(it) }
+                        ?: Modes.DEFAULT_ASPECT_RATIO
+                autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
+//            touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+                awb = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
+                flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
+//            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
+                opticalStabilization = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
+                noiseReduction = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
+                shutter = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
+                zsl = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
 
-            adjustViewBounds = attr.getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
-            outputFormat = attr.getInt(R.styleable.CameraView_outputFormat, JPEG)
-            facing = attr.getInt(R.styleable.CameraView_facing, FACING_BACK)
-            aspectRatio = attr.getString(R.styleable.CameraView_aspectRatio)
-                    ?.let { AspectRatio.parse(it) }
-                    ?: Modes.DEFAULT_ASPECT_RATIO
-            autoFocus = attr.getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
-//            touchToFocus = attr.getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
-            awb = attr.getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
-            flash = attr.getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
-//            ae = attr.getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
-            opticalStabilization = attr.getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
-            noiseReduction = attr.getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
-            shutter = attr.getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
-
-            attr.recycle()
+                recycle()
+            }
 
             // Add shutter view
             addView(preview.shutterView)
@@ -421,6 +440,7 @@ class CameraView @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable? =
             SavedState(
                     super.onSaveInstanceState() ?: Bundle(),
+                    cameraMode,
                     outputFormat,
                     facing,
                     aspectRatio,
@@ -431,7 +451,8 @@ class CameraView @JvmOverloads constructor(
                     ae,
                     opticalStabilization,
                     noiseReduction,
-                    shutter
+                    shutter,
+                    zsl
             )
 
     override fun onRestoreInstanceState(state: Parcelable?) {
@@ -442,6 +463,7 @@ class CameraView @JvmOverloads constructor(
         val ss = state as? SavedState?
         super.onRestoreInstanceState(ss?.superState)
         ss?.let {
+            cameraMode = it.cameraMode
             outputFormat = it.outputFormat
             facing = it.facing
             aspectRatio = it.ratio
@@ -521,7 +543,7 @@ class CameraView @JvmOverloads constructor(
      * This is a sample setup method to show appropriate and safe usage of [setPreviewFrameListener]
      */
     @ExperimentalCoroutinesApi
-    @Suppress("unused", "UNUSED_ANONYMOUS_PARAMETER")
+    @Suppress("unused", "UNUSED_ANONYMOUS_PARAMETER", "UNUSED_VARIABLE")
     private fun setupCameraSample() {
 
         CameraView(context).apply {
@@ -608,12 +630,14 @@ class CameraView @JvmOverloads constructor(
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
     fun capture() {
-        camera.takePicture()
+        if (cameraMode == Modes.CameraMode.SINGLE_CAPTURE) camera.takePicture()
+        else Timber.e("Cannot capture still picture in camera mode $cameraMode")
     }
 
     @Parcelize
     data class SavedState(
             val parcelable: Parcelable,
+            @CameraMode val cameraMode: Int,
             @OutputFormat val outputFormat: Int,
             @Facing val facing: Int,
             val ratio: AspectRatio,
@@ -624,6 +648,7 @@ class CameraView @JvmOverloads constructor(
             val ae: Boolean,
             val opticalStabilization: Boolean,
             @NoiseReduction val noiseReduction: Int,
-            @Shutter val shutter: Int
+            @Shutter val shutter: Int,
+            val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }

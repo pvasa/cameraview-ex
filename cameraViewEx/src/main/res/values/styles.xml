@@ -26,6 +26,7 @@
         <item name="shutter">short_time</item>
         <item name="outputFormat">jpeg</item>
         <item name="zsl">true</item>
+        <item name="camera_mode">single_capture</item>
     </style>
 
 </resources>

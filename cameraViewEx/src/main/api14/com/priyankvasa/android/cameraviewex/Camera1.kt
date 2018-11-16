@@ -112,6 +112,8 @@ internal class Camera1(
             return idealAspectRatios.ratios()
         }
 
+    override var cameraMode: Int = Modes.DEFAULT_CAMERA_MODE
+
     override var autoFocus: Boolean = Modes.DEFAULT_AUTO_FOCUS
         get() {
             if (!isCameraOpened) return field

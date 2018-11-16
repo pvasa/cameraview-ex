@@ -37,6 +37,8 @@ internal interface CameraInterface {
 
     val aspectRatio: AspectRatio
 
+    var cameraMode: Int
+
     var outputFormat: Int
 
     var facing: Int

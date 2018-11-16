@@ -17,17 +17,28 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
 
 - Camera preview by placing it in a layout XML (and calling the start method)
 - Configuration by attributes
-  - Facing (app:facing)
-  - Aspect ratio (app:aspectRatio)
-  - Auto-focus (app:autoFocus)
-  - Flash (app:flash)
-  - Auto white balance (app:awb)
-  - Optical Stabilization (app:opticalStabilization)
-  - Noise Reduction (app:noiseReduction)
-  - Camera shutter view (app:shutter)
-  - Output format (app:outputFormat)
+  - Camera mode (app:cameraMode) defaults to "single_capture"
+  - Facing (app:facing) defaults to "back"
+  - Aspect ratio (app:aspectRatio) defaults to "4:3"
+  - Auto-focus (app:autoFocus) defaults to "false"
+  - Flash (app:flash) defaults to "off"
+  - Auto white balance (app:awb) defaults to "off"
+  - Optical Stabilization (app:opticalStabilization) defaults to "false"
+  - Noise Reduction (app:noiseReduction) defaults to "off"
+  - Camera shutter view (app:shutter) defaults to "off"
+  - Output format (app:outputFormat) defaults to "jpeg"
+  - Zero shutter lag (app:zsl) defaults to "false"
 
 ## Usage
+
+#### Import dependency
+In app build.gradle,
+```gradle
+dependencies {
+    // ...
+    implementation "com.priyankvasa.android:cameraview-ex:2.1.0"
+}
+```
 
 #### In layout xml
 ```xml
@@ -40,12 +51,22 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
     app:aspectRatio="4:3"
     app:autoFocus="true"
     app:awb="auto"
+    app:camera_mode="single_capture"
     app:facing="back"
     app:flash="auto"
     app:noiseReduction="high_quality"
     app:opticalStabilization="true"
     app:outputFormat="jpeg"
-    app:shutter="short_time" />
+    app:shutter="short_time"
+    app:zsl="true" />
+
+<!-- Or to apply all those params as mentioned above use Widget.CameraView style -->
+
+<com.priyankvasa.android.cameraviewex.CameraView
+    android:id="@+id/camera"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    style="@style/Widget.CameraView" />
 ```
 
 #### In Fragment
@@ -53,9 +74,18 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     
+    // For camera mode Modes.CameraMode.SINGLE_CAPTURE
     camera.addCameraOpenedListener { Timber.i("Camera opened.") }
-        .setPreviewFrameListener { image: Image -> Timber.i("Preview frame available.") }
+        // Output format is whatever set for [app:outputFormat] parameter
         .addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken.") }
+        .addCameraClosedListener { Timber.i("Camera closed.") }
+    
+    /* --- OR --- */
+    
+    // For camera mode Modes.CameraMode.CONTINUOUS_FRAME
+    camera.addCameraOpenedListener { Timber.i("Camera opened.") }
+        // Output format is always ImageFormat.YUV_420_888
+        .setPreviewFrameListener { image: Image -> Timber.i("Preview frame available.") }
         .addCameraClosedListener { Timber.i("Camera closed.") }
 }
 
@@ -75,4 +105,4 @@ override fun onDestroyView() {
 }
 ```
 
-You can see a complete usage in the *sampleApp* app module.
+You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module.

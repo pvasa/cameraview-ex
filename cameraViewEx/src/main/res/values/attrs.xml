@@ -95,6 +95,13 @@
         <!-- Zero shutter lag capture -->
         <attr name="zsl" format="boolean" />
 
+        <attr name="camera_mode" format="enum">
+            <enum name="single_capture" value="0" />
+            <!--<enum name="burst_capture" value="1" />-->
+            <enum name="continuous_frame" value="2" />
+            <!--<enum name="video" value="3" />-->
+        </attr>
+
     </declare-styleable>
 
 </resources>

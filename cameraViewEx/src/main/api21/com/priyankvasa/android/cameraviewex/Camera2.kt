@@ -35,17 +35,10 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.renderscript.RenderScript
 import android.util.SparseIntArray
-import android.view.Surface
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_AUTO
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_ON
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_RED_EYE
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_TORCH
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.ArrayList
 
 @TargetApi(21)
 internal open class Camera2(
@@ -205,13 +198,13 @@ internal open class Camera2(
 
     private var previewRequestBuilder: CaptureRequest.Builder? = null
 
-    private var previewImageReader: ImageReader? = null
-
-    private var captureImageReader: ImageReader? = null
+    private var imageReader: ImageReader? = null
 
     private val previewSizes = SizeMap()
 
     private val pictureSizes = SizeMap()
+
+    override var cameraMode: Int = Modes.DEFAULT_CAMERA_MODE
 
     override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
 
@@ -419,10 +412,8 @@ internal open class Camera2(
         captureSession = null
         camera?.close()
         camera = null
-        previewImageReader?.close()
-        previewImageReader = null
-        captureImageReader?.close()
-        captureImageReader = null
+        imageReader?.close()
+        imageReader = null
         stopBackgroundThread()
     }
 
@@ -453,9 +444,11 @@ internal open class Camera2(
     private fun chooseCameraIdByFacing(): Boolean {
 
         try {
-
             cameraManager.cameraIdList.run {
-                ifEmpty { throw RuntimeException("No camera available.") } // No camera
+                ifEmpty {
+                    Timber.e("No camera available.") // No camera
+                    return false
+                }
                 forEach { id ->
                     val characteristics = cameraManager.getCameraCharacteristics(id)
                     val level = characteristics.get(
@@ -496,7 +489,8 @@ internal open class Camera2(
             facing = Modes.FACING_BACK
             return true
         } catch (e: CameraAccessException) {
-            throw RuntimeException("Failed to get a list of camera devices", e)
+            Timber.e(e, "Failed to get a list of camera devices")
+            return false
         }
     }
 
@@ -536,27 +530,36 @@ internal open class Camera2(
 
     private fun prepareImageReaders() {
 
-        val largestPreview = previewSizes.sizes(aspectRatio).last()
+        imageReader?.close()
 
-        previewImageReader?.close()
+        imageReader = when (cameraMode) {
 
-        previewImageReader = ImageReader.newInstance(
-                largestPreview.width,
-                largestPreview.height,
-                ImageFormat.YUV_420_888,
-                4 // maxImages
-        ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
+            Modes.CameraMode.SINGLE_CAPTURE -> {
+                val largestPicture = pictureSizes.sizes(aspectRatio).last()
+                ImageReader.newInstance(
+                        largestPicture.width,
+                        largestPicture.height,
+                        internalOutputFormat,
+                        2 // maxImages
+                ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
+            }
 
-        val largestPicture = pictureSizes.sizes(aspectRatio).last()
+//            Modes.CameraMode.BURST_CAPTURE -> null
 
-        captureImageReader?.close()
+            Modes.CameraMode.CONTINUOUS_FRAME -> {
+                val largestPreview = previewSizes.sizes(aspectRatio).last()
+                ImageReader.newInstance(
+                        largestPreview.width,
+                        largestPreview.height,
+                        ImageFormat.YUV_420_888,
+                        2 // maxImages
+                ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
+            }
 
-        captureImageReader = ImageReader.newInstance(
-                largestPicture.width,
-                largestPicture.height,
-                internalOutputFormat,
-                2 // maxImages
-        ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
+//            Modes.CameraMode.VIDEO -> null
+
+            else -> null
+        }
     }
 
     /**
@@ -569,7 +572,7 @@ internal open class Camera2(
         try {
             cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler)
         } catch (e: CameraAccessException) {
-            throw RuntimeException("Failed to open camera: $cameraId", e)
+            Timber.e(e, "Failed to open camera: $cameraId")
         }
     }
 
@@ -584,37 +587,36 @@ internal open class Camera2(
 
         if (!isCameraOpened
                 || !preview.isReady
-                || previewImageReader == null
-                || captureImageReader == null) return
+                || imageReader == null) return
 
         chooseOptimalSize().run { preview.setBufferSize(width, height) }
 
         val surface = preview.surface
                 ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
-        val previewIRSurface = previewImageReader?.surface
-                ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
-
-        val captureSurface = captureImageReader?.surface
+        val readerSurface = imageReader?.surface
                 ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
         try {
-
             val template = if (zsl) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG else CameraDevice.TEMPLATE_PREVIEW
 
             previewRequestBuilder = camera?.createCaptureRequest(template)
                     ?.apply {
                         addTarget(surface)
-                        addTarget(previewIRSurface)
+                        readerSurface
+                                .takeIf { cameraMode == Modes.CameraMode.CONTINUOUS_FRAME }
+                                ?.let { addTarget(it) }
                     }
                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
-            val surfaces: ArrayList<Surface> = arrayListOf(surface, previewIRSurface, captureSurface)
-
-            camera?.createCaptureSession(surfaces, sessionCallback, backgroundHandler)
+            camera?.createCaptureSession(
+                    arrayListOf(surface, readerSurface),
+                    sessionCallback,
+                    backgroundHandler
+            )
 
         } catch (e: CameraAccessException) {
-            throw RuntimeException("Failed to start camera session")
+            Timber.e(e, "Failed to start camera session")
         }
     }
 
@@ -683,23 +685,23 @@ internal open class Camera2(
     private fun updateFlash() {
         previewRequestBuilder?.apply {
             when (flash) {
-                FLASH_OFF -> {
+                Modes.Flash.FLASH_OFF -> {
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
                     set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
                 }
-                FLASH_ON -> {
+                Modes.Flash.FLASH_ON -> {
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH)
                     set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
                 }
-                FLASH_TORCH -> {
+                Modes.Flash.FLASH_TORCH -> {
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
                     set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH)
                 }
-                FLASH_AUTO -> {
+                Modes.Flash.FLASH_AUTO -> {
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH)
                     set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
                 }
-                FLASH_RED_EYE -> {
+                Modes.Flash.FLASH_RED_EYE -> {
                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH_REDEYE)
                     set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
                 }
@@ -795,7 +797,7 @@ internal open class Camera2(
     override fun capturePreviewFrame() {
 
         try {
-            val surface = previewImageReader?.surface
+            val surface = imageReader?.surface
                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
             previewRequestBuilder?.addTarget(surface)
@@ -825,7 +827,7 @@ internal open class Camera2(
     private fun captureStillPicture() {
 
         try {
-            val surface = captureImageReader?.surface
+            val surface = imageReader?.surface
                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
             val template = if (zsl) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG else CameraDevice.TEMPLATE_STILL_CAPTURE
@@ -842,7 +844,7 @@ internal open class Camera2(
                 set(CaptureRequest.CONTROL_AE_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AE_MODE))
                 set(CaptureRequest.FLASH_MODE, previewRequestBuilder?.get(CaptureRequest.FLASH_MODE))
 
-                if (captureImageReader?.imageFormat == ImageFormat.JPEG) { // Calculate JPEG orientation.
+                if (imageReader?.imageFormat == ImageFormat.JPEG) { // Calculate JPEG orientation.
 
                     val sensorOrientation =
                             cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION)
