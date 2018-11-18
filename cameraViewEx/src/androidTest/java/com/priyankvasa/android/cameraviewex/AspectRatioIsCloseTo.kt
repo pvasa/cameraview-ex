@@ -22,16 +22,16 @@ import org.hamcrest.Factory
 import org.hamcrest.Matcher
 import org.hamcrest.TypeSafeMatcher
 
-class AspectRatioIsCloseTo(private val mRatio: AspectRatio) : TypeSafeMatcher<AspectRatio>() {
+class AspectRatioIsCloseTo(private val ratio: AspectRatio) : TypeSafeMatcher<AspectRatio>() {
 
     override fun matchesSafely(item: AspectRatio): Boolean {
         val other = item.toFloat()
-        val self = mRatio.toFloat()
+        val self = ratio.toFloat()
         return self - ERROR < other && other < self + ERROR
     }
 
     override fun describeTo(description: Description) {
-        description.appendText("an aspect ratio of ").appendValue(mRatio.toString())
+        description.appendText("an aspect ratio of ").appendValue(ratio.toString())
     }
 
     companion object {

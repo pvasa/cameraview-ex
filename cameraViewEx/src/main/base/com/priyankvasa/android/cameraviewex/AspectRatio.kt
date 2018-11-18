@@ -110,7 +110,8 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
 
         @JvmField
         val CREATOR = object : Parcelable.Creator<AspectRatio> {
-            override fun createFromParcel(parcel: Parcel): AspectRatio = AspectRatio(parcel)
+            override fun createFromParcel(parcel: Parcel): AspectRatio =
+                    AspectRatio.of(parcel.readInt(), parcel.readInt())
 
             override fun newArray(size: Int): Array<AspectRatio?> = arrayOfNulls(size)
         }

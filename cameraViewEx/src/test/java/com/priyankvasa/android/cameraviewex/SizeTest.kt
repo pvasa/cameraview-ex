@@ -16,9 +16,9 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import org.hamcrest.CoreMatchers.`is`
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Test
 import java.util.HashSet
 
 class SizeTest {
@@ -26,14 +26,14 @@ class SizeTest {
     @Test
     fun testGetters() {
         val size = Size(1, 2)
-        assertThat(size.width, `is`(1))
-        assertThat(size.height, `is`(2))
+        assertEquals(size.width, 1)
+        assertEquals(size.height, 2)
     }
 
     @Test
     fun testToString() {
         val size = Size(1, 2)
-        assertThat(size.toString(), `is`("1x2"))
+        assertEquals(size.toString(), "1x2")
     }
 
     @Test
@@ -41,8 +41,8 @@ class SizeTest {
         val a = Size(1, 2)
         val b = Size(1, 2)
         val c = Size(3, 4)
-        assertThat(a == b, `is`(true))
-        assertThat(a == c, `is`(false))
+        assertEquals(a, b)
+        assertNotEquals(a, c)
     }
 
     @Test
@@ -50,6 +50,6 @@ class SizeTest {
         val max = 100
         val codes = HashSet<Int>()
         (1..max).forEach { x -> (1..max).forEach { y -> codes.add(Size(x, y).hashCode()) } }
-        assertThat(codes.size, `is`(max * max))
+        assertEquals(codes.size, max * max)
     }
 }

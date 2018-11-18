@@ -27,14 +27,6 @@ import android.hardware.Camera
 import android.os.Build
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_AUTO
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_ON
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_RED_EYE
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_TORCH
-import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.JPEG
-import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.RGBA_8888
-import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.YUV_420_888
 import java.io.IOException
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -44,7 +36,7 @@ internal class Camera1(
         override val preview: PreviewImpl
 ) : CameraInterface {
 
-    private var cameraId: Int = Modes.FACING_BACK
+    private var cameraId: Int = Modes.Facing.FACING_BACK
 
     private val isPictureCaptureInProgress = AtomicBoolean(false)
 
@@ -69,8 +61,9 @@ internal class Camera1(
         set(value) {
             field = value
             internalOutputFormat = when (value) {
-                JPEG -> ImageFormat.JPEG
-                YUV_420_888, RGBA_8888 -> ImageFormat.NV21
+                Modes.OutputFormat.JPEG -> ImageFormat.JPEG
+                Modes.OutputFormat.YUV_420_888,
+                Modes.OutputFormat.RGBA_8888 -> ImageFormat.NV21
                 else -> ImageFormat.UNKNOWN
             }
         }
@@ -103,13 +96,11 @@ internal class Camera1(
 
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
-            val idealAspectRatios = previewSizes
-            for (aspectRatio in idealAspectRatios.ratios()) {
-                if (pictureSizes.sizes(aspectRatio).isEmpty()) {
-                    idealAspectRatios.remove(aspectRatio)
-                }
-            }
-            return idealAspectRatios.ratios()
+            previewSizes.ratios()
+                    .asSequence()
+                    .filter { pictureSizes.sizes(it).isEmpty() }
+                    .forEach { previewSizes.remove(it) }
+            return previewSizes.ratios()
         }
 
     override var cameraMode: Int = Modes.DEFAULT_CAMERA_MODE
@@ -122,7 +113,10 @@ internal class Camera1(
         }
         set(value) {
             if (field == value) return
-            if (setAutoFocusInternal(value)) camera?.parameters = cameraParameters
+            if (setAutoFocusInternal(value)) {
+                field = value
+                camera?.parameters = cameraParameters
+            }
         }
 
     override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
@@ -142,7 +136,21 @@ internal class Camera1(
     override var flash: Int = Modes.DEFAULT_FLASH
         set(value) {
             if (field == value) return
-            if (setFlashInternal(value)) camera?.parameters = cameraParameters
+            if (isCameraOpened) {
+                val modes = cameraParameters?.supportedFlashModes
+                val mode = FLASH_MODES.get(flash)
+                if (modes?.contains(mode) == true) {
+                    cameraParameters?.flashMode = mode
+                    field = value
+                    camera?.parameters = cameraParameters
+                }
+                val currentMode = FLASH_MODES.get(this.flash)
+                if (modes == null || !modes.contains(currentMode)) {
+                    cameraParameters?.flashMode = Camera.Parameters.FLASH_MODE_OFF
+                    field = Modes.Flash.FLASH_OFF
+                    camera?.parameters = cameraParameters
+                }
+            } else field = value
         }
 
     override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
@@ -418,9 +426,7 @@ internal class Camera1(
      */
     private fun setAutoFocusInternal(autoFocus: Boolean): Boolean {
 
-        this.autoFocus = autoFocus
-
-        return if (isCameraOpened) {
+        return isCameraOpened.takeIf { it }?.also {
 
             val modes = cameraParameters?.supportedFocusModes
 
@@ -433,33 +439,11 @@ internal class Camera1(
                     Camera.Parameters.FOCUS_MODE_INFINITY
                 else -> modes?.get(0)
             }
-            true
-        } else false
+        } ?: false
     }
 
-    /**
-     * @return `true` if [.cameraParameters] was modified.
-     */
-    private fun setFlashInternal(flash: Int): Boolean {
-        if (isCameraOpened) {
-            val modes = cameraParameters?.supportedFlashModes
-            val mode = FLASH_MODES.get(flash)
-            if (modes?.contains(mode) == true) {
-                cameraParameters?.flashMode = mode
-                this.flash = flash
-                return true
-            }
-            val currentMode = FLASH_MODES.get(this.flash)
-            if (modes == null || !modes.contains(currentMode)) {
-                cameraParameters?.flashMode = Camera.Parameters.FLASH_MODE_OFF
-                this.flash = FLASH_OFF
-                return true
-            }
-            return false
-        } else {
-            this.flash = flash
-            return false
-        }
+    private fun setFlashInternal(flash: Int) {
+        this.flash = flash
     }
 
     companion object {
@@ -469,11 +453,11 @@ internal class Camera1(
         private val FLASH_MODES = SparseArrayCompat<String>()
 
         init {
-            FLASH_MODES.put(FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
-            FLASH_MODES.put(FLASH_ON, Camera.Parameters.FLASH_MODE_ON)
-            FLASH_MODES.put(FLASH_TORCH, Camera.Parameters.FLASH_MODE_TORCH)
-            FLASH_MODES.put(FLASH_AUTO, Camera.Parameters.FLASH_MODE_AUTO)
-            FLASH_MODES.put(FLASH_RED_EYE, Camera.Parameters.FLASH_MODE_RED_EYE)
+            FLASH_MODES.put(Modes.Flash.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
+            FLASH_MODES.put(Modes.Flash.FLASH_ON, Camera.Parameters.FLASH_MODE_ON)
+            FLASH_MODES.put(Modes.Flash.FLASH_TORCH, Camera.Parameters.FLASH_MODE_TORCH)
+            FLASH_MODES.put(Modes.Flash.FLASH_AUTO, Camera.Parameters.FLASH_MODE_AUTO)
+            FLASH_MODES.put(Modes.Flash.FLASH_RED_EYE, Camera.Parameters.FLASH_MODE_RED_EYE)
         }
     }
 }

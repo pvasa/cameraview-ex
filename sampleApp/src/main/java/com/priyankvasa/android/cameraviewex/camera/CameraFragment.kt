@@ -1,5 +1,7 @@
 package com.priyankvasa.android.cameraviewex.camera
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.media.Image
 import android.os.Bundle
 import android.support.annotation.DrawableRes
@@ -15,14 +17,11 @@ import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
+import com.priyankvasa.android.cameraviewex.Direction
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.OnSwipeListener
 import com.priyankvasa.android.cameraviewex.R
-import kotlinx.android.synthetic.main.fragment_camera.camera
-import kotlinx.android.synthetic.main.fragment_camera.ivCaptureButton
-import kotlinx.android.synthetic.main.fragment_camera.ivFlashSwitch
-import kotlinx.android.synthetic.main.fragment_camera.ivPhoto
-import kotlinx.android.synthetic.main.fragment_camera.tvBarcodes
+import kotlinx.android.synthetic.main.fragment_camera.*
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -41,9 +40,10 @@ class CameraFragment : Fragment() {
 
             override fun onSwipe(direction: Direction): Boolean {
                 camera.facing = when (direction) {
-                    Direction.Down,
-                    Direction.Up ->
-                        if (camera.facing == Modes.FACING_BACK) Modes.FACING_FRONT else Modes.FACING_BACK
+                    Direction.down,
+                    Direction.up ->
+                        if (camera.facing == Modes.Facing.FACING_BACK) Modes.Facing.FACING_FRONT
+                        else Modes.Facing.FACING_BACK
                     else -> return false
                 }
                 return true
@@ -70,29 +70,32 @@ class CameraFragment : Fragment() {
 
         setupCamera()
 
-        ivCaptureButton.setOnClickListener {
-            camera.capture()
-        }
+        ivCaptureButton.setOnClickListener { camera.capture() }
 
         ivFlashSwitch.setOnClickListener {
 
+            @DrawableRes val flashDrawableId: Int
+
             camera.flash = when (camera.flash) {
-                Modes.Flash.FLASH_OFF -> Modes.Flash.FLASH_AUTO
-                Modes.Flash.FLASH_AUTO -> Modes.Flash.FLASH_ON
-                Modes.Flash.FLASH_ON -> Modes.Flash.FLASH_OFF
+                Modes.Flash.FLASH_OFF -> {
+                    flashDrawableId = R.drawable.ic_flash_auto
+                    Modes.Flash.FLASH_AUTO
+                }
+                Modes.Flash.FLASH_AUTO -> {
+                    flashDrawableId = R.drawable.ic_flash_on
+                    Modes.Flash.FLASH_ON
+                }
+                Modes.Flash.FLASH_ON -> {
+                    flashDrawableId = R.drawable.ic_flash_off
+                    Modes.Flash.FLASH_OFF
+                }
                 else -> return@setOnClickListener
             }
 
-            @DrawableRes val flashDrawableId: Int = when (camera.flash) {
-                Modes.Flash.FLASH_OFF -> R.drawable.ic_flash_off
-                Modes.Flash.FLASH_AUTO -> R.drawable.ic_flash_auto
-                Modes.Flash.FLASH_ON -> R.drawable.ic_flash_on
-                else -> return@setOnClickListener
-            }
             context?.let { ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(it, flashDrawableId)) }
         }
 
-        ivPhoto.setOnClickListener { ivPhoto.visibility = View.GONE }
+        ivPhoto.setOnClickListener { it.visibility = View.GONE }
     }
 
     private fun setupCamera() {
@@ -140,17 +143,20 @@ class CameraFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        camera.run { if (!isCameraOpened) start() }
+        camera.run {
+            if (!isCameraOpened
+                    && ActivityCompat.checkSelfPermission(
+                            requireContext(),
+                            Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED) {
+                start()
+            }
+        }
     }
 
     override fun onPause() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+        camera.run { if (isCameraOpened) stop(removeAllListeners = false) }
         super.onPause()
-    }
-
-    override fun onStop() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
-        super.onStop()
     }
 
     override fun onDestroyView() {

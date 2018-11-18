@@ -20,6 +20,7 @@ import android.support.v4.util.ArrayMap
 import java.util.SortedSet
 import java.util.TreeSet
 
+
 /**
  * A collection class that automatically groups [Size]s by their [AspectRatio]s.
  */
@@ -36,15 +37,13 @@ internal class SizeMap {
      * @return `true` if it is added, `false` if it already exists and is not added.
      */
     fun add(size: Size): Boolean {
-        for (ratio in ratios.keys) {
+
+        ratios.keys.forEach { ratio ->
             if (ratio.matches(size)) {
-                val sizes = ratios[ratio]
-                return when {
-                    sizes?.contains(size) == true -> false
-                    else -> {
-                        sizes?.add(size)
-                        true
-                    }
+                return if (ratios[ratio]?.contains(size) == true) false
+                else {
+                    ratios[ratio]?.add(size)
+                    true
                 }
             }
         }
@@ -57,18 +56,20 @@ internal class SizeMap {
      * Removes the specified aspect ratio and all sizes associated with it.
      *
      * @param ratio The aspect ratio to be removed.
+     * Note: [ratio] is nullable because for some reason, on older devices,
+     * looping through previewSizes in [Camera2.collectCameraInfo] has null elements. Seems like a ghost bug.
      */
-    fun remove(ratio: AspectRatio) {
+    fun remove(ratio: AspectRatio?) {
         ratios.remove(ratio)
     }
 
-    fun ratios(): Set<AspectRatio> {
-        return ratios.keys
-    }
+    fun ratios(): Set<AspectRatio> = ratios.keys
 
-    fun sizes(ratio: AspectRatio): SortedSet<Size> = ratios[ratio] ?: sortedSetOf()
+    /**
+     * Note: [ratio] is nullable because for some reason, on older devices,
+     * looping through previewSizes in [Camera1.supportedAspectRatios] has null elements. Seems like a ghost bug.
+     */
+    fun sizes(ratio: AspectRatio?): SortedSet<Size> = ratios[ratio] ?: sortedSetOf()
 
-    fun clear() {
-        ratios.clear()
-    }
+    fun clear() = ratios.clear()
 }

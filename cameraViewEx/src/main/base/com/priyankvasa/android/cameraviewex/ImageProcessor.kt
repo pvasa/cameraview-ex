@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream
  * @param rs [RenderScript] instance to be used for native decoding
  * @return [ByteArray] image data
  */
+@Throws(IllegalStateException::class, IllegalArgumentException::class)
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal fun Image.decode(
         outputFormat: Int,

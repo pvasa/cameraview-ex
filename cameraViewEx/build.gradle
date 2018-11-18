@@ -20,7 +20,7 @@ apply plugin: 'kotlin-android-extensions'
 
 ext {
     majorVersion = 2
-    minorVersion = 1
+    minorVersion = 2
     patchVersion = 0
 }
 
@@ -79,6 +79,26 @@ android {
                 'src/main/api23'
         ]
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform {
+        //includeTags 'fast', 'smoke & feature-a'
+        //excludeTags 'slow', 'ci'
+        includeEngines 'junit-jupiter'
+        excludeEngines 'junit-vintage'
+    }
+    systemProperty 'java.util.logging.manager', 'java.util.logging.LogManager'
+    systemProperty 'junit.jupiter.conditions.deactivate', '*'
+    systemProperties = [
+            'junit.jupiter.extensions.autodetection.enabled': 'true',
+            'junit.jupiter.testinstance.lifecycle.default'  : 'per_class'
+    ]
 }
 
 dependencies {
@@ -99,7 +119,12 @@ dependencies {
     implementation "com.jakewharton.timber:timber:${rootProject.ext.timberVersion}"
 
     // Unit tests
-    testImplementation "junit:junit:${rootProject.ext.junitVersion}"
+    // (Required) Writing and executing Unit Tests on the JUnit Platform
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${rootProject.ext.jUnit5Version}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${rootProject.ext.jUnit5Version}"
+
+    // (Optional) If you need "Parameterized Tests"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:${rootProject.ext.jUnit5Version}"
 
     // Android tests
     androidTestImplementation("com.android.support.test:runner:${rootProject.ext.runnerVersion}") {
@@ -133,5 +158,12 @@ private String generateVersionName() {
 }
 
 androidExtensions { experimental = true }
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        freeCompilerArgs = ["-XXLanguage:+InlineClasses"]
+        jvmTarget = "1.8"
+    }
+}
 
 apply from: 'publish.gradle'

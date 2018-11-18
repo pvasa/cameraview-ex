@@ -25,13 +25,13 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import kotlinx.android.synthetic.main.texture_view.view.*
 
 @TargetApi(14)
 internal class TextureViewPreview(context: Context, parent: ViewGroup) : PreviewImpl() {
 
     private val textureView: TextureView =
-            View.inflate(context, R.layout.texture_view, parent)
-                    .findViewById(R.id.textureView)
+            View.inflate(context, R.layout.texture_view, parent).textureView
 
     private var displayOrientation: Int = 0
 
@@ -105,8 +105,8 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
                         0f, height.toFloat(), // top left
                         0f, 0f, // top right
                         width.toFloat(), height.toFloat(), // bottom left
-                        width.toFloat(), 0f
-                )// bottom right
+                        width.toFloat(), 0f // bottom right
+                )
             else
             // displayOrientation == 270
             // Counter-clockwise
