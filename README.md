@@ -1,7 +1,7 @@
 
-[![Travis (.org) branch](https://img.shields.io/travis/:user/:repo/:branch.svg)](https://travis-ci.org/pvasa/cameraview-ex.svg?branch=master)
-[![Bintray](https://img.shields.io/bintray/v/asciidoctor/maven/asciidoctorj.svg)](https://bintray.com/ryan652/android/cameraview-ex/_latestVersion)
-[![License](https://img.shields.io/github/license/pvasa/easycrypt.svg)](LICENSE)
+[![Build Status](https://travis-ci.org/pvasa/cameraview-ex.svg?branch=master)](https://travis-ci.org/pvasa/cameraview-ex)
+[![Bintray](https://img.shields.io/bintray/v/ryan652/android/cameraview-ex.svg)](https://bintray.com/ryan652/android/cameraview-ex/_latestVersion)
+[![License](https://img.shields.io/github/license/pvasa/cameraview-ex.svg)](LICENSE)
 
 # CameraViewEx
 
