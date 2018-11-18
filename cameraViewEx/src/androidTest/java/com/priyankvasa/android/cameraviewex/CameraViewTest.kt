@@ -18,6 +18,7 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.os.Build
 import android.os.SystemClock
 import android.support.test.espresso.Espresso.onView
 import android.support.test.espresso.IdlingRegistry
@@ -33,17 +34,17 @@ import android.support.test.espresso.matcher.ViewMatchers.withId
 import android.support.test.filters.FlakyTest
 import android.support.test.rule.ActivityTestRule
 import android.support.test.runner.AndroidJUnit4
-import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import com.priyankvasa.android.cameraviewex.CameraViewActions.setAspectRatio
 import com.priyankvasa.android.cameraviewex.CameraViewMatchers.hasAspectRatio
 import com.priyankvasa.android.cameraviewex.test.R
+import kotlinx.android.synthetic.main.surface_view.view.*
+import kotlinx.android.synthetic.main.texture_view.view.*
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.Matcher
 import org.hamcrest.core.IsAnything
 import org.junit.After
-import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -67,17 +68,19 @@ class CameraViewTest : GrantPermissionsRule() {
 
     private fun showingPreview(): ViewAssertion = ViewAssertion { view, noViewFoundException ->
 
-        if (android.os.Build.VERSION.SDK_INT < 14) return@ViewAssertion
+        if (Build.VERSION.SDK_INT < 14) return@ViewAssertion
 
         val cameraView = view as CameraView
-        val textureView = cameraView.findViewById<TextureView>(R.id.textureView)
+        val textureView = cameraView.textureView ?: return@ViewAssertion
         val bitmap = textureView.bitmap
         val topLeft = bitmap.getPixel(0, 0)
         val center = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
-        val bottomRight = bitmap.getPixel(
-                bitmap.width - 1, bitmap.height - 1)
-        assertFalse("Preview possibly blank: " + Integer.toHexString(topLeft),
-                topLeft == center && center == bottomRight)
+        val bottomRight = bitmap.getPixel(bitmap.width - 1, bitmap.height - 1)
+        assertThat(
+                "Preview possibly blank: ${Integer.toHexString(topLeft)}",
+                topLeft == center && center == bottomRight,
+                `is`(false)
+        )
     }
 
     @Before
@@ -102,7 +105,7 @@ class CameraViewTest : GrantPermissionsRule() {
             onView(withId(R.id.textureView))
                     .check(matches(isDisplayed()))
         } catch (e: NoMatchingViewException) {
-            onView(withId(R.id.surface_view))
+            onView(withId(R.id.surfaceView))
                     .check(matches(isDisplayed()))
         }
     }
@@ -158,10 +161,8 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
                     val cameraView = view as CameraView
-                    var preview: View? = view.findViewById(R.id.textureView)
-                    if (preview == null) {
-                        preview = view.findViewById(R.id.surface_view)
-                    }
+                    val preview: View = view.textureView ?: view.surfaceView
+
                     val cameraRatio = cameraView.aspectRatio
                     val textureRatio = AspectRatio.of(
                             preview.width,
@@ -248,6 +249,17 @@ class CameraViewTest : GrantPermissionsRule() {
     }
 
     @Test
+    fun testZeroShutterLag() {
+        onView(withId(R.id.camera))
+                .check { view, noViewFoundException ->
+                    val cameraView = view as CameraView
+                    assertThat(cameraView.zsl, `is`(true))
+                    cameraView.zsl = false
+                    assertThat(cameraView.zsl, `is`(false))
+                }
+    }
+
+    @Test
     @Throws(Exception::class)
     fun testTakePicture() {
         val resource = TakePictureIdlingResource(rule.activity.findViewById(R.id.camera) as CameraView)
@@ -284,7 +296,7 @@ class CameraViewTest : GrantPermissionsRule() {
             cameraView.addCameraOpenedListener {
                 if (!isIdleNow) {
                     isIdleNow = true
-                    resourceCallback.onTransitionToIdle()
+                    resourceCallback?.onTransitionToIdle()
                 }
             }.addCameraClosedListener { isIdleNow = false }
             isIdleNow = cameraView.isCameraOpened
@@ -317,7 +329,7 @@ class CameraViewTest : GrantPermissionsRule() {
                     isIdleNow = true
                     validJpeg = imageData.size > 2 &&
                             imageData[0] == 0xFF.toByte() && imageData[1] == 0xD8.toByte()
-                    resourceCallback.onTransitionToIdle()
+                    resourceCallback?.onTransitionToIdle()
                 }
             }
         }

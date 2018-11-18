@@ -137,10 +137,6 @@ internal open class Camera2(
         override fun onClosed(session: CameraCaptureSession) {
             if (captureSession != null && captureSession == session) captureSession = null
         }
-
-        override fun onReady(session: CameraCaptureSession) {
-//            capturePreviewFrame()
-        }
     }
 
     private val captureCallback: PictureCaptureCallback = object : PictureCaptureCallback() {
@@ -174,16 +170,20 @@ internal open class Camera2(
 
     private val onPreviewImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
         listener.onPreviewFrame(reader)
-//        capturePreviewFrame()
     }
 
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
+
         val image = reader.acquireLatestImage()
+
         if (image.format == internalOutputFormat
                 && image.planes.isNotEmpty()) GlobalScope.launch(Dispatchers.Main) {
-            image.decode(outputFormat, rs).await().also {
-                listener.onPictureTaken(it)
-                image.close()
+
+            image.runCatching {
+                decode(outputFormat, rs).await().also { listener.onPictureTaken(it) }
+                close()
+            }.onFailure { t ->
+                Timber.w(t)
             }
         }
     }

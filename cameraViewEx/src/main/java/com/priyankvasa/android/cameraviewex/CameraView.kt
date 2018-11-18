@@ -18,6 +18,7 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.Manifest
 import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
@@ -27,6 +28,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.support.annotation.IntDef
+import android.support.annotation.RequiresPermission
 import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
@@ -132,7 +134,7 @@ class CameraView @JvmOverloads constructor(
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Shutter
 
-    private val preview = createPreviewImpl(context)
+    private val preview = createPreview(context)
 
     /** Listeners for monitoring events about [CameraView]. */
     private val cameraOpenedListeners = HashSet<() -> Unit>()
@@ -365,7 +367,11 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    private fun createPreviewImpl(context: Context): PreviewImpl = TextureViewPreview(context, this)
+    private fun createPreview(context: Context): PreviewImpl = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> SurfaceViewPreview(context, this)
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH -> TextureViewPreview(context, this)
+        else -> TextureViewPreview(context, this)
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -474,6 +480,7 @@ class CameraView @JvmOverloads constructor(
             opticalStabilization = it.opticalStabilization
             noiseReduction = it.noiseReduction
             shutter = it.shutter
+            zsl = it.zsl
         }
     }
 
@@ -481,6 +488,7 @@ class CameraView @JvmOverloads constructor(
      * Open a camera device and start showing camera preview. This is typically called from
      * [Activity.onResume].
      */
+    @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
         if (!camera.start()) {
             //store the state ,and restore this state after fall back o Camera1
