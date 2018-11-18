@@ -16,9 +16,12 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import org.hamcrest.CoreMatchers.`is`
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.util.HashSet
 
 class AspectRatioTest {
@@ -26,33 +29,33 @@ class AspectRatioTest {
     @Test
     fun testGcd() {
         var r: AspectRatio = AspectRatio.of(1, 2)
-        assertThat(r.x, `is`(1))
+        assertEquals(r.x, 1)
         r = AspectRatio.of(2, 4)
-        assertThat(r.x, `is`(1))
-        assertThat(r.y, `is`(2))
+        assertEquals(r.x, 1)
+        assertEquals(r.y, 2)
         r = AspectRatio.of(391, 713)
-        assertThat(r.x, `is`(17))
-        assertThat(r.y, `is`(31))
+        assertEquals(r.x, 17)
+        assertEquals(r.y, 31)
     }
 
     @Test
     fun testMatches() {
         val ratio = AspectRatio.of(3, 4)
-        assertThat(ratio.matches(Size(6, 8)), `is`(true))
-        assertThat(ratio.matches(Size(1, 2)), `is`(false))
+        assertTrue(ratio.matches(Size(6, 8)))
+        assertFalse(ratio.matches(Size(1, 2)))
     }
 
     @Test
     fun testGetters() {
         val ratio = AspectRatio.of(2, 4) // Reduced to 1:2
-        assertThat(ratio.x, `is`(1))
-        assertThat(ratio.y, `is`(2))
+        assertEquals(ratio.x, 1)
+        assertEquals(ratio.y, 2)
     }
 
     @Test
     fun testToString() {
         val ratio = AspectRatio.of(1, 2)
-        assertThat(ratio.toString(), `is`("1:2"))
+        assertEquals(ratio.toString(), "1:2")
     }
 
     @Test
@@ -60,44 +63,40 @@ class AspectRatioTest {
         val a = AspectRatio.of(1, 2)
         val b = AspectRatio.of(2, 4)
         val c = AspectRatio.of(2, 3)
-        assertThat(a == b, `is`(true))
-        assertThat(a == c, `is`(false))
+        assertEquals(a, b)
+        assertNotEquals(a, c)
     }
 
     @Test
     fun testHashCode() {
         val max = 100
         val codes = HashSet<Int>()
-        for (x in 1..100) {
-            codes.add(AspectRatio.of(x, 1).hashCode())
-        }
-        assertThat(codes.size, `is`(max))
+        for (x in 1..100) codes.add(AspectRatio.of(x, 1).hashCode())
+        assertEquals(codes.size, max)
         codes.clear()
-        for (y in 1..100) {
-            codes.add(AspectRatio.of(1, y).hashCode())
-        }
-        assertThat(codes.size, `is`(max))
+        for (y in 1..100) codes.add(AspectRatio.of(1, y).hashCode())
+        assertEquals(codes.size, max)
     }
 
     @Test
     fun testInverse() {
         val r = AspectRatio.of(4, 3)
-        assertThat(r.x, `is`(4))
-        assertThat(r.y, `is`(3))
+        assertEquals(r.x, 4)
+        assertEquals(r.y, 3)
         val s = r.inverse()
-        assertThat(s.x, `is`(3))
-        assertThat(s.y, `is`(4))
+        assertEquals(s.x, 3)
+        assertEquals(s.y, 4)
     }
 
     @Test
     fun testParse() {
         val r = AspectRatio.parse("23:31")
-        assertThat(r.x, `is`(23))
-        assertThat(r.y, `is`(31))
+        assertEquals(r.x, 23)
+        assertEquals(r.y, 31)
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun testParseFailure() {
-        AspectRatio.parse("MALFORMED")
+        assertThrows<IllegalArgumentException> { AspectRatio.parse("MALFORMED") }
     }
 }

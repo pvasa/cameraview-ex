@@ -13,7 +13,7 @@
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
 
     <SurfaceView
-        android:id="@+id/surface_view"
+        android:id="@+id/surfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center" />

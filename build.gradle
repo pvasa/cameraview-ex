@@ -35,7 +35,7 @@ buildscript {
         bintrayPlugin = '1.8.1'
 
         // Unit tests
-        junitVersion = '4.12'
+        jUnit5Version = '5.3.1'
 
         // Android tests
         runnerVersion = '1.0.2'

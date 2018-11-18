@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/cameraViewEx/cameraViewEx.iml" filepath="$PROJECT_DIR$/cameraViewEx/cameraViewEx.iml" />
       <module fileurl="file://$PROJECT_DIR$/cameraview-ex.iml" filepath="$PROJECT_DIR$/cameraview-ex.iml" />
       <module fileurl="file://$PROJECT_DIR$/sampleApp/sampleApp.iml" filepath="$PROJECT_DIR$/sampleApp/sampleApp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sampleAppJava/sampleAppJava.iml" filepath="$PROJECT_DIR$/sampleAppJava/sampleAppJava.iml" />
     </modules>
   </component>
 </project>

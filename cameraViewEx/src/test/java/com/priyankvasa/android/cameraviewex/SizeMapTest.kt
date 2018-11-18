@@ -16,9 +16,8 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import org.hamcrest.CoreMatchers.`is`
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class SizeMapTest {
 
@@ -27,7 +26,7 @@ class SizeMapTest {
         val map = SizeMap()
         map.add(Size(3, 4))
         map.add(Size(9, 16))
-        assertThat(map.ratios().size, `is`(2))
+        assertEquals(map.ratios().size, 2)
     }
 
     @Test
@@ -36,18 +35,18 @@ class SizeMapTest {
         map.add(Size(3, 4))
         map.add(Size(6, 8))
         map.add(Size(9, 12))
-        assertThat(map.ratios().size, `is`(1))
+        assertEquals(map.ratios().size, 1)
         val ratio = map.ratios().toTypedArray()[0]
-        assertThat(ratio.toString(), `is`("3:4"))
-        assertThat(map.sizes(ratio).size, `is`(3))
+        assertEquals(ratio.toString(), "3:4")
+        assertEquals(map.sizes(ratio).size, 3)
     }
 
     @Test
     fun testClear() {
         val map = SizeMap()
         map.add(Size(12, 34))
-        assertThat(map.ratios().size, `is`(1))
+        assertEquals(map.ratios().size, 1)
         map.clear()
-        assertThat(map.ratios().size, `is`(0))
+        assertEquals(map.ratios().size, 0)
     }
 }

@@ -37,24 +37,30 @@ internal interface CameraInterface {
 
     val aspectRatio: AspectRatio
 
+    @Modes.CameraMode
     var cameraMode: Int
 
+    @Modes.OutputFormat
     var outputFormat: Int
 
+    @Modes.Facing
     var facing: Int
 
     var autoFocus: Boolean
 
     var touchToFocus: Boolean
 
+    @Modes.AutoWhiteBalance
     var awb: Int
 
+    @Modes.Flash
     var flash: Int
 
     var ae: Boolean
 
     var opticalStabilization: Boolean
 
+    @Modes.NoiseReduction
     var noiseReduction: Int
 
     var zsl: Boolean
