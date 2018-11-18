@@ -1,3 +1,8 @@
+
+[![Travis (.org) branch](https://img.shields.io/travis/:user/:repo/:branch.svg)](https://travis-ci.org/pvasa/cameraview-ex.svg?branch=master)
+[![Bintray](https://img.shields.io/bintray/v/asciidoctor/maven/asciidoctorj.svg)](https://bintray.com/ryan652/android/cameraview-ex/_latestVersion)
+[![License](https://img.shields.io/github/license/pvasa/easycrypt.svg)](LICENSE)
+
 # CameraViewEx
 
 _This is an extended version of [Google's cameraview library](https://github.com/google/cameraview)_
