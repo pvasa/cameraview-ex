@@ -34,7 +34,7 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
   - Output format (app:outputFormat) defaults to "jpeg"
   - Zero shutter lag (app:zsl) defaults to "false"
 
-_**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored._
+_**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 
 ## Usage
 
@@ -58,7 +58,7 @@ dependencies {
     app:aspectRatio="4:3"
     app:autoFocus="true"
     app:awb="auto"
-    app:camera_mode="single_capture"
+    app:cameraMode="single_capture"
     app:facing="back"
     app:flash="auto"
     app:noiseReduction="high_quality"

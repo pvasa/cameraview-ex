@@ -28,7 +28,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="true"
         app:awb="auto"
-        app:camera_mode="single_capture"
+        app:cameraMode="single_capture"
         app:facing="back"
         app:flash="auto"
         app:layout_constraintDimensionRatio="W,4:3"
