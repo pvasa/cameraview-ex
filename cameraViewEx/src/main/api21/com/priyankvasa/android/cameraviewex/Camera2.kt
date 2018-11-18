@@ -57,10 +57,9 @@ internal open class Camera2(
 
     private val rs = RenderScript.create(context)
 
-
     private val internalFacings = SparseIntArray().apply {
-        put(Modes.FACING_BACK, CameraCharacteristics.LENS_FACING_BACK)
-        put(Modes.FACING_FRONT, CameraCharacteristics.LENS_FACING_FRONT)
+        put(Modes.Facing.FACING_BACK, CameraCharacteristics.LENS_FACING_BACK)
+        put(Modes.Facing.FACING_FRONT, CameraCharacteristics.LENS_FACING_FRONT)
     }
 
     private val internalOutputFormats = SparseIntArray().apply {
@@ -486,7 +485,7 @@ internal open class Camera2(
 
             // The operation can reach here when the only camera device is an external one.
             // We treat it as facing back.
-            facing = Modes.FACING_BACK
+            facing = Modes.Facing.FACING_BACK
             return true
         } catch (e: CameraAccessException) {
             Timber.e(e, "Failed to get a list of camera devices")
@@ -507,19 +506,19 @@ internal open class Camera2(
 
         previewSizes.clear()
 
-        map.getOutputSizes(preview.outputClass)
-                .asSequence()
-                .filter { it.width <= maxPreviewWidth && it.height <= maxPreviewHeight }
-                .forEach { previewSizes.add(Size(it.width, it.height)) }
+        map.getOutputSizes(preview.outputClass).forEach {
+            if (it.width <= maxPreviewWidth && it.height <= maxPreviewHeight) {
+                previewSizes.add(Size(it.width, it.height))
+            }
+        }
 
         pictureSizes.clear()
 
         collectPictureSizes(pictureSizes, map)
 
-        previewSizes.ratios()
-                .asSequence()
-                .filterNot { pictureSizes.ratios().contains(it) }
-                .forEach { previewSizes.remove(it) }
+        previewSizes.ratios().forEach {
+            if (!pictureSizes.ratios().contains(it)) previewSizes.remove(it)
+        }
 
         previewSizes.ratios().run { if (!contains(aspectRatio)) aspectRatio = iterator().next() }
     }
@@ -544,7 +543,7 @@ internal open class Camera2(
                 ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
             }
 
-//            Modes.CameraMode.BURST_CAPTURE -> null
+//            CameraMode.BURST_CAPTURE -> null
 
             Modes.CameraMode.CONTINUOUS_FRAME -> {
                 val largestPreview = previewSizes.sizes(aspectRatio).last()
@@ -556,7 +555,7 @@ internal open class Camera2(
                 ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
             }
 
-//            Modes.CameraMode.VIDEO -> null
+//            CameraMode.VIDEO -> null
 
             else -> null
         }
@@ -851,7 +850,7 @@ internal open class Camera2(
                                     ?: throw CameraAccessException(CameraAccessException.CAMERA_ERROR)
 
                     val jpegOrientation = (sensorOrientation
-                            + (displayOrientation * if (facing == Modes.FACING_FRONT) 1 else -1)
+                            + (displayOrientation * if (facing == Modes.Facing.FACING_FRONT) 1 else -1)
                             + 360) % 360
 
                     set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation)

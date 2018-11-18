@@ -42,7 +42,8 @@ class CameraFragment : Fragment() {
                 camera.facing = when (direction) {
                     Direction.down,
                     Direction.up ->
-                        if (camera.facing == Modes.FACING_BACK) Modes.FACING_FRONT else Modes.FACING_BACK
+                        if (camera.facing == Modes.Facing.FACING_BACK) Modes.Facing.FACING_FRONT
+                        else Modes.Facing.FACING_BACK
                     else -> return false
                 }
                 return true
@@ -147,7 +148,7 @@ class CameraFragment : Fragment() {
                     && ActivityCompat.checkSelfPermission(
                             requireContext(),
                             Manifest.permission.CAMERA
-                    ) != PackageManager.PERMISSION_GRANTED) {
+                    ) == PackageManager.PERMISSION_GRANTED) {
                 start()
             }
         }

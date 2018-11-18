@@ -134,6 +134,8 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
                     val cameraView = view as CameraView
+                    assertThat(cameraView.adjustViewBounds, `is`(true))
+                    cameraView.adjustViewBounds = false
                     assertThat(cameraView.adjustViewBounds, `is`(false))
                     cameraView.adjustViewBounds = true
                     assertThat(cameraView.adjustViewBounds, `is`(true))
@@ -179,7 +181,7 @@ class CameraViewTest : GrantPermissionsRule() {
     fun testAutoFocus() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
-                    val cameraView = view as CameraView
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     // This can fail on devices without auto-focus support
                     assertThat(cameraView.autoFocus, `is`(true))
                     cameraView.autoFocus = false
@@ -194,9 +196,9 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
                     val cameraView = view as CameraView
-                    assertThat<Any>(cameraView.facing, `is`(Modes.FACING_BACK))
-                    cameraView.facing = Modes.FACING_FRONT
-                    assertThat<Any>(cameraView.facing, `is`(Modes.FACING_FRONT))
+                    assertThat<Any>(cameraView.facing, `is`(Modes.Facing.FACING_BACK))
+                    cameraView.facing = Modes.Facing.FACING_FRONT
+                    assertThat<Any>(cameraView.facing, `is`(Modes.Facing.FACING_FRONT))
                 }
                 .perform(waitFor(1000))
                 .check(showingPreview())
@@ -217,7 +219,7 @@ class CameraViewTest : GrantPermissionsRule() {
     fun testOpticalStabilization() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
-                    val cameraView = view as CameraView
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat<Any>(cameraView.opticalStabilization, `is`(true))
                     cameraView.opticalStabilization = false
                     assertThat<Any>(cameraView.opticalStabilization, `is`(false))
@@ -230,7 +232,7 @@ class CameraViewTest : GrantPermissionsRule() {
     fun testAwb() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
-                    val cameraView = view as CameraView
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat<Any>(cameraView.awb, `is`(Modes.AutoWhiteBalance.AWB_AUTO))
                     cameraView.awb = Modes.AutoWhiteBalance.AWB_FLUORESCENT
                     assertThat<Any>(cameraView.awb, `is`(Modes.AutoWhiteBalance.AWB_FLUORESCENT))
@@ -241,7 +243,7 @@ class CameraViewTest : GrantPermissionsRule() {
     fun testNoiseReduction() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
-                    val cameraView = view as CameraView
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat<Any>(cameraView.noiseReduction, `is`(Modes.NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY))
                     cameraView.noiseReduction = Modes.NoiseReduction.NOISE_REDUCTION_FAST
                     assertThat<Any>(cameraView.noiseReduction, `is`(Modes.NoiseReduction.NOISE_REDUCTION_FAST))
@@ -252,7 +254,7 @@ class CameraViewTest : GrantPermissionsRule() {
     fun testZeroShutterLag() {
         onView(withId(R.id.camera))
                 .check { view, noViewFoundException ->
-                    val cameraView = view as CameraView
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat(cameraView.zsl, `is`(true))
                     cameraView.zsl = false
                     assertThat(cameraView.zsl, `is`(false))
@@ -266,8 +268,7 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
                 .perform(object : AnythingAction("take picture") {
                     override fun perform(uiController: UiController, view: View) {
-                        val cameraView = view as CameraView
-                        cameraView.capture()
+                        (view as CameraView).capture()
                     }
                 })
         try {

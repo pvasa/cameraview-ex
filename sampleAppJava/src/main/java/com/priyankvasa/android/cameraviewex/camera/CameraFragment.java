@@ -113,7 +113,7 @@ public class CameraFragment extends Fragment {
         super.onResume();
         if (!camera.isCameraOpened()
                 && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
+                == PackageManager.PERMISSION_GRANTED) {
             camera.start();
         }
     }

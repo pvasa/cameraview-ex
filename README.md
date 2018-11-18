@@ -29,6 +29,8 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
   - Output format (app:outputFormat) defaults to "jpeg"
   - Zero shutter lag (app:zsl) defaults to "false"
 
+_**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored._
+
 ## Usage
 
 #### Import dependency
@@ -36,7 +38,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.1.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.2.0"
 }
 ```
 

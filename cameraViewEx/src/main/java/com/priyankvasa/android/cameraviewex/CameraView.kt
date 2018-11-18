@@ -27,40 +27,11 @@ import android.media.ImageReader
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.annotation.IntDef
 import android.support.annotation.RequiresPermission
 import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_AUTO
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_CLOUDY_DAYLIGHT
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_DAYLIGHT
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_FLUORESCENT
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_INCANDESCENT
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_OFF
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_SHADE
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_TWILIGHT
-import com.priyankvasa.android.cameraviewex.Modes.AutoWhiteBalance.AWB_WARM_FLUORESCENT
-import com.priyankvasa.android.cameraviewex.Modes.CameraMode.CONTINUOUS_FRAME
-import com.priyankvasa.android.cameraviewex.Modes.CameraMode.SINGLE_CAPTURE
-import com.priyankvasa.android.cameraviewex.Modes.FACING_BACK
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_AUTO
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_OFF
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_ON
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_RED_EYE
-import com.priyankvasa.android.cameraviewex.Modes.Flash.FLASH_TORCH
-import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_FAST
-import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY
-import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_MINIMAL
-import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_OFF
-import com.priyankvasa.android.cameraviewex.Modes.NoiseReduction.NOISE_REDUCTION_ZERO_SHUTTER_LAG
-import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.JPEG
-import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.RGBA_8888
-import com.priyankvasa.android.cameraviewex.Modes.OutputFormat.YUV_420_888
-import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_LONG
-import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_OFF
-import com.priyankvasa.android.cameraviewex.Modes.Shutter.SHUTTER_SHORT
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -78,61 +49,6 @@ class CameraView @JvmOverloads constructor(
         @Suppress("ConstantConditionIf")
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
-
-    @IntDef(SINGLE_CAPTURE, /*BURST_CAPTURE,*/ CONTINUOUS_FRAME/*, VIDEO*/)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class CameraMode
-
-    /** Direction the camera faces relative to device screen. */
-    @IntDef(JPEG, YUV_420_888, RGBA_8888)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class OutputFormat
-
-    /** Direction the camera faces relative to device screen. */
-    @IntDef(Modes.FACING_BACK, Modes.FACING_FRONT)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class Facing
-
-    /** The mode for the camera device's flash control */
-    @IntDef(FLASH_OFF, FLASH_ON, FLASH_TORCH, FLASH_AUTO, FLASH_RED_EYE)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class Flash
-
-    /** The mode for the camera device's noise reduction control */
-    @IntDef(NOISE_REDUCTION_OFF,
-            NOISE_REDUCTION_FAST,
-            NOISE_REDUCTION_HIGH_QUALITY,
-            NOISE_REDUCTION_MINIMAL,
-            NOISE_REDUCTION_ZERO_SHUTTER_LAG)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class NoiseReduction
-
-    /** The mode for the camera device's auto white balance control */
-    @IntDef(AWB_OFF,
-            AWB_AUTO,
-            AWB_INCANDESCENT,
-            AWB_FLUORESCENT,
-            AWB_WARM_FLUORESCENT,
-            AWB_DAYLIGHT,
-            AWB_CLOUDY_DAYLIGHT,
-            AWB_TWILIGHT,
-            AWB_SHADE)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class Awb
-
-    /** Shutter time in milliseconds */
-    @IntDef(SHUTTER_OFF,
-            SHUTTER_SHORT,
-            SHUTTER_LONG)
-    @Retention(AnnotationRetention.RUNTIME)
-    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
-    annotation class Shutter
 
     private val preview = createPreview(context)
 
@@ -193,6 +109,8 @@ class CameraView @JvmOverloads constructor(
         else -> Camera2Api23(listener, preview, context)
     }
 
+    internal val isUiTestCompatible: Boolean get() = camera is Camera2
+
     /** Display orientation detector */
     private val displayOrientationDetector: DisplayOrientationDetector =
             object : DisplayOrientationDetector(context) {
@@ -205,8 +123,8 @@ class CameraView @JvmOverloads constructor(
     val isCameraOpened: Boolean get() = camera.isCameraOpened
 
     /** The mode in which camera starts. Supported values [Modes.CameraMode]. */
-    @get:CameraMode
-    @setparam:CameraMode
+    @get:Modes.CameraMode
+    @setparam:Modes.CameraMode
     var cameraMode: Int
         get() = camera.cameraMode
         private set(value) {
@@ -225,8 +143,8 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Format of the output of image data produced from the camera. Supported values [Modes.OutputFormat]. */
-    @get:OutputFormat
-    @setparam:OutputFormat
+    @get:Modes.OutputFormat
+    @setparam:Modes.OutputFormat
     var outputFormat: Int
         get() = camera.outputFormat
         private set(value) {
@@ -237,8 +155,8 @@ class CameraView @JvmOverloads constructor(
      * Direction that the current camera faces.
      * Supported values are [Modes.FACING_BACK] and [Modes.FACING_FRONT].
      */
-    @get:Facing
-    @setparam:Facing
+    @get:Modes.Facing
+    @setparam:Modes.Facing
     var facing: Int
         get() = camera.facing
         set(value) {
@@ -273,8 +191,8 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current auto white balance mode. Supported values [Modes.AutoWhiteBalance]. */
-    @get:Awb
-    @setparam:Awb
+    @get:Modes.AutoWhiteBalance
+    @setparam:Modes.AutoWhiteBalance
     var awb: Int
         get() = camera.awb
         set(value) {
@@ -282,8 +200,8 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current flash mode. Supported values [Modes.Flash]. */
-    @get:Flash
-    @setparam:Flash
+    @get:Modes.Flash
+    @setparam:Modes.Flash
     var flash: Int
         get() = camera.flash
         set(value) {
@@ -305,8 +223,8 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current noise reduction mode. Supported values [Modes.NoiseReduction]. */
-    @get:NoiseReduction
-    @setparam:NoiseReduction
+    @get:Modes.NoiseReduction
+    @setparam:Modes.NoiseReduction
     var noiseReduction: Int
         get() = camera.noiseReduction
         set(value) {
@@ -314,8 +232,8 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current shutter time in milliseconds. Supported values [Modes.Shutter]. */
-    @get:Shutter
-    @setparam:Shutter
+    @get:Modes.Shutter
+    @setparam:Modes.Shutter
     var shutter: Int
         get() = preview.shutterView.shutterTime
         set(value) {
@@ -343,8 +261,8 @@ class CameraView @JvmOverloads constructor(
             ).run {
                 adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
                 cameraMode = getInt(R.styleable.CameraView_camera_mode, Modes.DEFAULT_CAMERA_MODE)
-                outputFormat = getInt(R.styleable.CameraView_outputFormat, JPEG)
-                facing = getInt(R.styleable.CameraView_facing, FACING_BACK)
+                outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
+                facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio = getString(R.styleable.CameraView_aspectRatio)
                         ?.let { AspectRatio.parse(it) }
                         ?: Modes.DEFAULT_ASPECT_RATIO
@@ -370,7 +288,7 @@ class CameraView @JvmOverloads constructor(
     private fun createPreview(context: Context): PreviewImpl = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> SurfaceViewPreview(context, this)
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH -> TextureViewPreview(context, this)
-        else -> TextureViewPreview(context, this)
+        else -> SurfaceViewPreview(context, this)
     }
 
     override fun onAttachedToWindow() {
@@ -645,18 +563,18 @@ class CameraView @JvmOverloads constructor(
     @Parcelize
     data class SavedState(
             val parcelable: Parcelable,
-            @CameraMode val cameraMode: Int,
-            @OutputFormat val outputFormat: Int,
-            @Facing val facing: Int,
+            @Modes.CameraMode val cameraMode: Int,
+            @Modes.OutputFormat val outputFormat: Int,
+            @Modes.Facing val facing: Int,
             val ratio: AspectRatio,
             val autoFocus: Boolean,
             val touchToFocus: Boolean,
-            @Awb val awb: Int,
-            @Flash val flash: Int,
+            @Modes.AutoWhiteBalance val awb: Int,
+            @Modes.Flash val flash: Int,
             val ae: Boolean,
             val opticalStabilization: Boolean,
-            @NoiseReduction val noiseReduction: Int,
-            @Shutter val shutter: Int,
+            @Modes.NoiseReduction val noiseReduction: Int,
+            @Modes.Shutter val shutter: Int,
             val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }
