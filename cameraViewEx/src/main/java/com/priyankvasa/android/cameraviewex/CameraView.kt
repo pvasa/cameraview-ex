@@ -260,7 +260,7 @@ class CameraView @JvmOverloads constructor(
                     R.style.Widget_CameraView
             ).run {
                 adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
-                cameraMode = getInt(R.styleable.CameraView_camera_mode, Modes.DEFAULT_CAMERA_MODE)
+                cameraMode = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
                 outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
                 facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio = getString(R.styleable.CameraView_aspectRatio)
