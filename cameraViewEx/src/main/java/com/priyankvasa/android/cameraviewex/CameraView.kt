@@ -33,9 +33,11 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -82,11 +84,13 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onCameraOpened() {
-            if (requestLayoutOnOpen) {
-                requestLayoutOnOpen = false
-                requestLayout()
+            GlobalScope.launch(Dispatchers.Main) {
+                if (requestLayoutOnOpen) {
+                    requestLayoutOnOpen = false
+                    requestLayout()
+                }
+                cameraOpenedListeners.forEach { it() }
             }
-            cameraOpenedListeners.forEach { it() }
         }
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -99,7 +103,7 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onCameraClosed() {
-            cameraClosedListeners.forEach { it() }
+            GlobalScope.launch(Dispatchers.Main) { cameraClosedListeners.forEach { it() } }
         }
     }
 
