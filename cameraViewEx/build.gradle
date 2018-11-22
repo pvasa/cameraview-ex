@@ -17,6 +17,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'org.jetbrains.dokka-android'
 
 ext {
     majorVersion = 2
@@ -76,7 +77,8 @@ android {
                 'src/main/api9',
                 'src/main/api14',
                 'src/main/api21',
-                'src/main/api23'
+                'src/main/api23',
+                'src/main/sample'
         ]
     }
 
@@ -165,5 +167,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         jvmTarget = "1.8"
     }
 }
+
+apply from: 'dokka.gradle'
 
 apply from: 'publish.gradle'
