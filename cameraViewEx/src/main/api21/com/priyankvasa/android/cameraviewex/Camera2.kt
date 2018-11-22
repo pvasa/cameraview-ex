@@ -310,23 +310,6 @@ internal open class Camera2(
             }
         }
 
-    override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
-        set(value) {
-            if (field == value) return
-            field = value
-            updateAutoExposure()
-            try {
-                captureSession?.setRepeatingRequest(
-                        previewRequestBuilder?.build() ?: return,
-                        captureCallback,
-                        backgroundHandler
-                )
-            } catch (e: CameraAccessException) {
-                field = !field // Revert
-                updateAutoExposure()
-            }
-        }
-
     override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
         set(value) {
             if (field == value) return
@@ -705,7 +688,6 @@ internal open class Camera2(
                     set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
                 }
             }
-            ae = true
         }
     }
 

@@ -81,7 +81,7 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
     }
 
     /**
-     * Configures the transform matrix for TextureView based on [.displayOrientation] and
+     * Configures the transform matrix for TextureView based on [displayOrientation] and
      * the surface size.
      */
     fun configureTransform() {

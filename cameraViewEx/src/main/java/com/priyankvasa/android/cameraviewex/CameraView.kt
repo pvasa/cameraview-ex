@@ -157,7 +157,7 @@ class CameraView @JvmOverloads constructor(
 
     /**
      * Direction that the current camera faces.
-     * Supported values are [Modes.FACING_BACK] and [Modes.FACING_FRONT].
+     * Supported values are [Modes.Facing.FACING_BACK] and [Modes.Facing.FACING_FRONT].
      */
     @get:Modes.Facing
     @setparam:Modes.Facing
@@ -210,13 +210,6 @@ class CameraView @JvmOverloads constructor(
         get() = camera.flash
         set(value) {
             camera.flash = value
-        }
-
-    /** Current auto exposure mode */
-    private var ae: Boolean
-        get() = camera.ae
-        set(value) {
-            camera.ae = value
         }
 
     /** Current optical stabilization mode */
@@ -289,11 +282,7 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    private fun createPreview(context: Context): PreviewImpl = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> SurfaceViewPreview(context, this)
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH -> TextureViewPreview(context, this)
-        else -> SurfaceViewPreview(context, this)
-    }
+    private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -376,7 +365,6 @@ class CameraView @JvmOverloads constructor(
                     touchToFocus,
                     awb,
                     flash,
-                    ae,
                     opticalStabilization,
                     noiseReduction,
                     shutter,
@@ -398,7 +386,6 @@ class CameraView @JvmOverloads constructor(
             autoFocus = it.autoFocus
             awb = it.awb
             flash = it.flash
-            ae = it.ae
             opticalStabilization = it.opticalStabilization
             noiseReduction = it.noiseReduction
             shutter = it.shutter
@@ -575,7 +562,6 @@ class CameraView @JvmOverloads constructor(
             val touchToFocus: Boolean,
             @Modes.AutoWhiteBalance val awb: Int,
             @Modes.Flash val flash: Int,
-            val ae: Boolean,
             val opticalStabilization: Boolean,
             @Modes.NoiseReduction val noiseReduction: Int,
             @Modes.Shutter val shutter: Int,
