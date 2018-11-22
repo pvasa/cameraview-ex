@@ -43,7 +43,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.2.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.2.2"
 }
 ```
 
@@ -81,19 +81,18 @@ dependencies {
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     
-    // For camera mode Modes.CameraMode.SINGLE_CAPTURE
     camera.addCameraOpenedListener { Timber.i("Camera opened.") }
-        // Output format is whatever set for [app:outputFormat] parameter
-        .addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken.") }
         .addCameraClosedListener { Timber.i("Camera closed.") }
+        
+    // For camera mode Modes.CameraMode.SINGLE_CAPTURE
+    // Output format is whatever set for [app:outputFormat] parameter
+    camera.addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken.") }
     
     /* --- OR --- */
     
     // For camera mode Modes.CameraMode.CONTINUOUS_FRAME
-    camera.addCameraOpenedListener { Timber.i("Camera opened.") }
-        // Output format is always ImageFormat.YUV_420_888
-        .setPreviewFrameListener { image: Image -> Timber.i("Preview frame available.") }
-        .addCameraClosedListener { Timber.i("Camera closed.") }
+    // Output format is always ImageFormat.YUV_420_888
+    camera.setPreviewFrameListener { image: Image -> Timber.i("Preview frame available.") }
 }
 
 override fun onResume() {
@@ -112,4 +111,4 @@ override fun onDestroyView() {
 }
 ```
 
-You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module.
+You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module or [sampleAppJava](https://github.com/pvasa/cameraview-ex/tree/development/sampleAppJava) for usage in Java.

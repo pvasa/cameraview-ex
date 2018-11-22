@@ -153,13 +153,6 @@ internal class Camera1(
             } else field = value
         }
 
-    override var ae: Boolean = Modes.DEFAULT_AUTO_EXPOSURE
-        get() = if (!isCameraOpened) field else Modes.DEFAULT_AUTO_EXPOSURE // TODO("Check cameraParameters")
-        set(value) {
-            if (field == value) return
-            // TODO("set internal")
-        }
-
     override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_OPTICAL_STABILIZATION // TODO("Check cameraParameters")
         set(value) {
