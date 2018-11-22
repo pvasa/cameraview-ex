@@ -21,7 +21,7 @@ apply plugin: 'kotlin-android-extensions'
 ext {
     majorVersion = 2
     minorVersion = 2
-    patchVersion = 1
+    patchVersion = 2
 }
 
 android {

@@ -56,8 +56,6 @@ internal interface CameraInterface {
     @Modes.Flash
     var flash: Int
 
-    var ae: Boolean
-
     var opticalStabilization: Boolean
 
     @Modes.NoiseReduction
