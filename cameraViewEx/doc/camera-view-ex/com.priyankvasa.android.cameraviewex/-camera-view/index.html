@@ -1,0 +1,541 @@
+<HTML>
+<HEAD>
+    <meta charset="UTF-8">
+    <title>CameraView - cameraViewEx</title>
+    <link rel="stylesheet" href="../../../style.css">
+</HEAD>
+<BODY>
+<a href="../../index.html">cameraViewEx</a>&nbsp;/&nbsp;<a href="../index.html">com.priyankvasa.android.cameraviewex</a>&nbsp;/&nbsp;<a
+        href="./index.html">CameraView</a><br/>
+<br/>
+<h1>CameraView</h1>
+<code><span class="keyword">class </span><span class="identifier">CameraView</span>&nbsp;<span
+        class="symbol">:</span>&nbsp;<a
+        href="https://developer.android.com/reference/android/widget/FrameLayout.html"><span
+        class="identifier">FrameLayout</span></a></code>
+<h3>Types</h3>
+<table>
+    <tbody>
+    <tr>
+        <td>
+            <p><a href="-saved-state/index.html">SavedState</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">data</span> <span class="keyword">class </span><span
+                    class="identifier">SavedState</span>&nbsp;<span class="symbol">:</span>&nbsp;<a
+                    href="https://developer.android.com/reference/android/view/View/BaseSavedState.html"><span
+                    class="identifier">BaseSavedState</span></a><span class="symbol">, </span><a
+                    href="https://developer.android.com/reference/android/os/Parcelable.html"><span
+                    class="identifier">Parcelable</span></a></code></td>
+    </tr>
+    </tbody>
+</table>
+<h3>Constructors</h3>
+<table>
+    <tbody>
+    <tr>
+        <td>
+            <p><a href="-init-.html">&lt;init&gt;</a></p>
+        </td>
+        <td>
+            <code><span class="identifier">CameraView</span><span class="symbol">(</span><span
+                    class="identifier"
+                    id="com.priyankvasa.android.cameraviewex.CameraView$<init>(android.content.Context, android.util.AttributeSet, kotlin.Int)/context">context</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://developer.android.com/reference/android/content/Context.html"><span
+                    class="identifier">Context</span></a><span class="symbol">, </span><span
+                    class="identifier"
+                    id="com.priyankvasa.android.cameraviewex.CameraView$<init>(android.content.Context, android.util.AttributeSet, kotlin.Int)/attrs">attrs</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://developer.android.com/reference/android/util/AttributeSet.html"><span
+                    class="identifier">AttributeSet</span></a><span
+                    class="symbol">?</span>&nbsp;<span class="symbol">=</span>&nbsp;null<span
+                    class="symbol">, </span><span class="identifier"
+                                                  id="com.priyankvasa.android.cameraviewex.CameraView$<init>(android.content.Context, android.util.AttributeSet, kotlin.Int)/defStyleAttr">defStyleAttr</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a>&nbsp;<span class="symbol">=</span>&nbsp;0<span
+                    class="symbol">)</span></code></td>
+    </tr>
+    </tbody>
+</table>
+<h3>Properties</h3>
+<table>
+    <tbody>
+    <tr>
+        <td>
+            <p><a href="adjust-view-bounds.html">adjustViewBounds</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span
+                    class="identifier">adjustViewBounds</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                    class="identifier">Boolean</span></a></code>
+            <p>True when this CameraView is adjusting its bounds to preserve the aspect ratio of
+                camera.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="aspect-ratio.html">aspectRatio</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">aspectRatio</span><span
+                    class="symbol">: </span><a href="../-aspect-ratio/index.html"><span
+                    class="identifier">AspectRatio</span></a></code>
+            <p>Current aspect ratio of camera. Valid format is "height:width" eg. "4:3".</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="auto-focus.html">autoFocus</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">autoFocus</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                    class="identifier">Boolean</span></a></code>
+            <p><code>true</code> if the continuous auto-focus mode is enabled. <code>false</code> if
+                it is
+                disabled, or if it is not supported by the current camera.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="awb.html">awb</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">awb</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>Current auto white balance mode. Supported values <a
+                    href="../-modes/-auto-white-balance/index.html">Modes.AutoWhiteBalance</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="camera-mode.html">cameraMode</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">cameraMode</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>The mode in which camera starts. Supported values <a
+                    href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="facing.html">facing</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">facing</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>Direction that the current camera faces.
+                Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Modes.Facing.FACING_BACK</a>
+                and <a href="../-modes/-facing/-f-a-c-i-n-g_-f-r-o-n-t.html">Modes.Facing.FACING_FRONT</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="flash.html">flash</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">flash</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>Current flash mode. Supported values <a href="../-modes/-flash/index.html">Modes.Flash</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="is-camera-opened.html">isCameraOpened</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">val </span><span
+                    class="identifier">isCameraOpened</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                    class="identifier">Boolean</span></a></code>
+            <p><code>true</code> if the camera is opened <code>false</code> otherwise.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="noise-reduction.html">noiseReduction</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span
+                    class="identifier">noiseReduction</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>Current noise reduction mode. Supported values <a
+                    href="../-modes/-noise-reduction/index.html">Modes.NoiseReduction</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="optical-stabilization.html">opticalStabilization</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span
+                    class="identifier">opticalStabilization</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                    class="identifier">Boolean</span></a></code>
+            <p>Current optical stabilization mode</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="output-format.html">outputFormat</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">outputFormat</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>Format of the output of image data produced from the camera. Supported values <a
+                    href="../-modes/-output-format/index.html">Modes.OutputFormat</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="shutter.html">shutter</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">shutter</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a></code>
+            <p>Current shutter time in milliseconds. Supported values <a
+                    href="../-modes/-shutter/index.html">Modes.Shutter</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="supported-aspect-ratios.html">supportedAspectRatios</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">val </span><span
+                    class="identifier">supportedAspectRatios</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html"><span
+                    class="identifier">Set</span></a><span class="symbol">&lt;</span><a
+                    href="../-aspect-ratio/index.html"><span
+                    class="identifier">AspectRatio</span></a><span class="symbol">&gt;</span></code>
+            <p>Gets all the aspect ratios supported by the current camera.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="zsl.html">zsl</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">var </span><span class="identifier">zsl</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                    class="identifier">Boolean</span></a></code>
+            <p>Zero shutter lag mode capture.</p>
+        </td>
+    </tr>
+    </tbody>
+</table>
+<h3>Functions</h3>
+<table>
+    <tbody>
+    <tr>
+        <td>
+            <p><a href="add-camera-closed-listener.html">addCameraClosedListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">addCameraClosedListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$addCameraClosedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Add a new camera closed <a
+                    href="add-camera-closed-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addCameraClosedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="add-camera-opened-listener.html">addCameraOpenedListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">addCameraOpenedListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$addCameraOpenedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Add a new camera opened <a
+                    href="add-camera-opened-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addCameraOpenedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="add-picture-taken-listener.html">addPictureTakenListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">addPictureTakenListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$addPictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="identifier">imageData</span><span class="symbol">:</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html"><span
+                    class="identifier">ByteArray</span></a><span class="symbol">)</span>&nbsp;<span
+                    class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Add a new picture taken <a
+                    href="add-picture-taken-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addPictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="capture.html">capture</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">capture</span><span
+                    class="symbol">(</span><span class="symbol">)</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code>
+            <p>Take a picture. The result will be returned to listeners added by <a
+                    href="add-picture-taken-listener.html">addPictureTakenListener</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="on-attached-to-window.html">onAttachedToWindow</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">onAttachedToWindow</span><span class="symbol">(</span><span
+                    class="symbol">)</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code></td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="on-detached-from-window.html">onDetachedFromWindow</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">onDetachedFromWindow</span><span class="symbol">(</span><span
+                    class="symbol">)</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code></td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="on-measure.html">onMeasure</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">onMeasure</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$onMeasure(kotlin.Int, kotlin.Int)/widthMeasureSpec">widthMeasureSpec</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a><span class="symbol">, </span><span
+                    class="identifier"
+                    id="com.priyankvasa.android.cameraviewex.CameraView$onMeasure(kotlin.Int, kotlin.Int)/heightMeasureSpec">heightMeasureSpec</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span
+                    class="identifier">Int</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code></td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="on-restore-instance-state.html">onRestoreInstanceState</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">onRestoreInstanceState</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$onRestoreInstanceState(android.os.Parcelable)/state">state</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://developer.android.com/reference/android/os/Parcelable.html"><span
+                    class="identifier">Parcelable</span></a><span class="symbol">?</span><span
+                    class="symbol">)</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code></td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="on-save-instance-state.html">onSaveInstanceState</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">onSaveInstanceState</span><span class="symbol">(</span><span
+                    class="symbol">)</span><span class="symbol">: </span><a
+                    href="https://developer.android.com/reference/android/os/Parcelable.html"><span
+                    class="identifier">Parcelable</span></a><span class="symbol">?</span></code>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="remove-all-listeners.html">removeAllListeners</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">removeAllListeners</span><span class="symbol">(</span><span
+                    class="symbol">)</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code>
+            <p>Remove all listeners previously set.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="remove-camera-closed-listener.html">removeCameraClosedListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">removeCameraClosedListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$removeCameraClosedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Remove camera closed <a
+                    href="remove-camera-closed-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removeCameraClosedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="remove-camera-opened-listener.html">removeCameraOpenedListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">removeCameraOpenedListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$removeCameraOpenedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Remove camera opened <a
+                    href="remove-camera-opened-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removeCameraOpenedListener(kotlin.Function0((kotlin.Unit)))/listener">listener</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="remove-picture-taken-listener.html">removePictureTakenListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">removePictureTakenListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$removePictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="identifier">imageData</span><span class="symbol">:</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html"><span
+                    class="identifier">ByteArray</span></a><span class="symbol">)</span>&nbsp;<span
+                    class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Remove picture taken <a
+                    href="remove-picture-taken-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removePictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="remove-preview-frame-listener.html">removePreviewFrameListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">removePreviewFrameListener</span><span
+                    class="symbol">(</span><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Remove preview frame <a href="#">listener</a>.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="set-preview-frame-listener.html">setPreviewFrameListener</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span
+                    class="identifier">setPreviewFrameListener</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((android.media.Image, kotlin.Unit)))/listener">listener</span><span
+                    class="symbol">:</span>&nbsp;<span class="symbol">(</span><span
+                    class="identifier">image</span><span class="symbol">:</span>&nbsp;<a
+                    href="https://developer.android.com/reference/android/media/Image.html"><span
+                    class="identifier">Image</span></a><span class="symbol">)</span>&nbsp;<span
+                    class="symbol">-&gt;</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a><span class="symbol">)</span><span
+                    class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+            <p>Set preview frame <a
+                    href="set-preview-frame-listener.html#com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((android.media.Image, kotlin.Unit)))/listener">listener</a>.
+                Be careful while using this listener as it is invoked on each frame,
+                which could be 60 times per second if frame rate is 60 fps.
+                Ideally you should only process next frame once you are done processing previous
+                frame.
+                Don't continuously launch background tasks for each frame,
+                it is not memory efficient, the device will run out of memory very quickly and force
+                close the app.</p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="start.html">start</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">start</span><span
+                    class="symbol">(</span><span class="symbol">)</span><span
+                    class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code>
+            <p>Open a camera device and start showing camera preview. This is typically called from
+                <a href="https://developer.android.com/reference/android/app/Activity.html#onResume()">Activity.onResume</a>.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p><a href="stop.html">stop</a></p>
+        </td>
+        <td>
+            <code><span class="keyword">fun </span><span class="identifier">stop</span><span
+                    class="symbol">(</span><span class="identifier"
+                                                 id="com.priyankvasa.android.cameraviewex.CameraView$stop(kotlin.Boolean)/removeAllListeners">removeAllListeners</span><span
+                    class="symbol">:</span>&nbsp;<a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                    class="identifier">Boolean</span></a>&nbsp;<span class="symbol">=</span>&nbsp;false<span
+                    class="symbol">)</span><span class="symbol">: </span><a
+                    href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                    class="identifier">Unit</span></a></code>
+            <p>Stop camera preview and close the device. This is typically called from
+                <a href="https://developer.android.com/reference/android/app/Activity.html#onPause()">Activity.onPause</a>.
+            </p>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</BODY>
+</HTML>

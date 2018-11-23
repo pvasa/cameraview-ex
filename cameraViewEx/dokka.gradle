@@ -1,0 +1,96 @@
+// Copyright 2018 Priyank Vasa
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+dokka {
+    moduleName = 'cameraViewEx'
+    outputFormat = 'html'
+    outputDirectory = "cameraViewEx/doc"
+
+    // These tasks will be used to determine source directories and classpath
+    kotlinTasks {
+        defaultKotlinTasks()/* + [':some:otherCompileKotlin', project("another").compileKotlin]*/
+    }
+
+    // List of files with module and package documentation
+    // http://kotlinlang.org/docs/reference/kotlin-doc.html#module-and-package-documentation
+    includes = ['README.md']
+
+    // The list of files or directories containing sample code (referenced with @sample tags)
+    samples = ['src/main/sample']
+
+    jdkVersion = 8 // Used for linking to JDK
+
+    // Use default or set to custom path to cache directory
+    // to enable package-list caching
+    // When set to default, caches stored in $USER_HOME/.cache/dokka
+    cacheRoot = 'default'
+
+    // Use to include or exclude non public members.
+    includeNonPublic = false
+
+    // Do not output deprecated members. Applies globally, can be overridden by packageOptions
+    skipDeprecated = false
+
+    // Emit warnings about not documented members. Applies globally, also can be overridden by packageOptions
+    reportUndocumented = true
+
+    skipEmptyPackages = true // Do not create index pages for empty packages
+
+    impliedPlatforms = ["JVM"] // See platforms section of documentation
+
+    // Manual adding files to classpath
+    // This property not overrides classpath collected from kotlinTasks but appends to it
+    //classpath = [new File("$buildDir/other.jar")]
+
+    // By default, sourceRoots is taken from kotlinTasks, following roots will be appended to it
+    // Short form sourceRoots
+    sourceDirs = files('src/main/java')
+
+    // By default, sourceRoots is taken from kotlinTasks, following roots will be appended to it
+    // Full form sourceRoot declaration
+    // Repeat for multiple sourceRoots
+    sourceRoot {
+        // Path to source root
+        path = "src"
+        // See platforms section of documentation
+        platforms = ["JVM"]
+    }
+
+    // Specifies the location of the project source code on the Web.
+    // If provided, Dokka generates "source" links for each declaration.
+    // Repeat for multiple mappings
+    linkMapping {
+        // Source directory
+        dir = "src/main/kotlin"
+
+        // URL showing where the source code can be accessed through the web browser
+        url = "https://github.com/pvasa/cameraview-ex/blob/master/src/main"
+
+        // Suffix which is used to append the line number to the URL. Use #L for GitHub
+        suffix = "#L"
+    }
+
+    // No default documentation link to kotlin-stdlib
+    noStdlibLink = false
+
+    // Allows linking to documentation of the project's dependencies (generated with Javadoc or Dokka)
+    // Repeat for multiple links
+    // externalDocumentationLink {
+    // Root URL of the generated documentation to link with. The trailing slash is required!
+    // url = new URL("https://example.com/docs/")
+
+    // If package-list file located in non-standard location
+    // packageListUrl = new URL("file:///home/user/localdocs/package-list")
+    // }
+}

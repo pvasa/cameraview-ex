@@ -34,12 +34,9 @@ import android.view.View
 import android.widget.FrameLayout
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraView @JvmOverloads constructor(
         context: Context,
@@ -454,42 +451,6 @@ class CameraView @JvmOverloads constructor(
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
         if (this.listener.isEnabled) previewFrameListener = listener
         return this
-    }
-
-    /**
-     * This is a sample setup method to show appropriate and safe usage of [setPreviewFrameListener]
-     */
-    @ExperimentalCoroutinesApi
-    @Suppress("unused", "UNUSED_ANONYMOUS_PARAMETER", "UNUSED_VARIABLE")
-    private fun setupCameraSample() {
-
-        CameraView(context).apply {
-
-            val processing = AtomicBoolean(false)
-
-            addCameraOpenedListener { Timber.i("Camera opened.") }
-
-            setPreviewFrameListener { image: Image ->
-
-                if (!processing.get()) {
-
-                    processing.set(true)
-
-                    val result = GlobalScope.async { /* Some background image processing task */ }
-
-                    result.invokeOnCompletion { t ->
-                        val output = result.getCompleted()
-                        /* ...  use the output ... */
-                        // Set processing flag to false
-                        processing.set(false)
-                    }
-                }
-            }
-
-            addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken successfully.") }
-
-            addCameraClosedListener { Timber.i("Camera closed.") }
-        }
     }
 
     /**
