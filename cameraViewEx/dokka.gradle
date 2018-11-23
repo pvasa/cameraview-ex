@@ -15,7 +15,7 @@
 dokka {
     moduleName = 'cameraViewEx'
     outputFormat = 'html'
-    outputDirectory = "cameraViewEx/doc"
+    outputDirectory = "docs"
 
     // These tasks will be used to determine source directories and classpath
     kotlinTasks {
@@ -72,10 +72,10 @@ dokka {
     // Repeat for multiple mappings
     linkMapping {
         // Source directory
-        dir = "src/main/kotlin"
+        dir = "src/main/java"
 
         // URL showing where the source code can be accessed through the web browser
-        url = "https://github.com/pvasa/cameraview-ex/blob/master/src/main"
+        url = "https://github.com/pvasa/cameraview-ex/tree/master/cameraViewEx/src/main"
 
         // Suffix which is used to append the line number to the URL. Use #L for GitHub
         suffix = "#L"
