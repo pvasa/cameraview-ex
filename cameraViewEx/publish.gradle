@@ -12,38 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'com.jfrog.bintray'
+apply plugin: "com.github.dcendents.android-maven"
+apply plugin: "com.jfrog.bintray"
 
-version generateVersionName()
-group 'com.priyankvasa.android'
+version = project.ext.versionName
+group = "com.priyankvasa.android"
 
 ext {
-    bintrayRepo = 'android'
-    bintrayName = 'cameraview-ex'
+    bintrayRepo = "android"
+    bintrayName = "cameraview-ex"
 
-    libraryName = 'CameraViewEx'
-    artifact = 'cameraview-ex'
+    libraryName = "CameraViewEx"
+    artifact = "cameraview-ex"
 
     libraryDescription = "This is an extended version of Google's cameraview library"
 
-    siteUrl = 'https://github.com/pvasa/cameraview-ex'
-    gitUrl = 'https://github.com/pvasa/cameraview-ex.git'
-    issuesUrl = 'https://github.com/pvasa/cameraview-ex/issues'
+    siteUrl = "https://github.com/pvasa/cameraview-ex"
+    gitUrl = "https://github.com/pvasa/cameraview-ex.git"
+    issuesUrl = "https://github.com/pvasa/cameraview-ex/issues"
 
-    developerId = 'pvasa'
-    developerName = 'Priyank Vasa'
-    developerEmail = 'pv.ryan14@gmail.com'
+    developerId = "pvasa"
+    developerName = "Priyank Vasa"
+    developerEmail = "pv.ryan14@gmail.com"
 
-    licenseName = 'The Apache Software License, Version 2.0'
-    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    licenseName = "The Apache Software License, Version 2.0"
+    licenseUrl = "http://www.apache.org/licenses/LICENSE-2.0.txt"
     allLicenses = ["Apache-2.0"]
 }
 
 install {
     repositories.mavenInstaller {
         pom.project {
-            packaging 'aar'
+            packaging "aar"
             groupId this.group
             artifactId artifact
 
@@ -74,7 +74,7 @@ install {
 }
 
 task sourcesJar(type: Jar) {
-    classifier = 'sources'
+    classifier = "sources"
     from android.sourceSets.main.java.srcDirs
 }
 
@@ -83,9 +83,9 @@ artifacts {
 }
 
 bintray {
-    user = project.hasProperty('bintrayUser') ?: System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ?: System.getenv('BINTRAY_API_KEY')
-    configurations = ['archives']
+    user = project.hasProperty("bintrayUser") ?: System.getenv("BINTRAY_USER")
+    key = project.hasProperty("bintrayApiKey") ?: System.getenv("BINTRAY_API_KEY")
+    configurations = ["archives"]
     pkg {
         repo = bintrayRepo
         name = bintrayName
