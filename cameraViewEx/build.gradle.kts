@@ -162,7 +162,7 @@ tasks.getByName("dokka") {
 
     // List of files with module and package documentation
     // http://kotlinlang.org/docs/reference/kotlin-doc.html#module-and-package-documentation
-    includes = listOf("README.md")
+    includes = listOf("../README.md")
 
     // The list of files or directories containing sample code (referenced with @sample tags)
     samples = listOf("src/main/sample")
@@ -200,7 +200,7 @@ tasks.getByName("dokka") {
     // Repeat for multiple sourceRoots
     sourceRoot(delegateClosureOf<SourceRoot> {
         // Path to source root
-        path = "src"
+        path = "cameraViewEx/src"
         // See platforms section of documentation
         platforms = listOf("JVM")
     })
