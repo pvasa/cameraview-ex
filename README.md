@@ -18,24 +18,6 @@ Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Came
 | 14-20     | Camera1    | TextureView  |
 | 21+       | Camera2    | TextureView  |
 
-## Features
-
-- Camera preview by placing it in a layout XML (and calling the start method)
-- Configuration by attributes
-  - Camera mode (app:cameraMode) defaults to "single_capture"
-  - Facing (app:facing) defaults to "back"
-  - Aspect ratio (app:aspectRatio) defaults to "4:3"
-  - Auto-focus (app:autoFocus) defaults to "false"
-  - Flash (app:flash) defaults to "off"
-  - Auto white balance (app:awb) defaults to "off"
-  - Optical Stabilization (app:opticalStabilization) defaults to "false"
-  - Noise Reduction (app:noiseReduction) defaults to "off"
-  - Camera shutter view (app:shutter) defaults to "off"
-  - Output format (app:outputFormat) defaults to "jpeg"
-  - Zero shutter lag (app:zsl) defaults to "false"
-
-_**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
-
 ## Usage
 
 #### Import dependency
@@ -112,6 +94,24 @@ override fun onDestroyView() {
 ```
 
 You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module or [sampleAppJava](https://github.com/pvasa/cameraview-ex/tree/development/sampleAppJava) for usage in Java.
+
+## Features
+
+| Attribute                | Possible Values <br/> (bold value is the default one)  |
+|--------------------------|--------------------------------------------------------|
+| app:cameraMode           | **single_capture**, continuous_frame                   |
+| app:facing               | **back**, front                                        |
+| app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_ |
+| app:autoFocus            | **false**, true                                        |
+| app:flash                | **off**, on, torch, auto, redEye                       |
+| app:awb                  | **off**, auto, incandescent, fluorescent, warm_fluorescent, <br/> daylight, cloudy_daylight, twilight, shade |
+| app:opticalStabilization | **false**, true                                        |
+| app:noiseReduction       | **off**, fast, high_quality, minimal, zero_shutter_lag |
+| app:shutter              | **off**, short_time, long_time                         |
+| app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
+| app:zsl                  | **false**, true                                        |
+
+_**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 
 ## Docs
 For detailed documentation, please refer these [docs](https://pvasa.github.io/cameraview-ex/camera-view-ex/com.priyankvasa.android.cameraviewex/-camera-view/index.html).
