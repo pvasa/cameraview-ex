@@ -1,6 +1,6 @@
 
 [![Build Status](https://travis-ci.org/pvasa/cameraview-ex.svg?branch=master)](https://travis-ci.org/pvasa/cameraview-ex)
-[![Bintray](https://img.shields.io/bintray/v/ryan652/android/cameraview-ex.svg)](https://bintray.com/ryan652/android/cameraview-ex/_latestVersion)
+[![Download](https://api.bintray.com/packages/ryan652/android/cameraview-ex/images/download.svg)](https://bintray.com/ryan652/android/cameraview-ex/_latestVersion)
 [![License](https://img.shields.io/github/license/pvasa/cameraview-ex.svg)](LICENSE)
 
 # CameraViewEx
