@@ -1,0 +1,1 @@
+include(":cameraViewEx", ":sampleApp", ":sampleAppJava")
