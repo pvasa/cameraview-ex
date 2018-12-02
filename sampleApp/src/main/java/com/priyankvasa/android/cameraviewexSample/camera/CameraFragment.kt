@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewex.camera
+package com.priyankvasa.android.cameraviewexSample.camera
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -9,7 +9,6 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v4.view.GestureDetectorCompat
 import android.view.LayoutInflater
-import android.view.OrientationEventListener
 import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
@@ -17,23 +16,15 @@ import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
-import com.priyankvasa.android.cameraviewex.Direction
 import com.priyankvasa.android.cameraviewex.Modes
-import com.priyankvasa.android.cameraviewex.OnSwipeListener
-import com.priyankvasa.android.cameraviewex.R
+import com.priyankvasa.android.cameraviewexSample.Direction
+import com.priyankvasa.android.cameraviewexSample.OnSwipeListener
+import com.priyankvasa.android.cameraviewexSample.R
 import kotlinx.android.synthetic.main.fragment_camera.*
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
-class CameraFragment : Fragment() {
-
-    private val orientationEventListener: OrientationEventListener by lazy {
-        object : OrientationEventListener(context) {
-            override fun onOrientationChanged(orientation: Int) {
-                ivFlashSwitch.rotation = -orientation.toFloat()
-            }
-        }
-    }
+open class CameraFragment : Fragment() {
 
     private val gestureDetector: GestureDetectorCompat by lazy {
         GestureDetectorCompat(context, object : OnSwipeListener() {
@@ -57,6 +48,10 @@ class CameraFragment : Fragment() {
 
     private val detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options)
 
+    open fun cameraErrorListener(t: Throwable) {
+        Timber.e(t)
+    }
+
     override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
@@ -65,8 +60,6 @@ class CameraFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        orientationEventListener.run { if (canDetectOrientation()) enable() }
 
         setupCamera()
 
@@ -95,6 +88,20 @@ class CameraFragment : Fragment() {
             context?.let { ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(it, flashDrawableId)) }
         }
 
+        ivCameraMode.setOnClickListener {
+            tvBarcodes.visibility = View.GONE
+            camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+        }
+
+        ivVideoMode.setOnClickListener {
+            tvBarcodes.visibility = View.GONE
+        }
+
+        ivBarcodeScanner.setOnClickListener {
+            tvBarcodes.visibility = View.VISIBLE
+            camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
+        }
+
         ivPhoto.setOnClickListener { it.visibility = View.GONE }
     }
 
@@ -110,16 +117,15 @@ class CameraFragment : Fragment() {
                 if (!decoding.get()) {
                     decoding.set(true)
                     val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
-                    val sbBarcodes = StringBuilder()
                     detector.detectInImage(visionImage)
                             .addOnCompleteListener { decoding.set(false) }
                             .addOnSuccessListener { barcodes ->
-                                barcodes.forEachIndexed { i, barcode ->
-                                    sbBarcodes.appendln(barcode.rawValue)
-                                    Timber.i("Barcode $i: ${barcode.rawValue}")
-                                }
-                                tvBarcodes.text = sbBarcodes.toString()
-                                sbBarcodes.clear()
+                                val barcodesStr = "Barcodes\n${barcodes.joinToString(
+                                        "\n",
+                                        transform = { it.rawValue as? CharSequence ?: "" }
+                                )}"
+                                Timber.i("Barcodes: $barcodesStr")
+                                tvBarcodes.text = barcodesStr
                             }
                             .addOnFailureListener { e -> Timber.e(e) }
                 }
@@ -161,7 +167,6 @@ class CameraFragment : Fragment() {
 
     override fun onDestroyView() {
         camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
-        orientationEventListener.disable()
         super.onDestroyView()
     }
 }

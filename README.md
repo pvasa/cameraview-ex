@@ -7,8 +7,6 @@
 
 _This is an extended version of [Google's cameraview library](https://github.com/google/cameraview)_
 
-*This is a preview release. The API is subject to change.*
-
 CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
 
 Requires API Level 14. The library uses Camera 1 API on API Level 14-20 and Camera2 on 21 and above.

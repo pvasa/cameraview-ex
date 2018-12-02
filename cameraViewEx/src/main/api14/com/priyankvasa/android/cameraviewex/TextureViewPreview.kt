@@ -65,7 +65,7 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
                 return true
             }
 
-            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) = Unit
         }
     }
 

@@ -1,5 +1,5 @@
 
-package com.priyankvasa.android.cameraviewex.camera;
+package com.priyankvasa.android.cameraviewexSample.camera;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -8,8 +8,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 
-import com.priyankvasa.android.cameraviewex.R;
-import com.priyankvasa.android.cameraviewex.extensions.ActivityExtensionsKt;
+import com.priyankvasa.android.cameraviewexSample.R;
+import com.priyankvasa.android.cameraviewexSample.extensions.ActivityExtensionsKt;
 
 public class CameraActivity extends AppCompatActivity {
 

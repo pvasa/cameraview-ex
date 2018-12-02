@@ -77,14 +77,13 @@ internal interface CameraInterface {
      */
     fun setAspectRatio(ratio: AspectRatio): Boolean
 
-    fun capturePreviewFrame()
-
     fun takePicture()
 
     interface Listener {
         fun onCameraOpened()
         fun onCameraClosed()
         fun onPictureTaken(imageData: ByteArray)
+        fun onCameraError(cause: Throwable? = null, message: String = "")
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
         fun onPreviewFrame(reader: ImageReader)
