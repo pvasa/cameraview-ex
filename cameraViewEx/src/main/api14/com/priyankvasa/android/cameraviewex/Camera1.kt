@@ -27,7 +27,6 @@ import android.hardware.Camera
 import android.os.Build
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
-import java.io.IOException
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -51,7 +50,14 @@ internal class Camera1(
     private val pictureSizes = SizeMap()
 
     override var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
-        private set
+        set(value) {
+            if (field == value) return
+            field = value
+            if (isCameraOpened) {
+                stop()
+                start()
+            }
+        }
 
     private var showingPreview: Boolean = false
 
@@ -83,12 +89,16 @@ internal class Camera1(
             if (field == value) return
             field = value
             if (isCameraOpened) {
-                cameraParameters?.setRotation(calcCameraRotation(value))
-                camera?.parameters = cameraParameters
-                val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
-                if (needsToStopPreview) camera?.stopPreview()
-                camera?.setDisplayOrientation(calcDisplayOrientation(value))
-                if (needsToStopPreview) camera?.startPreview()
+                try {
+                    cameraParameters?.setRotation(calcCameraRotation(value))
+                    camera?.parameters = cameraParameters
+                    val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
+                    if (needsToStopPreview) camera?.stopPreview()
+                    camera?.setDisplayOrientation(calcDisplayOrientation(value))
+                    if (needsToStopPreview) camera?.startPreview()
+                } catch (e: Exception) {
+                    listener.onCameraError(e)
+                }
             }
         }
 
@@ -115,7 +125,11 @@ internal class Camera1(
             if (field == value) return
             if (setAutoFocusInternal(value)) {
                 field = value
-                camera?.parameters = cameraParameters
+                try {
+                    camera?.parameters = cameraParameters
+                } catch (e: RuntimeException) {
+                    listener.onCameraError(e)
+                }
             }
         }
 
@@ -137,18 +151,22 @@ internal class Camera1(
         set(value) {
             if (field == value) return
             if (isCameraOpened) {
-                val modes = cameraParameters?.supportedFlashModes
-                val mode = FLASH_MODES.get(flash)
-                if (modes?.contains(mode) == true) {
-                    cameraParameters?.flashMode = mode
-                    field = value
-                    camera?.parameters = cameraParameters
-                }
-                val currentMode = FLASH_MODES.get(this.flash)
-                if (modes == null || !modes.contains(currentMode)) {
-                    cameraParameters?.flashMode = Camera.Parameters.FLASH_MODE_OFF
-                    field = Modes.Flash.FLASH_OFF
-                    camera?.parameters = cameraParameters
+                try {
+                    val modes = cameraParameters?.supportedFlashModes
+                    val mode = FLASH_MODES.get(flash)
+                    if (modes?.contains(mode) == true) {
+                        cameraParameters?.flashMode = mode
+                        field = value
+                        camera?.parameters = cameraParameters
+                    }
+                    val currentMode = FLASH_MODES.get(this.flash)
+                    if (modes == null || !modes.contains(currentMode)) {
+                        cameraParameters?.flashMode = Camera.Parameters.FLASH_MODE_OFF
+                        field = Modes.Flash.FLASH_OFF
+                        camera?.parameters = cameraParameters
+                    }
+                } catch (e: RuntimeException) {
+                    listener.onCameraError(e)
                 }
             } else field = value
         }
@@ -187,12 +205,17 @@ internal class Camera1(
         openCamera()
         if (preview.isReady) setUpPreview()
         showingPreview = true
-        camera?.startPreview()
-        return true
+        return try {
+            camera?.startPreview()
+            true
+        } catch (e: RuntimeException) {
+            listener.onCameraError(e)
+            false
+        }
     }
 
     override fun stop() {
-        camera?.stopPreview()
+        runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it) }
         showingPreview = false
         releaseCamera()
     }
@@ -213,8 +236,8 @@ internal class Camera1(
             } else {
                 camera?.setPreviewTexture(preview.surfaceTexture as SurfaceTexture)
             }
-        } catch (e: IOException) {
-            throw RuntimeException(e)
+        } catch (e: Exception) {
+            listener.onCameraError(e)
         }
     }
 
@@ -226,7 +249,7 @@ internal class Camera1(
         } else if (aspectRatio != ratio) {
             val sizes = previewSizes.sizes(ratio)
             if (sizes.isEmpty()) {
-                throw UnsupportedOperationException("$ratio is not supported")
+                listener.onCameraError(UnsupportedOperationException("$ratio is not supported"))
             } else {
                 aspectRatio = ratio
                 adjustCameraParameters()
@@ -236,23 +259,23 @@ internal class Camera1(
         return false
     }
 
-    override fun capturePreviewFrame() {
-
-    }
-
     override fun takePicture() {
         if (!isCameraOpened) {
-            throw IllegalStateException(
-                    "Camera is not ready. Call start() before capture().")
+            listener.onCameraError(IllegalStateException("Camera is not ready. Call start() before capture()."))
         }
-        if (this.autoFocus) {
-            camera?.cancelAutoFocus()
-            camera?.autoFocus { _, _ -> takePictureInternal() }
-        } else {
-            takePictureInternal()
+        try {
+            if (this.autoFocus) {
+                camera?.cancelAutoFocus()
+                camera?.autoFocus { _, _ -> takePictureInternal() }
+            } else {
+                takePictureInternal()
+            }
+        } catch (e: RuntimeException) {
+            listener.onCameraError(e)
         }
     }
 
+    @Throws(RuntimeException::class)
     private fun takePictureInternal() {
         if (!isPictureCaptureInProgress.getAndSet(true)) {
             camera?.takePicture(null, null, null, Camera.PictureCallback { data, camera ->
@@ -282,22 +305,26 @@ internal class Camera1(
     }
 
     private fun openCamera() {
-        releaseCamera()
-        camera = Camera.open(cameraId)
-        cameraParameters = camera?.parameters
-        // Supported preview sizes
-        previewSizes.clear()
-        cameraParameters?.supportedPreviewSizes?.forEach { size ->
-            previewSizes.add(Size(size.width, size.height))
+        try {
+            releaseCamera()
+            camera = Camera.open(cameraId)
+            cameraParameters = camera?.parameters
+            // Supported preview sizes
+            previewSizes.clear()
+            cameraParameters?.supportedPreviewSizes?.forEach { size ->
+                previewSizes.add(Size(size.width, size.height))
+            }
+            // Supported picture sizes;
+            pictureSizes.clear()
+            cameraParameters?.supportedPictureSizes?.forEach { size ->
+                pictureSizes.add(Size(size.width, size.height))
+            }
+            adjustCameraParameters()
+            camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
+            listener.onCameraOpened()
+        } catch (e: RuntimeException) {
+            listener.onCameraError(e)
         }
-        // Supported picture sizes;
-        pictureSizes.clear()
-        cameraParameters?.supportedPictureSizes?.forEach { size ->
-            pictureSizes.add(Size(size.width, size.height))
-        }
-        adjustCameraParameters()
-        camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
-        listener.onCameraOpened()
     }
 
     private fun chooseAspectRatio(): AspectRatio {
@@ -323,13 +350,19 @@ internal class Camera1(
         // Largest picture size in this ratio
         val pictureSize = pictureSizes.sizes(aspectRatio).last()
         if (showingPreview) camera?.stopPreview()
-        cameraParameters?.setPreviewSize(size.width, size.height)
-        cameraParameters?.setPictureSize(pictureSize.width, pictureSize.height)
-        cameraParameters?.setRotation(calcCameraRotation(displayOrientation))
-        setAutoFocusInternal(this.autoFocus)
-        setFlashInternal(this.flash)
-        camera?.parameters = cameraParameters
-        if (showingPreview) camera?.startPreview()
+        cameraParameters?.apply {
+            setPreviewSize(size.width, size.height)
+            setPictureSize(pictureSize.width, pictureSize.height)
+            setRotation(calcCameraRotation(displayOrientation))
+        }?.also { camera?.parameters = it }
+        setAutoFocusInternal(autoFocus)
+        setFlashInternal(flash)
+        try {
+            if (showingPreview) camera?.startPreview()
+
+        } catch (e: RuntimeException) {
+            listener.onCameraError(e)
+        }
     }
 
     private fun chooseOptimalSize(sizes: SortedSet<Size>): Size {
@@ -347,10 +380,9 @@ internal class Camera1(
             desiredWidth = surfaceWidth
             desiredHeight = surfaceHeight
         }
-        for (size in sizes) { // Iterate from small to large
-            if (desiredWidth <= size.width && desiredHeight <= size.height) return size
-        }
-        return sizes.last()
+        return sizes
+                .firstOrNull { desiredWidth <= it.width && desiredHeight <= it.height }
+                ?: sizes.last()
     }
 
     private fun releaseCamera() {
@@ -417,23 +449,20 @@ internal class Camera1(
     /**
      * @return `true` if [.cameraParameters] was modified.
      */
-    private fun setAutoFocusInternal(autoFocus: Boolean): Boolean {
+    private fun setAutoFocusInternal(autoFocus: Boolean): Boolean = isCameraOpened.takeIf { it }?.also {
 
-        return isCameraOpened.takeIf { it }?.also {
+        val modes = cameraParameters?.supportedFocusModes
 
-            val modes = cameraParameters?.supportedFocusModes
-
-            cameraParameters?.focusMode = when {
-                autoFocus && modes?.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) == true ->
-                    Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
-                modes?.contains(Camera.Parameters.FOCUS_MODE_FIXED) == true ->
-                    Camera.Parameters.FOCUS_MODE_FIXED
-                modes?.contains(Camera.Parameters.FOCUS_MODE_INFINITY) == true ->
-                    Camera.Parameters.FOCUS_MODE_INFINITY
-                else -> modes?.get(0)
-            }
-        } ?: false
-    }
+        cameraParameters?.focusMode = when {
+            autoFocus && modes?.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) == true ->
+                Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
+            modes?.contains(Camera.Parameters.FOCUS_MODE_FIXED) == true ->
+                Camera.Parameters.FOCUS_MODE_FIXED
+            modes?.contains(Camera.Parameters.FOCUS_MODE_INFINITY) == true ->
+                Camera.Parameters.FOCUS_MODE_INFINITY
+            else -> modes?.get(0)
+        }
+    } ?: false
 
     private fun setFlashInternal(flash: Int) {
         this.flash = flash

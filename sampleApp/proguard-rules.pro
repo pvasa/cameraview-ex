@@ -34,7 +34,7 @@
 -dontnote kotlin.coroutines.**
 
 # Project
--dontnote com.priyankvasa.android.cameraviewex.**
+-dontnote com.priyankvasa.android.cameraviewexSample.**
 
 # Sample app
--dontwarn com.priyankvasa.android.cameraviewex.camera.**
+-dontwarn com.priyankvasa.android.cameraviewexSample.camera.**

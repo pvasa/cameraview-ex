@@ -1,12 +1,12 @@
-package com.priyankvasa.android.cameraviewex.camera
+package com.priyankvasa.android.cameraviewexSample.camera
 
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
-import com.priyankvasa.android.cameraviewex.R
-import com.priyankvasa.android.cameraviewex.extensions.hideSystemUI
+import com.priyankvasa.android.cameraviewexSample.R
+import com.priyankvasa.android.cameraviewexSample.extensions.hideSystemUI
 
 class CameraActivity : AppCompatActivity() {
 

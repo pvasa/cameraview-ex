@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    tools:context="com.priyankvasa.android.cameraviewexSample.camera.CameraActivity"
+    tools:context="com.priyankvasa.android.cameraviewex.camera.CameraActivity"
     tools:ignore="ContentDescription">
 
     <ImageView
@@ -15,8 +15,7 @@
         android:background="?attr/selectableItemBackground"
         android:padding="18dp"
         android:src="@drawable/ic_flash_auto"
-        app:layout_constraintBottom_toTopOf="@id/camera"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
@@ -26,9 +25,8 @@
         android:background="?attr/selectableItemBackground"
         android:padding="18dp"
         android:src="@drawable/ic_photo_camera"
-        app:layout_constraintBottom_toTopOf="@id/camera"
-        app:layout_constraintEnd_toStartOf="@id/ivFlashSwitch"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch" />
 
     <ImageView
         android:id="@+id/ivVideoMode"
@@ -37,9 +35,8 @@
         android:background="?attr/selectableItemBackground"
         android:padding="18dp"
         android:src="@drawable/ic_video_cam"
-        app:layout_constraintBottom_toTopOf="@id/camera"
-        app:layout_constraintEnd_toStartOf="@id/ivCameraMode"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivCameraMode" />
 
     <ImageView
         android:id="@+id/ivBarcodeScanner"
@@ -48,15 +45,14 @@
         android:background="?attr/selectableItemBackground"
         android:padding="18dp"
         android:src="@drawable/ic_barcode_scan"
-        app:layout_constraintBottom_toTopOf="@id/camera"
-        app:layout_constraintEnd_toStartOf="@id/ivVideoMode"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivVideoMode" />
 
     <com.priyankvasa.android.cameraviewex.CameraView
         android:id="@+id/camera"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="?attr/actionBarSize"
+        android:layout_marginStart="?attr/actionBarSize"
         android:adjustViewBounds="true"
         android:keepScreenOn="true"
         app:aspectRatio="4:3"
@@ -65,8 +61,8 @@
         app:cameraMode="single_capture"
         app:facing="back"
         app:flash="auto"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/ivFlashSwitch"
         app:layout_constraintTop_toTopOf="parent"
         app:noiseReduction="high_quality"
         app:opticalStabilization="true"
@@ -86,7 +82,7 @@
         android:text="Barcodes"
         android:textColor="@color/white"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch"
         tools:visibility="visible" />
 
@@ -98,14 +94,13 @@
         android:src="@drawable/ic_camera_capture"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/ivPhoto"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:background="@android:color/darker_gray"
-        android:elevation="12dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

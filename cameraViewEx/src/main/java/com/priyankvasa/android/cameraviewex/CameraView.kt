@@ -55,6 +55,7 @@ class CameraView @JvmOverloads constructor(
     private val cameraOpenedListeners = HashSet<() -> Unit>()
     private val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
     private var previewFrameListener: ((image: Image) -> Unit)? = null
+    private val cameraErrorListeners = HashSet<(t: Throwable) -> Unit>()
     private val cameraClosedListeners = HashSet<() -> Unit>()
 
     private val listener = object : CameraInterface.Listener {
@@ -77,6 +78,7 @@ class CameraView @JvmOverloads constructor(
             cameraOpenedListeners.clear()
             previewFrameListener = null
             pictureTakenListeners.clear()
+            cameraErrorListeners.clear()
             cameraClosedListeners.clear()
         }
 
@@ -97,6 +99,12 @@ class CameraView @JvmOverloads constructor(
 
         override fun onPictureTaken(imageData: ByteArray) {
             pictureTakenListeners.forEach { it(imageData) }
+        }
+
+        override fun onCameraError(cause: Throwable?, message: String) {
+            cameraErrorListeners.forEach {
+                it(cause?.let { Exception(message, cause) } ?: Exception(message))
+            }
         }
 
         override fun onCameraClosed() {
@@ -128,7 +136,7 @@ class CameraView @JvmOverloads constructor(
     @setparam:Modes.CameraMode
     var cameraMode: Int
         get() = camera.cameraMode
-        private set(value) {
+        set(value) {
             camera.cameraMode = value
         }
 
@@ -258,8 +266,15 @@ class CameraView @JvmOverloads constructor(
                 outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
                 facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio = getString(R.styleable.CameraView_aspectRatio)
-                        ?.let { AspectRatio.parse(it) }
-                        ?: Modes.DEFAULT_ASPECT_RATIO
+                        .runCatching ar@{
+                            if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
+                            else AspectRatio.parse(this@ar)
+                        }
+                        .getOrElse { t ->
+                            listener.onCameraError(t)
+                            Modes.DEFAULT_ASPECT_RATIO
+                        }
+
                 autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
 //            touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
                 awb = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
@@ -444,7 +459,7 @@ class CameraView @JvmOverloads constructor(
      * it is not memory efficient, the device will run out of memory very quickly and force close the app.
      *
      * @param listener lambda with image of type [Image] as its argument which is the preview frame.
-     *        It is always of type [android.graphics.ImageFormat.YUV_420_888]
+     * It is always of type [android.graphics.ImageFormat.YUV_420_888]
      * @return instance of [CameraView] it is called on
      * @sample setupCameraSample
      */
@@ -464,7 +479,8 @@ class CameraView @JvmOverloads constructor(
 
     /**
      * Add a new picture taken [listener].
-     * @param listener lambda
+     * @param listener lambda with imageData of type [ByteArray] as argument
+     * which is image data of the captured image, of format set with [CameraView.outputFormat]
      * @return instance of [CameraView] it is called on
      */
     fun addPictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
@@ -476,8 +492,28 @@ class CameraView @JvmOverloads constructor(
      * Remove picture taken [listener].
      * @return instance of [CameraView] it is called on
      */
-    fun removePictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
+    fun removePictureTakenListener(listener: (ByteArray) -> Unit): CameraView {
         pictureTakenListeners.remove(listener)
+        return this
+    }
+
+    /**
+     * Add a new camera error [listener].
+     * @param listener lambda with t of type [Throwable] as argument
+     * @return instance of [CameraView] it is called on
+     */
+    fun addCameraErrorListener(listener: (t: Throwable) -> Unit): CameraView {
+        cameraErrorListeners.add(listener)
+        return this
+    }
+
+    /**
+     * Remove camera error [listener].
+     * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeCameraErrorListener(listener: (Throwable) -> Unit): CameraView {
+        cameraErrorListeners.remove(listener)
         return this
     }
 

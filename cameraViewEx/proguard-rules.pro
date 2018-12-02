@@ -20,11 +20,15 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
+-keepattributes *Annotation*, Signature, Exception
+
+-keep class com.priyankvasa.android.cameraviewex.** { *; }
+
+-keepclasseswithmembernames class * { native <methods>; }
+
 # ServiceLoader support
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 
 # Most of volatile fields are updated with AFU and should not be mangled
--keepclassmembernames class kotlinx.** {
-    volatile <fields>;
-}
+-keepclassmembernames class kotlinx.** { volatile <fields>; }
