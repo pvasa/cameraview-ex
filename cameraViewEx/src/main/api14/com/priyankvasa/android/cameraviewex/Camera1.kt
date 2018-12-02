@@ -449,7 +449,9 @@ internal class Camera1(
     /**
      * @return `true` if [.cameraParameters] was modified.
      */
-    private fun setAutoFocusInternal(autoFocus: Boolean): Boolean = isCameraOpened.takeIf { it }?.also {
+    private fun setAutoFocusInternal(autoFocus: Boolean): Boolean = isCameraOpened.also {
+
+        if (!it) return@also
 
         val modes = cameraParameters?.supportedFocusModes
 
@@ -462,7 +464,7 @@ internal class Camera1(
                 Camera.Parameters.FOCUS_MODE_INFINITY
             else -> modes?.get(0)
         }
-    } ?: false
+    }
 
     private fun setFlashInternal(flash: Int) {
         this.flash = flash
