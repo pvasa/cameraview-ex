@@ -266,13 +266,9 @@ class CameraView @JvmOverloads constructor(
                 outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
                 facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio = getString(R.styleable.CameraView_aspectRatio)
-                        .runCatching ar@{
+                        .run ar@{
                             if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
                             else AspectRatio.parse(this@ar)
-                        }
-                        .getOrElse { t ->
-                            listener.onCameraError(t)
-                            Modes.DEFAULT_ASPECT_RATIO
                         }
 
                 autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)

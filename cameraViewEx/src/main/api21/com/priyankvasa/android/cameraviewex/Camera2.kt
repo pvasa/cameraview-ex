@@ -175,18 +175,19 @@ internal open class Camera2(
 
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
 
-        val image = reader.runCatching { acquireLatestImage() }
-                .getOrElse { t ->
-                    listener.onCameraError(t, "Failed to capture image.")
-                    return@OnImageAvailableListener
-                }
+        GlobalScope.launch(Dispatchers.Main) {
 
-        if (image.format == internalOutputFormat
-                && image.planes.isNotEmpty()) GlobalScope.launch(Dispatchers.Main) {
+            val image = reader.runCatching { acquireLatestImage() }
+                    .getOrElse { t ->
+                        listener.onCameraError(t, "Failed to capture image.")
+                        return@launch
+                    }
 
             image.runCatching {
-                decode(outputFormat, rs).await().also { listener.onPictureTaken(it) }
-                close()
+                if (format == internalOutputFormat && planes.isNotEmpty()) {
+                    decode(outputFormat, rs).await().also { listener.onPictureTaken(it) }
+                    close()
+                }
             }.onFailure { t -> listener.onCameraError(t, "Failed to capture image.") }
         }
     }
@@ -589,7 +590,7 @@ internal open class Camera2(
                         largestPreview.width,
                         largestPreview.height,
                         ImageFormat.YUV_420_888,
-                        2 // maxImages
+                        3 // maxImages
                 ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
             }
 
