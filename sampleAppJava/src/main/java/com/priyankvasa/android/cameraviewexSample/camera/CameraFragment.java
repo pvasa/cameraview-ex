@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewex.camera;
+package com.priyankvasa.android.cameraviewexSample.camera;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -17,7 +17,7 @@ import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.priyankvasa.android.cameraviewex.CameraView;
 import com.priyankvasa.android.cameraviewex.Modes;
-import com.priyankvasa.android.cameraviewex.R;
+import com.priyankvasa.android.cameraviewexSample.R;
 
 import kotlin.Unit;
 import timber.log.Timber;

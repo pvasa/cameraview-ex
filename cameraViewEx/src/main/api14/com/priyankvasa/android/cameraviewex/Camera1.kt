@@ -236,10 +236,6 @@ internal class Camera1(
         return false
     }
 
-    override fun capturePreviewFrame() {
-
-    }
-
     override fun takePicture() {
         if (!isCameraOpened) {
             throw IllegalStateException(
