@@ -77,11 +77,11 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
             a /= gcd
             b /= gcd
 
-            return cache.get(a)?.run {
-                get(b) ?: run { AspectRatio(a, b).also { put(b, it) } }
-            } ?: AspectRatio(a, b).also {
-                cache.put(a, SparseArrayCompat<AspectRatio>().apply { put(b, it) })
-            }
+            return cache.get(a)
+                    ?.run { get(b) ?: AspectRatio(a, b).also { put(b, it) } }
+                    ?: AspectRatio(a, b).also {
+                        cache.put(a, SparseArrayCompat<AspectRatio>().apply { put(b, it) })
+                    }
         }
 
         /**

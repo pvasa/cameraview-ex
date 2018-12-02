@@ -3,8 +3,8 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 2
-    private const val minorVersion = 2
-    private const val patchVersion = 2
+    private const val minorVersion = 3
+    private const val patchVersion = 0
 
     public val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
 
