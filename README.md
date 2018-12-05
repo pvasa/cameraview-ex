@@ -23,7 +23,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.2.2"
+    implementation "com.priyankvasa.android:cameraview-ex:2.3.0"
 }
 ```
 
@@ -62,6 +62,7 @@ override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     
     camera.addCameraOpenedListener { Timber.i("Camera opened.") }
+        .addCameraErrorListener { t: Throwable -> Timber.e(t, "Camera error!") }
         .addCameraClosedListener { Timber.i("Camera closed.") }
         
     // For camera mode Modes.CameraMode.SINGLE_CAPTURE
