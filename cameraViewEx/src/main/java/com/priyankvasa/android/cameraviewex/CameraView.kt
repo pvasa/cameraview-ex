@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.io.File
 
 class CameraView @JvmOverloads constructor(
         context: Context,
@@ -101,10 +102,8 @@ class CameraView @JvmOverloads constructor(
             pictureTakenListeners.forEach { it(imageData) }
         }
 
-        override fun onCameraError(cause: Throwable?, message: String) {
-            cameraErrorListeners.forEach {
-                it(cause?.let { Exception(message, cause) } ?: Exception(message))
-            }
+        override fun onCameraError(e: Exception) {
+            cameraErrorListeners.forEach { it(e) }
         }
 
         override fun onCameraClosed() {
@@ -129,16 +128,12 @@ class CameraView @JvmOverloads constructor(
             }
 
     /** `true` if the camera is opened `false` otherwise. */
-    val isCameraOpened: Boolean get() = camera.isCameraOpened
+    val isCameraOpened: Boolean by camera::isCameraOpened
 
     /** The mode in which camera starts. Supported values [Modes.CameraMode]. */
     @get:Modes.CameraMode
     @setparam:Modes.CameraMode
-    var cameraMode: Int
-        get() = camera.cameraMode
-        set(value) {
-            camera.cameraMode = value
-        }
+    var cameraMode: Int by camera::cameraMode
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
@@ -154,11 +149,7 @@ class CameraView @JvmOverloads constructor(
     /** Format of the output of image data produced from the camera. Supported values [Modes.OutputFormat]. */
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
-    var outputFormat: Int
-        get() = camera.outputFormat
-        private set(value) {
-            camera.outputFormat = value
-        }
+    var outputFormat: Int by camera::outputFormat
 
     /**
      * Direction that the current camera faces.
@@ -166,14 +157,10 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.Facing
     @setparam:Modes.Facing
-    var facing: Int
-        get() = camera.facing
-        set(value) {
-            camera.facing = value
-        }
+    var facing: Int by camera::facing
 
     /** Gets all the aspect ratios supported by the current camera. */
-    val supportedAspectRatios: Set<AspectRatio> get() = camera.supportedAspectRatios
+    val supportedAspectRatios: Set<AspectRatio> by camera::supportedAspectRatios
 
     /** Current aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
     var aspectRatio: AspectRatio
@@ -186,68 +173,36 @@ class CameraView @JvmOverloads constructor(
      * `true` if the continuous auto-focus mode is enabled. `false` if it is
      * disabled, or if it is not supported by the current camera.
      */
-    var autoFocus: Boolean
-        get() = camera.autoFocus
-        set(value) {
-            camera.autoFocus = value
-        }
+    var autoFocus: Boolean by camera::autoFocus
 
     /** Current touch to focus mode. True is on and false if off. */
-    private var touchToFocus: Boolean
-        get() = camera.touchToFocus
-        set(value) {
-            camera.touchToFocus = value
-        }
+    private var touchToFocus: Boolean by camera::touchToFocus
 
     /** Current auto white balance mode. Supported values [Modes.AutoWhiteBalance]. */
     @get:Modes.AutoWhiteBalance
     @setparam:Modes.AutoWhiteBalance
-    var awb: Int
-        get() = camera.awb
-        set(value) {
-            camera.awb = value
-        }
+    var awb: Int by camera::awb
 
     /** Current flash mode. Supported values [Modes.Flash]. */
     @get:Modes.Flash
     @setparam:Modes.Flash
-    var flash: Int
-        get() = camera.flash
-        set(value) {
-            camera.flash = value
-        }
+    var flash: Int by camera::flash
 
     /** Current optical stabilization mode */
-    var opticalStabilization: Boolean
-        get() = camera.opticalStabilization
-        set(value) {
-            camera.opticalStabilization = value
-        }
+    var opticalStabilization: Boolean by camera::opticalStabilization
 
     /** Current noise reduction mode. Supported values [Modes.NoiseReduction]. */
     @get:Modes.NoiseReduction
     @setparam:Modes.NoiseReduction
-    var noiseReduction: Int
-        get() = camera.noiseReduction
-        set(value) {
-            camera.noiseReduction = value
-        }
+    var noiseReduction: Int by camera::noiseReduction
 
     /** Current shutter time in milliseconds. Supported values [Modes.Shutter]. */
     @get:Modes.Shutter
     @setparam:Modes.Shutter
-    var shutter: Int
-        get() = preview.shutterView.shutterTime
-        set(value) {
-            preview.shutterView.shutterTime = value
-        }
+    var shutter: Int by preview.shutterView::shutterTime
 
     /** Zero shutter lag mode capture. */
-    var zsl: Boolean
-        get() = camera.zsl
-        set(value) {
-            camera.zsl = value
-        }
+    var zsl: Boolean by camera::zsl
 
     init {
         if (isInEditMode) {
@@ -309,21 +264,26 @@ class CameraView @JvmOverloads constructor(
         }
         // Handle android:adjustViewBounds
         if (adjustViewBounds) {
+
             if (!isCameraOpened) {
                 listener.reserveRequestLayoutOnOpen()
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
                 return
             }
+
             val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
             val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
+
             if (widthMode == View.MeasureSpec.EXACTLY && heightMode != View.MeasureSpec.EXACTLY) {
                 val ratio = aspectRatio
                 var height = (View.MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
                 if (heightMode == View.MeasureSpec.AT_MOST) {
                     height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
                 }
-                super.onMeasure(widthMeasureSpec,
-                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+                super.onMeasure(
+                        widthMeasureSpec,
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
             } else if (widthMode != View.MeasureSpec.EXACTLY && heightMode == View.MeasureSpec.EXACTLY) {
                 val ratio = aspectRatio
                 var width = (View.MeasureSpec.getSize(heightMeasureSpec) * ratio.toFloat()).toInt()
@@ -338,13 +298,14 @@ class CameraView @JvmOverloads constructor(
         } else {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         }
+
         // Measure the TextureView
         val width = measuredWidth
         val height = measuredHeight
         var ratio = aspectRatio
-        if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) {
-            ratio = ratio.inverse()
-        }
+
+        if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
+
         if (height < width * ratio.y / ratio.x) camera.view.measure(
                 View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(
@@ -459,6 +420,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      * @sample setupCameraSample
      */
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
         if (this.listener.isEnabled) previewFrameListener = listener
         return this
@@ -541,7 +503,23 @@ class CameraView @JvmOverloads constructor(
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
     fun capture() {
         if (cameraMode == Modes.CameraMode.SINGLE_CAPTURE) camera.takePicture()
-        else Timber.e("Cannot capture still picture in camera mode $cameraMode")
+        else listener.onCameraError(Exception("Cannot capture still picture in camera mode $cameraMode"))
+    }
+
+    fun startVideoRecording(outputFile: File) {
+        camera.startVideoRecording(outputFile)
+    }
+
+    fun pauseVideoRecording() {
+        camera.pauseVideoRecording()
+    }
+
+    fun resumeVideoRecording() {
+        camera.resumeVideoRecording()
+    }
+
+    fun stopVideoRecording() {
+        camera.stopVideoRecording()
     }
 
     @Parcelize

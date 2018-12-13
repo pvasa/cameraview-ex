@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.media.Image
 import android.os.Bundle
+import android.os.Environment
 import android.support.annotation.DrawableRes
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
@@ -22,24 +23,51 @@ import com.priyankvasa.android.cameraviewexSample.OnSwipeListener
 import com.priyankvasa.android.cameraviewexSample.R
 import kotlinx.android.synthetic.main.fragment_camera.*
 import timber.log.Timber
+import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 open class CameraFragment : Fragment() {
 
-    private val gestureDetector: GestureDetectorCompat by lazy {
-        GestureDetectorCompat(context, object : OnSwipeListener() {
+    private var isVideoRecording = false
 
-            override fun onSwipe(direction: Direction): Boolean {
-                camera.facing = when (direction) {
-                    Direction.down,
-                    Direction.up ->
-                        if (camera.facing == Modes.Facing.FACING_BACK) Modes.Facing.FACING_FRONT
-                        else Modes.Facing.FACING_BACK
-                    else -> return false
-                }
-                return true
+    private val imageCaptureListener = View.OnClickListener { camera.capture() }
+
+    private val videoOutputDirectory =
+            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/".also { File(it).mkdirs() }
+
+    private val videoCaptureListener = View.OnClickListener {
+        camera.run {
+            if (isVideoRecording) {
+                stopVideoRecording()
+                ivPlayPause.visibility = View.GONE
+                ivPlayPause.isActivated = false
+                ivCaptureButton.isActivated = false
+            } else {
+                startVideoRecording(File(videoOutputDirectory, "1.mp4"))
+                ivPlayPause.visibility = View.VISIBLE
+                ivPlayPause.isActivated = true
+                ivCaptureButton.isActivated = true
             }
-        })
+        }
+        isVideoRecording = !isVideoRecording
+    }
+
+    private val gestureDetector: GestureDetectorCompat by lazy {
+        GestureDetectorCompat(
+                context,
+                object : OnSwipeListener() {
+                    override fun onSwipe(direction: Direction): Boolean {
+                        camera.facing = when (direction) {
+                            Direction.down,
+                            Direction.up ->
+                                if (camera.facing == Modes.Facing.FACING_BACK) Modes.Facing.FACING_FRONT
+                                else Modes.Facing.FACING_BACK
+                            else -> return false
+                        }
+                        return true
+                    }
+                }
+        )
     }
 
     private val options = FirebaseVisionBarcodeDetectorOptions.Builder()
@@ -47,10 +75,6 @@ open class CameraFragment : Fragment() {
             .build()
 
     private val detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options)
-
-    open fun cameraErrorListener(t: Throwable) {
-        Timber.e(t)
-    }
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -62,8 +86,60 @@ open class CameraFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupCamera()
+        setupView()
+    }
 
-        ivCaptureButton.setOnClickListener { camera.capture() }
+    private fun setupCamera() {
+
+        with(camera) {
+
+            val decoding = AtomicBoolean(false)
+
+            addCameraOpenedListener { Timber.i("Camera opened.") }
+
+            val decodeSuccessListener = listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
+                if (barcodes.isEmpty()) {
+                    tvBarcodes.text = "Barcodes"
+                    return@listener
+                }
+                val barcodesStr = "Barcodes\n${barcodes.joinToString(
+                        "\n",
+                        transform = { it.rawValue as? CharSequence ?: "" }
+                )}"
+                Timber.i("Barcodes: $barcodesStr")
+                tvBarcodes.text = barcodesStr
+            }
+
+            setPreviewFrameListener { image: Image ->
+                if (!decoding.get()) {
+                    decoding.set(true)
+                    val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
+                    detector.detectInImage(visionImage)
+                            .addOnCompleteListener { decoding.set(false) }
+                            .addOnSuccessListener(decodeSuccessListener)
+                            .addOnFailureListener { e -> Timber.e(e) }
+                }
+            }
+
+            addPictureTakenListener { imageData: ByteArray ->
+                ivPhoto.visibility = View.VISIBLE
+                Glide.with(this@CameraFragment)
+                        .load(imageData)
+                        .into(ivPhoto)
+            }
+
+            addCameraErrorListener { t -> Timber.e(t) }
+
+            addCameraClosedListener { Timber.i("Camera closed.") }
+
+            setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
+                return@setOnTouchListener true
+            }
+        }
+    }
+
+    private fun setupView() {
 
         ivFlashSwitch.setOnClickListener {
 
@@ -89,71 +165,75 @@ open class CameraFragment : Fragment() {
         }
 
         ivCameraMode.setOnClickListener {
-            tvBarcodes.visibility = View.GONE
             camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+            updateViewState()
         }
 
         ivVideoMode.setOnClickListener {
-            tvBarcodes.visibility = View.GONE
+            camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+            updateViewState()
         }
 
         ivBarcodeScanner.setOnClickListener {
-            tvBarcodes.visibility = View.VISIBLE
             camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
+            updateViewState()
+        }
+
+        ivPlayPause.setOnClickListener {
+            if (isVideoRecording) {
+                camera.pauseVideoRecording()
+                ivPlayPause.isActivated = false
+            } else {
+                camera.resumeVideoRecording()
+                ivPlayPause.isActivated = true
+            }
+            isVideoRecording = !isVideoRecording
         }
 
         ivPhoto.setOnClickListener { it.visibility = View.GONE }
     }
 
-    private fun setupCamera() {
+    private fun updateViewState() {
 
-        with(camera) {
-
-            val decoding = AtomicBoolean(false)
-
-            addCameraOpenedListener { Timber.i("Camera opened.") }
-
-            setPreviewFrameListener { image: Image ->
-                if (!decoding.get()) {
-                    decoding.set(true)
-                    val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
-                    detector.detectInImage(visionImage)
-                            .addOnCompleteListener { decoding.set(false) }
-                            .addOnSuccessListener { barcodes ->
-                                val barcodesStr = "Barcodes\n${barcodes.joinToString(
-                                        "\n",
-                                        transform = { it.rawValue as? CharSequence ?: "" }
-                                )}"
-                                Timber.i("Barcodes: $barcodesStr")
-                                tvBarcodes.text = barcodesStr
-                            }
-                            .addOnFailureListener { e -> Timber.e(e) }
-                }
+        when (camera.cameraMode) {
+            Modes.CameraMode.SINGLE_CAPTURE -> {
+                tvBarcodes.visibility = View.GONE
+                ivCaptureButton.visibility = View.VISIBLE
+                ivPlayPause.visibility = View.GONE
+                context?.let { ivCaptureButton.setImageDrawable(ActivityCompat.getDrawable(it, R.drawable.ic_camera_capture)) }
+                ivCaptureButton.setOnClickListener(imageCaptureListener)
             }
-
-            addPictureTakenListener { imageData: ByteArray ->
-                ivPhoto.visibility = View.VISIBLE
-                Glide.with(this@CameraFragment)
-                        .load(imageData)
-                        .into(ivPhoto)
+            Modes.CameraMode.VIDEO_CAPTURE -> {
+                tvBarcodes.visibility = View.GONE
+                ivCaptureButton.visibility = View.VISIBLE
+                context?.let { ivCaptureButton.setImageDrawable(ActivityCompat.getDrawable(it, R.drawable.ic_camera_video_capture)) }
+                ivCaptureButton.setOnClickListener(videoCaptureListener)
             }
-
-            addCameraClosedListener { Timber.i("Camera closed.") }
-
-            setOnTouchListener { _, event ->
-                gestureDetector.onTouchEvent(event)
-                return@setOnTouchListener true
+            Modes.CameraMode.CONTINUOUS_FRAME -> {
+                tvBarcodes.visibility = View.VISIBLE
+                ivCaptureButton.visibility = View.GONE
+                ivPlayPause.visibility = View.GONE
+                ivCaptureButton.setOnClickListener(null)
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
+        updateViewState()
         camera.run {
             if (!isCameraOpened
                     && ActivityCompat.checkSelfPermission(
                             requireContext(),
                             Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(
+                            requireContext(),
+                            Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(
+                            requireContext(),
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
                     ) == PackageManager.PERMISSION_GRANTED) {
                 start()
             }

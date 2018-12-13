@@ -19,8 +19,9 @@ package com.priyankvasa.android.cameraviewex
 import android.annotation.TargetApi
 import android.content.Context
 import android.hardware.camera2.params.StreamConfigurationMap
+import android.os.Build
 
-@TargetApi(23)
+@TargetApi(Build.VERSION_CODES.M)
 internal class Camera2Api23(
         listener: CameraInterface.Listener,
         preview: PreviewImpl,

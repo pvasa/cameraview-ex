@@ -31,6 +31,8 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ImageReader
+import android.media.MediaRecorder
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.renderscript.RenderScript
@@ -38,9 +40,9 @@ import android.util.SparseIntArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import timber.log.Timber
+import java.io.File
 
-@TargetApi(21)
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal open class Camera2(
         final override val listener: CameraInterface.Listener,
         final override val preview: PreviewImpl,
@@ -50,7 +52,7 @@ internal open class Camera2(
     init {
         preview.setCallback(object : PreviewImpl.Callback {
             override fun onSurfaceChanged() {
-                startCaptureSession()
+                startPreviewCaptureSession()
             }
         })
     }
@@ -95,7 +97,7 @@ internal open class Camera2(
         override fun onOpened(camera: CameraDevice) {
             this@Camera2.camera = camera
             listener.onCameraOpened()
-            startCaptureSession()
+            startPreviewCaptureSession()
         }
 
         override fun onClosed(camera: CameraDevice) {
@@ -107,12 +109,12 @@ internal open class Camera2(
         }
 
         override fun onError(camera: CameraDevice, error: Int) {
-            Timber.e("onError: ${camera.id} ($error)")
+            listener.onCameraError(Exception("Error opening camera with id ${camera.id} (error: $error)"))
             this@Camera2.camera = null
         }
     }
 
-    private val sessionCallback = object : CameraCaptureSession.StateCallback() {
+    private val previewSessionStateCallback = object : CameraCaptureSession.StateCallback() {
 
         override fun onConfigured(session: CameraCaptureSession) {
             if (camera == null) return
@@ -126,7 +128,7 @@ internal open class Camera2(
                         backgroundHandler
                 )
             } catch (e: Exception) {
-                listener.onCameraError(e, "Failed to start camera preview.")
+                listener.onCameraError(Exception("Failed to start camera preview.", e))
             }
         }
 
@@ -136,6 +138,29 @@ internal open class Camera2(
 
         override fun onClosed(session: CameraCaptureSession) {
             if (captureSession != null && captureSession == session) captureSession = null
+        }
+    }
+
+    private val videoSessionStateCallback = object : CameraCaptureSession.StateCallback() {
+
+        override fun onConfigured(session: CameraCaptureSession) {
+
+            try {
+                captureSession?.close()
+                captureSession = session
+                captureSession?.setRepeatingRequest(videoRequestBuilder.build(), null, backgroundHandler)
+            } catch (e: Exception) {
+                listener.onCameraError(Exception("Failed to start camera preview.", e))
+            }
+
+            GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
+                    .invokeOnCompletion { t ->
+                        if (t != null) listener.onCameraError(Exception("Camera device is already in use", t))
+                    }
+        }
+
+        override fun onConfigureFailed(session: CameraCaptureSession) {
+            listener.onCameraError(genericCameraAccessException("Failed to configure video capture session."))
         }
     }
 
@@ -155,7 +180,7 @@ internal open class Camera2(
                         backgroundHandler
                 )
             } catch (e: Exception) {
-                listener.onCameraError(e, "Failed to run precapture sequence.")
+                listener.onCameraError(Exception("Failed to run precapture sequence.", e))
             } finally {
                 previewRequestBuilder?.set(
                         CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
@@ -175,20 +200,22 @@ internal open class Camera2(
 
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
 
-        GlobalScope.launch(Dispatchers.Main) {
+        GlobalScope.launch {
 
             val image = reader.runCatching { acquireLatestImage() }
                     .getOrElse { t ->
-                        listener.onCameraError(t, "Failed to capture image.")
+                        listener.onCameraError(Exception("Failed to capture image.", t))
                         return@launch
                     }
 
             image.runCatching {
                 if (format == internalOutputFormat && planes.isNotEmpty()) {
-                    decode(outputFormat, rs).await().also { listener.onPictureTaken(it) }
-                    close()
+                    decode(outputFormat, rs).await()
+                            .also { GlobalScope.launch(Dispatchers.Main) { listener.onPictureTaken(it) } }
                 }
-            }.onFailure { t -> listener.onCameraError(t, "Failed to capture image.") }
+            }.onFailure { t -> listener.onCameraError(Exception("Failed to capture image.", t)) }
+
+            image.close()
         }
     }
 
@@ -202,11 +229,17 @@ internal open class Camera2(
 
     private var previewRequestBuilder: CaptureRequest.Builder? = null
 
+    private lateinit var videoRequestBuilder: CaptureRequest.Builder
+
     private var imageReader: ImageReader? = null
+
+    private var mediaRecorder: MediaRecorder? = null
 
     private val previewSizes = SizeMap()
 
     private val pictureSizes = SizeMap()
+
+    private val videoSizes = SizeMap()
 
     override var cameraMode: Int = Modes.DEFAULT_CAMERA_MODE
         set(value) {
@@ -217,21 +250,6 @@ internal open class Camera2(
                 start()
             }
         }
-
-    /*val mediaRecorder by lazy {
-        MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
-            setVideoSource(MediaRecorder.VideoSource.SURFACE)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setOutputFile(nextVideoAbsolutePath)
-            setVideoEncodingBitRate(10000000)
-            setVideoFrameRate(60)
-            setVideoSize(preview.width, preview.height)
-            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            prepare()
-        }
-    }*/
 
     override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
 
@@ -244,6 +262,8 @@ internal open class Camera2(
         }
 
     override val isCameraOpened: Boolean get() = camera != null
+
+    override var isVideoRecording: Boolean = false
 
     override var facing: Int = Modes.DEFAULT_FACING
         set(value) {
@@ -282,7 +302,7 @@ internal open class Camera2(
             } catch (e: Exception) {
                 field = !field // Revert
                 updateAutoFocus()
-                listener.onCameraError(e, "Failed to set autoFocus to $value. Value reverted to ${!value}.")
+                listener.onCameraError(Exception("Failed to set autoFocus to $value. Value reverted to ${!value}.", e))
             }
         }
 
@@ -300,7 +320,7 @@ internal open class Camera2(
             } catch (e: Exception) {
                 field = !field // Revert
                 updateTouchOnFocus()
-                listener.onCameraError(e, "Failed to set touchToFocus to $value. Value reverted to ${!value}.")
+                listener.onCameraError(Exception("Failed to set touchToFocus to $value. Value reverted to ${!value}.", e))
             }
         }
 
@@ -319,7 +339,7 @@ internal open class Camera2(
             } catch (e: Exception) {
                 field = saved // Revert
                 updateAutoWhiteBalance()
-                listener.onCameraError(e, "Failed to set awb to $value. Value reverted to $saved.")
+                listener.onCameraError(Exception("Failed to set awb to $value. Value reverted to $saved.", e))
             }
         }
 
@@ -338,7 +358,7 @@ internal open class Camera2(
             } catch (e: Exception) {
                 field = saved // Revert
                 updateFlash()
-                listener.onCameraError(e, "Failed to set flash to $value. Value reverted to $saved.")
+                listener.onCameraError(Exception("Failed to set flash to $value. Value reverted to $saved.", e))
             }
         }
 
@@ -356,7 +376,7 @@ internal open class Camera2(
             } catch (e: Exception) {
                 field = !field // Revert
                 updateOpticalStabilization()
-                listener.onCameraError(e, "Failed to set opticalStabilization to $value. Value reverted to ${!value}.")
+                listener.onCameraError(Exception("Failed to set opticalStabilization to $value. Value reverted to ${!value}.", e))
             }
         }
 
@@ -375,7 +395,7 @@ internal open class Camera2(
             } catch (e: Exception) {
                 field = saved // Revert
                 updateFlash()
-                listener.onCameraError(e, "Failed to set noiseReduction to $value. Value reverted to $saved.")
+                listener.onCameraError(Exception("Failed to set noiseReduction to $value. Value reverted to $saved.", e))
             }
         }
 
@@ -412,7 +432,7 @@ internal open class Camera2(
             backgroundThread = null
             backgroundHandler = null
         } catch (e: InterruptedException) {
-            listener.onCameraError(e, "Background thread was interrupted.")
+            listener.onCameraError(Exception("Background thread was interrupted.", e))
         }
     }
 
@@ -421,7 +441,7 @@ internal open class Camera2(
         if (backgroundThread == null && backgroundHandler == null) startBackgroundThread()
         collectCameraInfo()
         updateModes()
-        prepareImageReaders()
+        prepareImageReader()
         startOpeningCamera()
         return true
     }
@@ -433,6 +453,8 @@ internal open class Camera2(
         camera = null
         imageReader?.close()
         imageReader = null
+        mediaRecorder?.release()
+        mediaRecorder = null
         stopBackgroundThread()
     }
 
@@ -441,10 +463,10 @@ internal open class Camera2(
         if (ratio == aspectRatio || !ratio.isValid()) return false
 
         aspectRatio = ratio
-        prepareImageReaders()
+        prepareImageReader()
         captureSession?.close()
         captureSession = null
-        startCaptureSession()
+        startPreviewCaptureSession()
         return true
     }
 
@@ -465,7 +487,7 @@ internal open class Camera2(
         }
 
         return isRatioValid.also {
-            if (!it) listener.onCameraError(message = "Aspect ratio $this is not supported by this device. Valid ratios are $sbRatios.")
+            if (!it) listener.onCameraError(IllegalArgumentException("Aspect ratio $this is not supported by this device. Valid ratios are $sbRatios."))
         }
     }
 
@@ -524,7 +546,7 @@ internal open class Camera2(
             facing = Modes.Facing.FACING_BACK
             return true
         } catch (e: Exception) {
-            listener.onCameraError(e, "Failed to get a list of camera devices")
+            listener.onCameraError(Exception("Failed to get a list of camera devices", e))
             return false
         }
     }
@@ -560,13 +582,17 @@ internal open class Camera2(
         }
 
         supportedAspectRatios.run { if (!contains(aspectRatio)) aspectRatio = iterator().next() }
+
+        videoSizes.clear()
+
+        map.getOutputSizes(MediaRecorder::class.java).forEach { videoSizes.add(Size(it.width, it.height)) }
     }
 
     protected open fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         map.getOutputSizes(internalOutputFormat).forEach { pictureSizes.add(Size(it.width, it.height)) }
     }
 
-    private fun prepareImageReaders() {
+    private fun prepareImageReader() {
 
         imageReader?.close()
 
@@ -594,8 +620,6 @@ internal open class Camera2(
                 ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
             }
 
-//            CameraMode.VIDEO -> null
-
             else -> null
         }
     }
@@ -610,11 +634,11 @@ internal open class Camera2(
         try {
             cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler)
         } catch (e: CameraAccessException) {
-            listener.onCameraError(e, "Failed to open camera with id $cameraId")
+            listener.onCameraError(Exception("Failed to open camera with id $cameraId", e))
         } catch (e: IllegalArgumentException) {
-            listener.onCameraError(e, "Failed to open camera with id $cameraId")
+            listener.onCameraError(Exception("Failed to open camera with id $cameraId", e))
         } catch (e: SecurityException) {
-            listener.onCameraError(e, "Camera permissions not granted")
+            listener.onCameraError(Exception("Camera permissions not granted", e))
         }
     }
 
@@ -623,42 +647,44 @@ internal open class Camera2(
      *
      * This rewrites [.previewRequestBuilder].
      *
-     * The result will be continuously processed in [.sessionCallback].
+     * The result will be continuously processed in [.previewSessionStateCallback].
      */
-    private fun startCaptureSession() {
-
-        if (!isCameraOpened
-                || !preview.isReady
-                || imageReader == null) return
-
-        chooseOptimalSize().run { preview.setBufferSize(width, height) }
-
-        val surface = preview.surface
-                ?: throw genericCameraAccessException("Preview surface not available")
-
-        val readerSurface = imageReader?.surface
-                ?: throw genericCameraAccessException("Image reader surface not available")
+    private fun startPreviewCaptureSession() {
 
         try {
+            if (!isCameraOpened || !preview.isReady) throw genericCameraAccessException("Camera not started or already stopped")
+
+            chooseOptimalPreviewSize().run { preview.setBufferSize(width, height) }
+
+            val previewSurface = preview.surface
+                    ?: throw genericCameraAccessException("Preview surface not available")
+
+            val surfaces = mutableListOf(previewSurface)
+                    .apply {
+                        if (cameraMode != Modes.CameraMode.VIDEO_CAPTURE) {
+                            val readerSurface = imageReader?.surface
+                                    ?: throw genericCameraAccessException("Image reader surface not available")
+                            add(readerSurface)
+                        }
+                    }
+
             val template = if (zsl) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG else CameraDevice.TEMPLATE_PREVIEW
 
             previewRequestBuilder = camera?.createCaptureRequest(template)
                     ?.apply {
-                        addTarget(surface)
-                        readerSurface
-                                .takeIf { cameraMode == Modes.CameraMode.CONTINUOUS_FRAME }
-                                ?.let { addTarget(it) }
+                        when (cameraMode) {
+                            Modes.CameraMode.CONTINUOUS_FRAME -> surfaces.forEach(::addTarget)
+                            else -> addTarget(previewSurface)
+                        }
                     }
                     ?: throw genericCameraAccessException("Camera not started or already stopped")
 
-            camera?.createCaptureSession(
-                    arrayListOf(surface, readerSurface),
-                    sessionCallback,
-                    backgroundHandler
-            )
+            updateModes()
+
+            camera?.createCaptureSession(surfaces, previewSessionStateCallback, backgroundHandler)
 
         } catch (e: Exception) {
-            listener.onCameraError(e, "Failed to start camera session")
+            listener.onCameraError(Exception("Failed to start camera session", e))
         }
     }
 
@@ -667,7 +693,7 @@ internal open class Camera2(
      *
      * @return The picked size for camera preview.
      */
-    private fun chooseOptimalSize(): Size {
+    private fun chooseOptimalPreviewSize(): Size {
         val surfaceLonger: Int
         val surfaceShorter: Int
         val surfaceWidth = preview.width
@@ -680,6 +706,33 @@ internal open class Camera2(
             surfaceShorter = surfaceHeight
         }
         val candidates = previewSizes.sizes(aspectRatio)
+
+        // Pick the smallest of those big enough
+        candidates.firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
+                ?.also { return it }
+
+        // If no size is big enough, pick the largest one.
+        return candidates.last()
+    }
+
+    /**
+     * Chooses the optimal video size based on [.videoSizes] and the surface size.
+     *
+     * @return The picked size for video capture.
+     */
+    private fun chooseOptimalVideoSize(): Size {
+        val surfaceLonger: Int
+        val surfaceShorter: Int
+        val surfaceWidth = preview.width
+        val surfaceHeight = preview.height
+        if (surfaceWidth < surfaceHeight) {
+            surfaceLonger = surfaceHeight
+            surfaceShorter = surfaceWidth
+        } else {
+            surfaceLonger = surfaceWidth
+            surfaceShorter = surfaceHeight
+        }
+        val candidates = videoSizes.sizes(aspectRatio)
 
         // Pick the smallest of those big enough
         candidates.firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
@@ -817,15 +870,25 @@ internal open class Camera2(
         try {
             captureCallback.setState(PictureCaptureCallback.STATE_LOCKING)
             captureSession?.capture(
-                    previewRequestBuilder?.build()
-                            ?: throw genericCameraAccessException("Preview request builder not available"),
+                    previewRequestBuilder?.build() ?: return,
                     captureCallback,
                     backgroundHandler
             )
         } catch (e: Exception) {
-            listener.onCameraError(e, "Failed to lock focus.")
+            listener.onCameraError(Exception("Failed to lock focus.", e))
         }
     }
+
+    // Calculate output orientation based on device sensor orientation.
+    private val outputOrientation: Int
+        get() {
+            val sensorOrientation = cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION)
+                    ?: throw genericCameraAccessException("Camera characteristics not available")
+
+            return (sensorOrientation
+                    + (displayOrientation * if (facing == Modes.Facing.FACING_FRONT) 1 else -1)
+                    + 360) % 360
+        }
 
     /**
      * Captures a still picture.
@@ -850,16 +913,8 @@ internal open class Camera2(
                 set(CaptureRequest.CONTROL_AE_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AE_MODE))
                 set(CaptureRequest.FLASH_MODE, previewRequestBuilder?.get(CaptureRequest.FLASH_MODE))
 
-                if (imageReader?.imageFormat == ImageFormat.JPEG) { // Calculate JPEG orientation.
-
-                    val sensorOrientation = cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION)
-                            ?: throw genericCameraAccessException("Camera characteristics not available")
-
-                    val jpegOrientation = (sensorOrientation
-                            + (displayOrientation * if (facing == Modes.Facing.FACING_FRONT) 1 else -1)
-                            + 360) % 360
-
-                    set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation)
+                if (imageReader?.imageFormat == ImageFormat.JPEG) {
+                    set(CaptureRequest.JPEG_ORIENTATION, outputOrientation)
                 }
             }
 
@@ -889,8 +944,88 @@ internal open class Camera2(
                     backgroundHandler
             )
         } catch (e: Exception) {
-            listener.onCameraError(e, "Cannot capture a still picture.")
+            listener.onCameraError(Exception("Cannot capture a still picture.", e))
         }
+    }
+
+    override fun startVideoRecording(outputFile: File) {
+
+        val videoSize = chooseOptimalVideoSize()
+
+        mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
+            kotlin.runCatching { setOrientationHint(outputOrientation) }
+                    .onFailure { t ->
+                        listener.onCameraError(t as Exception)
+                        return
+                    }
+            setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
+            setVideoSource(MediaRecorder.VideoSource.SURFACE)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setOutputFile(outputFile.absolutePath)
+            setVideoEncodingBitRate(10000000)
+            setVideoFrameRate(60)
+            setVideoSize(videoSize.width, videoSize.height)
+            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            kotlin.runCatching { prepare() }.onFailure { t ->
+                listener.onCameraError(t as Exception)
+                return
+            }
+        }
+
+        if (!isCameraOpened || !preview.isReady) {
+            listener.onCameraError(genericCameraAccessException("Camera not started or already stopped"))
+            return
+        }
+
+        chooseOptimalPreviewSize().run { preview.setBufferSize(width, height) }
+
+        val previewSurface = preview.surface
+                ?: run {
+                    listener.onCameraError(IllegalStateException("Preview surface not available"))
+                    return
+                }
+
+        val recorderSurface = try {
+            mediaRecorder?.surface
+        } catch (e: IllegalStateException) {
+            listener.onCameraError(Exception("Cannot retrieve recorder surface", e))
+            return
+        }
+
+        val surfaces = listOf(previewSurface, recorderSurface)
+
+        videoRequestBuilder = camera?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
+                ?.apply { surfaces.forEach(::addTarget) }
+                ?: run {
+            listener.onCameraError(genericCameraAccessException("Camera not initialized or already stopped"))
+            return
+        }
+
+        camera?.createCaptureSession(surfaces, videoSessionStateCallback, backgroundHandler)
+    }
+
+    @TargetApi(Build.VERSION_CODES.N)
+    override fun pauseVideoRecording() {
+        runCatching { mediaRecorder?.pause() }
+                .onFailure { t -> listener.onCameraError(t as Exception) }
+    }
+
+    @TargetApi(Build.VERSION_CODES.N)
+    override fun resumeVideoRecording() {
+        runCatching { mediaRecorder?.resume() }
+                .onFailure { t -> listener.onCameraError(t as Exception) }
+    }
+
+    override fun stopVideoRecording(): Boolean = runCatching {
+        mediaRecorder?.stop()
+        mediaRecorder?.reset()
+        captureSession?.close()
+        startPreviewCaptureSession()
+        true
+    }.getOrElse { t ->
+        listener.onCameraError(t as Exception)
+        false
     }
 
     /**
@@ -901,8 +1036,7 @@ internal open class Camera2(
         previewRequestBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
         try {
             captureSession?.capture(
-                    previewRequestBuilder?.build()
-                            ?: throw genericCameraAccessException("Preview request builder not available"),
+                    previewRequestBuilder?.build() ?: return,
                     captureCallback,
                     backgroundHandler
             )
@@ -910,17 +1044,17 @@ internal open class Camera2(
             previewRequestBuilder?.set(CaptureRequest.CONTROL_AF_TRIGGER,
                     CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
             captureSession?.setRepeatingRequest(
-                    previewRequestBuilder?.build()
-                            ?: throw genericCameraAccessException("Preview request builder not available"),
+                    previewRequestBuilder?.build() ?: return,
                     captureCallback,
                     backgroundHandler
             )
             captureCallback.setState(PictureCaptureCallback.STATE_PREVIEW)
         } catch (e: Exception) {
-            listener.onCameraError(e, "Failed to restart camera preview.")
+            listener.onCameraError(Exception("Failed to restart camera preview.", e))
         }
     }
 
-    private fun genericCameraAccessException(message: String) =
+    @Suppress("NOTHING_TO_INLINE") // Needs to be inlined to get correct exception origin
+    private inline fun genericCameraAccessException(message: String) =
             CameraAccessException(CameraAccessException.CAMERA_ERROR, message)
 }

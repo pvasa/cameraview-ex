@@ -27,6 +27,7 @@ import android.hardware.Camera
 import android.os.Build
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import java.io.File
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -103,6 +104,8 @@ internal class Camera1(
         }
 
     override val isCameraOpened: Boolean get() = camera != null
+
+    override val isVideoRecording: Boolean get() = false
 
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
@@ -215,7 +218,7 @@ internal class Camera1(
     }
 
     override fun stop() {
-        runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it) }
+        runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it as Exception) }
         showingPreview = false
         releaseCamera()
     }
@@ -286,6 +289,17 @@ internal class Camera1(
             })
         }
     }
+
+    override fun startVideoRecording(outputFile: File) {
+    }
+
+    override fun pauseVideoRecording() {
+    }
+
+    override fun resumeVideoRecording() {
+    }
+
+    override fun stopVideoRecording(): Boolean = false
 
     /**
      * This rewrites [.cameraId] and [.cameraInfo].

@@ -21,7 +21,6 @@ import android.media.Image
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
-import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -35,7 +34,7 @@ internal fun setupCameraSample(context: Context) {
 
         val processing = AtomicBoolean(false)
 
-        addCameraOpenedListener { Timber.i("Camera opened.") }
+        addCameraOpenedListener { /* Camera opened. */ }
 
         setPreviewFrameListener { image: Image ->
 
@@ -52,8 +51,8 @@ internal fun setupCameraSample(context: Context) {
             }
         }
 
-        addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken successfully.") }
+        addPictureTakenListener { imageData: ByteArray -> /* Picture taken successfully. */ }
 
-        addCameraClosedListener { Timber.i("Camera closed.") }
+        addCameraClosedListener { /* Camera closed. */ }
     }
 }

@@ -21,13 +21,14 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
+import android.os.Build
 import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.texture_view.view.*
 
-@TargetApi(14)
+@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 internal class TextureViewPreview(context: Context, parent: ViewGroup) : PreviewImpl() {
 
     private val textureView: TextureView =
@@ -70,7 +71,7 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
     }
 
     // This method is called only from Camera2.
-    @TargetApi(15)
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
     override fun setBufferSize(width: Int, height: Int) {
         textureView.surfaceTexture.setDefaultBufferSize(width, height)
     }
