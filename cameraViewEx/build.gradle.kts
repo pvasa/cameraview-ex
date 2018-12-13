@@ -84,6 +84,7 @@ android {
             "src/main/api14",
             "src/main/api21",
             "src/main/api23",
+            "src/main/api24",
             "src/main/sample"
     )
 

@@ -19,6 +19,7 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
+import android.os.Build
 import android.support.annotation.IntDef
 
 object Modes {
@@ -26,20 +27,20 @@ object Modes {
     const val LANDSCAPE_90 = 90
     const val LANDSCAPE_270 = 270
 
-    @IntDef(CameraMode.SINGLE_CAPTURE
-            /*, CameraMode.BURST_CAPTURE*/,
-            CameraMode.CONTINUOUS_FRAME
-            /*, CameraMode.VIDEO*/)
+    @IntDef(CameraMode.SINGLE_CAPTURE,
+            CameraMode.BURST_CAPTURE,
+            CameraMode.CONTINUOUS_FRAME,
+            CameraMode.VIDEO_CAPTURE)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class CameraMode {
         companion object {
             /** Output format is according to [CameraView.outputFormat] */
             const val SINGLE_CAPTURE = 0
-            //const val BURST_CAPTURE = 1
+            internal const val BURST_CAPTURE = 1
             /** Output format is always [android.graphics.ImageFormat.YUV_420_888] */
             const val CONTINUOUS_FRAME = 2
-            //const val VIDEO = 3
+            const val VIDEO_CAPTURE = 3
         }
     }
 
@@ -97,9 +98,9 @@ object Modes {
             const val NOISE_REDUCTION_OFF = 0
             const val NOISE_REDUCTION_FAST = 1
             const val NOISE_REDUCTION_HIGH_QUALITY = 2
-            @TargetApi(23)
+            @TargetApi(Build.VERSION_CODES.M)
             const val NOISE_REDUCTION_MINIMAL = 3
-            @TargetApi(23)
+            @TargetApi(Build.VERSION_CODES.M)
             const val NOISE_REDUCTION_ZERO_SHUTTER_LAG = 4
         }
     }

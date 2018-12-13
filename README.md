@@ -5,7 +5,7 @@
 
 # CameraViewEx
 
-_This is an extended version of [Google's cameraview library](https://github.com/google/cameraview)_
+_This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) which provides more features over original implementation._
 
 CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
 
@@ -23,7 +23,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.3.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.4.0"
 }
 ```
 
@@ -56,24 +56,14 @@ dependencies {
     style="@style/Widget.CameraView" />
 ```
 
-#### In Fragment
+#### Setup camera
 ```kotlin
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     
-    camera.addCameraOpenedListener { Timber.i("Camera opened.") }
-        .addCameraErrorListener { t: Throwable -> Timber.e(t, "Camera error!") }
-        .addCameraClosedListener { Timber.i("Camera closed.") }
-        
-    // For camera mode Modes.CameraMode.SINGLE_CAPTURE
-    // Output format is whatever set for [app:outputFormat] parameter
-    camera.addPictureTakenListener { imageData: ByteArray -> Timber.i("Picture taken.") }
-    
-    /* --- OR --- */
-    
-    // For camera mode Modes.CameraMode.CONTINUOUS_FRAME
-    // Output format is always ImageFormat.YUV_420_888
-    camera.setPreviewFrameListener { image: Image -> Timber.i("Preview frame available.") }
+    camera.addCameraOpenedListener { /* Camera opened. */ }
+        .addCameraErrorListener { t: Throwable -> /* Camera error! */ }
+        .addCameraClosedListener { /* Camera closed. */ }
 }
 
 override fun onResume() {
@@ -92,13 +82,40 @@ override fun onDestroyView() {
 }
 ```
 
+#### Capture still picture
+```kotlin
+camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+// Output format is whatever set for [app:outputFormat] parameter
+camera.addPictureTakenListener { imageData: ByteArray -> /* Picture taken. */ }
+camera.capture()
+```
+
+#### Process preview frames
+```kotlin
+camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
+// Output format is always ImageFormat.YUV_420_888
+camera.setPreviewFrameListener { image: Image -> /* Preview frame available. */ }
+```
+
+#### Record video
+```kotlin
+camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+camera.startVideoRecording(outputFile)
+// When done recording
+camera.stopVideoRecording()
+
+// On APIs 24 and above video recording can be paused and resumed as well
+camera.pauseVideoRecording()
+camera.resumeVideoRecording()
+```
+
 You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module or [sampleAppJava](https://github.com/pvasa/cameraview-ex/tree/development/sampleAppJava) for usage in Java.
 
 ## Features
 
-| Attribute                | Possible Values <br/> (bold value is the default one)  |
+| XML Attribute            | Possible Values <br/> (bold value is the default one)  |
 |--------------------------|--------------------------------------------------------|
-| app:cameraMode           | **single_capture**, continuous_frame                   |
+| app:cameraMode           | **single_capture**, continuous_frame, video_capture    |
 | app:facing               | **back**, front                                        |
 | app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_ |
 | app:autoFocus            | **false**, true                                        |

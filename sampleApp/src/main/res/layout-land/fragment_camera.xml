@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    tools:context="com.priyankvasa.android.cameraviewex.camera.CameraActivity"
+    tools:context=".camera.CameraActivity"
     tools:ignore="ContentDescription">
 
     <ImageView
@@ -82,8 +82,21 @@
         android:text="Barcodes"
         android:textColor="@color/white"
         android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivPlayPause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="32dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_play_pause"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/ivCaptureButton"
+        app:layout_constraintStart_toStartOf="@id/ivCaptureButton"
         tools:visibility="visible" />
 
     <ImageView

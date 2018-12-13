@@ -20,7 +20,6 @@ import android.support.v4.util.ArrayMap
 import java.util.SortedSet
 import java.util.TreeSet
 
-
 /**
  * A collection class that automatically groups [Size]s by their [AspectRatio]s.
  */

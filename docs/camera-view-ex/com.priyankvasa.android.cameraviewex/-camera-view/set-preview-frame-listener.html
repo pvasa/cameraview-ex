@@ -19,7 +19,7 @@ it is not memory efficient, the device will run out of memory very quickly and f
 
     val processing = AtomicBoolean(false)
 
-    addCameraOpenedListener { Timber.i("Camera opened.") }
+    addCameraOpenedListener { /* Camera opened. */ }
 
     setPreviewFrameListener { image: Image -&gt;
 
@@ -36,14 +36,14 @@ it is not memory efficient, the device will run out of memory very quickly and f
         }
     }
 
-    addPictureTakenListener { imageData: ByteArray -&gt; Timber.i("Picture taken successfully.") }
+    addPictureTakenListener { imageData: ByteArray -&gt; /* Picture taken successfully. */ }
 
-    addCameraClosedListener { Timber.i("Camera closed.") }
+    addCameraClosedListener { /* Camera closed. */ }
 }</code></pre>
 <h3>Parameters</h3>
 <p><a name="listener"></a>
 <code>listener</code> - lambda with image of type <a href="#">Image</a> as its argument which is the preview frame.
-    It is always of type <a href="#">android.graphics.ImageFormat.YUV_420_888</a></p>
+It is always of type <a href="#">android.graphics.ImageFormat.YUV_420_888</a></p>
 <p><strong>Return</strong><br/>
 instance of <a href="index.html">CameraView</a> it is called on</p>
 </BODY>
