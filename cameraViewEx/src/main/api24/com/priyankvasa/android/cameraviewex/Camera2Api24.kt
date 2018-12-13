@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright 2018 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,24 +18,28 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
 import android.content.Context
-import android.hardware.camera2.params.StreamConfigurationMap
 import android.os.Build
 
-@TargetApi(Build.VERSION_CODES.M)
-internal open class Camera2Api23(
+@TargetApi(Build.VERSION_CODES.N)
+internal open class Camera2Api24(
         listener: CameraInterface.Listener,
         preview: PreviewImpl,
         context: Context
-) : Camera2(listener, preview, context) {
+) : Camera2Api23(listener, preview, context) {
 
-    override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
-        // Try to get hi-res output sizes
-        val outputSizes = map.getHighResolutionOutputSizes(internalOutputFormat)
-        if (outputSizes != null) {
-            for (size in map.getHighResolutionOutputSizes(internalOutputFormat)) {
-                sizes.add(Size(size.width, size.height))
-            }
-        }
-        if (sizes.isEmpty) super.collectPictureSizes(sizes, map)
+    override fun pauseVideoRecording(): Boolean = runCatching {
+        mediaRecorder?.pause()
+        true
+    }.getOrElse { t ->
+        listener.onCameraError(t as Exception)
+        false
+    }
+
+    override fun resumeVideoRecording(): Boolean = runCatching {
+        mediaRecorder?.resume()
+        true
+    }.getOrElse { t ->
+        listener.onCameraError(t as Exception)
+        false
     }
 }

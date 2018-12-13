@@ -6,7 +6,9 @@
 
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
+    <color name="dark_red">#C80000</color>
     <color name="lighter_gray">#DDDDDD</color>
+    <color name="darker_gray">#383838</color>
 
     <color name="black_transparent_40_percent">#40000000</color>
 

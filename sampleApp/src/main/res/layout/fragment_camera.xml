@@ -62,7 +62,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="true"
         app:awb="auto"
-        app:cameraMode="single_capture"
+        app:cameraMode="video_capture"
         app:facing="back"
         app:flash="auto"
         app:layout_constraintEnd_toEndOf="parent"
@@ -88,6 +88,19 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivPlayPause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="32dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_play_pause"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/ivCaptureButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/ivCaptureButton"
         tools:visibility="visible" />
 
     <ImageView

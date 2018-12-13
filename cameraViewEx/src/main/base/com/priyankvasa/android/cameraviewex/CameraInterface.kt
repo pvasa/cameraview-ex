@@ -22,6 +22,7 @@ import android.annotation.TargetApi
 import android.media.ImageReader
 import android.os.Build
 import android.view.View
+import java.io.File
 
 internal interface CameraInterface {
 
@@ -79,11 +80,21 @@ internal interface CameraInterface {
 
     fun takePicture()
 
+    fun startVideoRecording(outputFile: File)
+
+    @TargetApi(Build.VERSION_CODES.N)
+    fun pauseVideoRecording(): Boolean
+
+    @TargetApi(Build.VERSION_CODES.N)
+    fun resumeVideoRecording(): Boolean
+
+    fun stopVideoRecording(): Boolean
+
     interface Listener {
         fun onCameraOpened()
         fun onCameraClosed()
         fun onPictureTaken(imageData: ByteArray)
-        fun onCameraError(cause: Throwable? = null, message: String = "")
+        fun onCameraError(e: Exception)
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
         fun onPreviewFrame(reader: ImageReader)
