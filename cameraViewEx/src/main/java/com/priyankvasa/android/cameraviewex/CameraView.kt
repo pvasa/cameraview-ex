@@ -114,7 +114,8 @@ class CameraView @JvmOverloads constructor(
     private var camera: CameraInterface = when {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview)
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, context)
-        else -> Camera2Api23(listener, preview, context)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, context)
+        else -> Camera2Api24(listener, preview, context)
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
@@ -506,21 +507,34 @@ class CameraView @JvmOverloads constructor(
         else listener.onCameraError(Exception("Cannot capture still picture in camera mode $cameraMode"))
     }
 
+    /**
+     * Start capturing video.
+     * @param outputFile where video will be saved
+     */
     fun startVideoRecording(outputFile: File) {
-        camera.startVideoRecording(outputFile)
+        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) camera.startVideoRecording(outputFile)
+        else listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
     }
 
-    fun pauseVideoRecording() {
-        camera.pauseVideoRecording()
-    }
+    /**
+     * Pause video recording
+     * @return true if the video was paused false otherwise
+     */
+    @TargetApi(Build.VERSION_CODES.N)
+    fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
 
-    fun resumeVideoRecording() {
-        camera.resumeVideoRecording()
-    }
+    /**
+     * Resume video recording
+     * @return true if the video was resumed false otherwise
+     */
+    @TargetApi(Build.VERSION_CODES.N)
+    fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
 
-    fun stopVideoRecording() {
-        camera.stopVideoRecording()
-    }
+    /**
+     * Stop video recording
+     * @return true if video was stopped and saved to given outputFile, false otherwise
+     */
+    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
     @Parcelize
     data class SavedState(

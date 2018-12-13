@@ -233,7 +233,7 @@ internal open class Camera2(
 
     private var imageReader: ImageReader? = null
 
-    private var mediaRecorder: MediaRecorder? = null
+    protected var mediaRecorder: MediaRecorder? = null
 
     private val previewSizes = SizeMap()
 
@@ -253,7 +253,7 @@ internal open class Camera2(
 
     override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
 
-    internal val internalOutputFormat: Int get() = internalOutputFormats[outputFormat]
+    protected val internalOutputFormat: Int get() = internalOutputFormats[outputFormat]
 
     override var displayOrientation: Int = 0
         set(value) {
@@ -654,7 +654,7 @@ internal open class Camera2(
         try {
             if (!isCameraOpened || !preview.isReady) throw genericCameraAccessException("Camera not started or already stopped")
 
-            chooseOptimalPreviewSize().run { preview.setBufferSize(width, height) }
+            chooseOptimalSize(Template.Preview).run { preview.setBufferSize(width, height) }
 
             val previewSurface = preview.surface
                     ?: throw genericCameraAccessException("Preview surface not available")
@@ -688,43 +688,25 @@ internal open class Camera2(
         }
     }
 
-    /**
-     * Chooses the optimal preview size based on [.previewSizes] and the surface size.
-     *
-     * @return The picked size for camera preview.
-     */
-    private fun chooseOptimalPreviewSize(): Size {
-        val surfaceLonger: Int
-        val surfaceShorter: Int
-        val surfaceWidth = preview.width
-        val surfaceHeight = preview.height
-        if (surfaceWidth < surfaceHeight) {
-            surfaceLonger = surfaceHeight
-            surfaceShorter = surfaceWidth
-        } else {
-            surfaceLonger = surfaceWidth
-            surfaceShorter = surfaceHeight
-        }
-        val candidates = previewSizes.sizes(aspectRatio)
-
-        // Pick the smallest of those big enough
-        candidates.firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
-                ?.also { return it }
-
-        // If no size is big enough, pick the largest one.
-        return candidates.last()
+    private sealed class Template {
+        object Preview : Template()
+        object Record : Template()
     }
 
     /**
-     * Chooses the optimal video size based on [.videoSizes] and the surface size.
+     * Chooses the optimal size for [template] based on respective supported sizes and the surface size.
      *
-     * @return The picked size for video capture.
+     * @param template one of the templates from [CameraDevice]
+     * @return The picked optimal size.
      */
-    private fun chooseOptimalVideoSize(): Size {
+    private fun chooseOptimalSize(template: Template): Size {
+
         val surfaceLonger: Int
         val surfaceShorter: Int
+
         val surfaceWidth = preview.width
         val surfaceHeight = preview.height
+
         if (surfaceWidth < surfaceHeight) {
             surfaceLonger = surfaceHeight
             surfaceShorter = surfaceWidth
@@ -732,7 +714,11 @@ internal open class Camera2(
             surfaceLonger = surfaceWidth
             surfaceShorter = surfaceHeight
         }
-        val candidates = videoSizes.sizes(aspectRatio)
+
+        val candidates = when (template) {
+            Template.Preview -> previewSizes.sizes(aspectRatio)
+            Template.Record -> videoSizes.sizes(aspectRatio)
+        }
 
         // Pick the smallest of those big enough
         candidates.firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
@@ -950,11 +936,12 @@ internal open class Camera2(
 
     override fun startVideoRecording(outputFile: File) {
 
-        val videoSize = chooseOptimalVideoSize()
+        val videoSize = chooseOptimalSize(Template.Record)
 
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
-            kotlin.runCatching { setOrientationHint(outputOrientation) }
+            runCatching { setOrientationHint(outputOrientation) }
                     .onFailure { t ->
+                        // Angle outputOrientation is not supported
                         listener.onCameraError(t as Exception)
                         return
                     }
@@ -967,7 +954,7 @@ internal open class Camera2(
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(MediaRecorder.VideoEncoder.H264)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            kotlin.runCatching { prepare() }.onFailure { t ->
+            runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 return
             }
@@ -978,7 +965,7 @@ internal open class Camera2(
             return
         }
 
-        chooseOptimalPreviewSize().run { preview.setBufferSize(width, height) }
+        chooseOptimalSize(Template.Preview).run { preview.setBufferSize(width, height) }
 
         val previewSurface = preview.surface
                 ?: run {
@@ -1005,16 +992,14 @@ internal open class Camera2(
         camera?.createCaptureSession(surfaces, videoSessionStateCallback, backgroundHandler)
     }
 
-    @TargetApi(Build.VERSION_CODES.N)
-    override fun pauseVideoRecording() {
-        runCatching { mediaRecorder?.pause() }
-                .onFailure { t -> listener.onCameraError(t as Exception) }
+    override fun pauseVideoRecording(): Boolean {
+        listener.onCameraError(IllegalAccessException("Video pausing and resuming is only supported on API 24 and higher"))
+        return false
     }
 
-    @TargetApi(Build.VERSION_CODES.N)
-    override fun resumeVideoRecording() {
-        runCatching { mediaRecorder?.resume() }
-                .onFailure { t -> listener.onCameraError(t as Exception) }
+    override fun resumeVideoRecording(): Boolean {
+        listener.onCameraError(IllegalAccessException("Video pausing and resuming is only supported on API 24 and higher"))
+        return false
     }
 
     override fun stopVideoRecording(): Boolean = runCatching {

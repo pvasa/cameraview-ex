@@ -85,10 +85,10 @@ internal interface CameraInterface {
     fun startVideoRecording(outputFile: File)
 
     @TargetApi(Build.VERSION_CODES.N)
-    fun pauseVideoRecording()
+    fun pauseVideoRecording(): Boolean
 
     @TargetApi(Build.VERSION_CODES.N)
-    fun resumeVideoRecording()
+    fun resumeVideoRecording(): Boolean
 
     fun stopVideoRecording(): Boolean
 

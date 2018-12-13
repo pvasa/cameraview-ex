@@ -293,11 +293,9 @@ internal class Camera1(
     override fun startVideoRecording(outputFile: File) {
     }
 
-    override fun pauseVideoRecording() {
-    }
+    override fun pauseVideoRecording(): Boolean = false
 
-    override fun resumeVideoRecording() {
-    }
+    override fun resumeVideoRecording(): Boolean = false
 
     override fun stopVideoRecording(): Boolean = false
 
