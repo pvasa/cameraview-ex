@@ -105,8 +105,6 @@ internal class Camera1(
 
     override val isCameraOpened: Boolean get() = camera != null
 
-    override val isVideoRecording: Boolean get() = false
-
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
             previewSizes.ratios()

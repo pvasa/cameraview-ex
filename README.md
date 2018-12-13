@@ -5,7 +5,7 @@
 
 # CameraViewEx
 
-_This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) which provides more features over original implementation_
+_This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) which provides more features over original implementation._
 
 CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
 
@@ -56,7 +56,7 @@ dependencies {
     style="@style/Widget.CameraView" />
 ```
 
-#### In Fragment
+#### Setup camera
 ```kotlin
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)

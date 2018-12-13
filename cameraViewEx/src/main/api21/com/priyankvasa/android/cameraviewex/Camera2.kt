@@ -263,8 +263,6 @@ internal open class Camera2(
 
     override val isCameraOpened: Boolean get() = camera != null
 
-    override var isVideoRecording: Boolean = false
-
     override var facing: Int = Modes.DEFAULT_FACING
         set(value) {
             if (field == value) {

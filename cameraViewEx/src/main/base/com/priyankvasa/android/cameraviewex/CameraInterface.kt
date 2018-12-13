@@ -34,8 +34,6 @@ internal interface CameraInterface {
 
     val isCameraOpened: Boolean
 
-    val isVideoRecording: Boolean
-
     val supportedAspectRatios: Set<AspectRatio>
 
     val aspectRatio: AspectRatio
