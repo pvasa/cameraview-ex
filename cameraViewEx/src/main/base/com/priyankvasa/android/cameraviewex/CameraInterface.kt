@@ -59,6 +59,8 @@ internal interface CameraInterface {
 
     var opticalStabilization: Boolean
 
+    var videoStabilization: Boolean
+
     @Modes.NoiseReduction
     var noiseReduction: Int
 

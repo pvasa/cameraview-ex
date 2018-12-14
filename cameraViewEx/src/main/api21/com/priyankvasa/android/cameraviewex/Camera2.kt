@@ -378,6 +378,8 @@ internal open class Camera2(
             }
         }
 
+    override var videoStabilization: Boolean = Modes.DEFAULT_VIDEO_STABILIZATION
+
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         set(value) {
             if (field == value) return
@@ -981,7 +983,22 @@ internal open class Camera2(
         val surfaces = listOf(previewSurface, recorderSurface)
 
         videoRequestBuilder = camera?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
-                ?.apply { surfaces.forEach(::addTarget) }
+                ?.apply {
+                    surfaces.forEach(::addTarget)
+
+                    set(CaptureRequest.CONTROL_AF_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AF_MODE))
+                    set(CaptureRequest.CONTROL_AWB_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AWB_MODE))
+                    set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, previewRequestBuilder?.get(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE))
+
+                    val videoStabilizationMode =
+                            if (videoStabilization) CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
+                            else CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
+
+                    set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, videoStabilizationMode)
+                    set(CaptureRequest.NOISE_REDUCTION_MODE, previewRequestBuilder?.get(CaptureRequest.NOISE_REDUCTION_MODE))
+                    set(CaptureRequest.CONTROL_AE_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AE_MODE))
+                    set(CaptureRequest.FLASH_MODE, previewRequestBuilder?.get(CaptureRequest.FLASH_MODE))
+                }
                 ?: run {
             listener.onCameraError(genericCameraAccessException("Camera not initialized or already stopped"))
             return

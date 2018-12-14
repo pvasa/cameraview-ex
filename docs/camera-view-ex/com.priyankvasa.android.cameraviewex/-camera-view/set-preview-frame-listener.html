@@ -12,9 +12,9 @@
 <code><span class="keyword">fun </span><span class="identifier">setPreviewFrameListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="index.html"><span class="identifier">CameraView</span></a></code>
 <p>Set preview frame <a href="set-preview-frame-listener.html#com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((, kotlin.Unit)))/listener">listener</a>. Be careful while using this listener as it is invoked on each frame,
 which could be 60 times per second if frame rate is 60 fps.
-Ideally you should only process next frame once you are done processing previous frame.
-Don't continuously launch background tasks for each frame,
-it is not memory efficient, the device will run out of memory very quickly and force close the app.</p>
+Ideally, next frame should only be processed once current frame is done processing.
+Continuously launching background tasks for each frame is is not memory efficient,
+the device will run out of memory very quickly and force close the app.</p>
 <pre><code class="lang-kotlin">CameraView(context).apply {
 
     val processing = AtomicBoolean(false)
