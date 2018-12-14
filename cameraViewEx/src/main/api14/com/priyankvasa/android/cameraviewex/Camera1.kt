@@ -179,6 +179,8 @@ internal class Camera1(
             // TODO("set internal")
         }
 
+    override var videoStabilization: Boolean = Modes.DEFAULT_VIDEO_STABILIZATION
+
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_NOISE_REDUCTION // TODO("Check cameraParameters")
         set(value) {

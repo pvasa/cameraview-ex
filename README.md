@@ -23,7 +23,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.4.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.4.1"
 }
 ```
 
@@ -45,6 +45,7 @@ dependencies {
     app:opticalStabilization="true"
     app:outputFormat="jpeg"
     app:shutter="short_time"
+    app:videoStabilization="true"
     app:zsl="true" />
 
 <!-- Or to apply all those params as mentioned above use Widget.CameraView style -->
@@ -129,5 +130,8 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 
 _**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 
-## Docs
+## Documentation
 For detailed documentation, please refer these [docs](https://pvasa.github.io/cameraview-ex/camera-view-ex/com.priyankvasa.android.cameraviewex/-camera-view/index.html).
+
+## Contribution Guidelines
+See [CONTRIBUTING.md](https://github.com/pvasa/cameraview-ex/blob/master/CONTRIBUTING.md).

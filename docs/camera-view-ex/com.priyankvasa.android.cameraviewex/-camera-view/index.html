@@ -52,7 +52,7 @@ camera.</p>
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">aspectRatio</span><span class="symbol">: </span><a href="../-aspect-ratio/index.html"><span class="identifier">AspectRatio</span></a></code>
-<p>Current aspect ratio of camera. Valid format is "height:width" eg. "4:3".</p>
+<p>Set aspect ratio of camera. Valid format is "height:width" eg. "4:3".</p>
 </td>
 </tr>
 <tr>
@@ -61,8 +61,9 @@ camera.</p>
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">autoFocus</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
-<p><code>true</code> if the continuous auto-focus mode is enabled. <code>false</code> if it is
-disabled, or if it is not supported by the current camera.</p>
+<p>Set <code>true</code> to enable continuous auto-focus mode and <code>false</code> to
+disable it. If it is not supported, this flag is automatically set to false.
+See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE</a></p>
 </td>
 </tr>
 <tr>
@@ -71,7 +72,8 @@ disabled, or if it is not supported by the current camera.</p>
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">awb</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Current auto white balance mode. Supported values <a href="../-modes/-auto-white-balance/index.html">Modes.AutoWhiteBalance</a>.</p>
+<p>Set auto white balance mode for preview and still captures. Supported values are <a href="../-modes/-auto-white-balance/index.html">Modes.AutoWhiteBalance</a>.
+See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE</a></p>
 </td>
 </tr>
 <tr>
@@ -80,7 +82,7 @@ disabled, or if it is not supported by the current camera.</p>
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">cameraMode</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>The mode in which camera starts. Supported values <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
+<p>Set camera mode of operation. Supported values are <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
 </td>
 </tr>
 <tr>
@@ -89,8 +91,7 @@ disabled, or if it is not supported by the current camera.</p>
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">facing</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Direction that the current camera faces.
-Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Modes.Facing.FACING_BACK</a> and <a href="../-modes/-facing/-f-a-c-i-n-g_-f-r-o-n-t.html">Modes.Facing.FACING_FRONT</a>.</p>
+<p>Set which camera to use (like front or back). Supported values are <a href="../-modes/-facing/index.html">Modes.Facing</a>.</p>
 </td>
 </tr>
 <tr>
@@ -99,7 +100,8 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">flash</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Current flash mode. Supported values <a href="../-modes/-flash/index.html">Modes.Flash</a>.</p>
+<p>Set flash mode. Supported values are <a href="../-modes/-flash/index.html">Modes.Flash</a>.
+See <a href="#">android.hardware.camera2.CaptureRequest.FLASH_MODE</a></p>
 </td>
 </tr>
 <tr>
@@ -117,7 +119,8 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">noiseReduction</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Current noise reduction mode. Supported values <a href="../-modes/-noise-reduction/index.html">Modes.NoiseReduction</a>.</p>
+<p>Set noise reduction mode. Supported values are <a href="../-modes/-noise-reduction/index.html">Modes.NoiseReduction</a>.
+See <a href="#">android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE</a></p>
 </td>
 </tr>
 <tr>
@@ -126,7 +129,8 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">opticalStabilization</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
-<p>Current optical stabilization mode</p>
+<p>Turn on or off optical stabilization for preview and still captures.
+See <a href="#">android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE</a></p>
 </td>
 </tr>
 <tr>
@@ -135,7 +139,8 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">outputFormat</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Format of the output of image data produced from the camera. Supported values <a href="../-modes/-output-format/index.html">Modes.OutputFormat</a>.</p>
+<p>Set format of the output of image data produced from the camera for <a href="../-modes/-camera-mode/-s-i-n-g-l-e_-c-a-p-t-u-r-e.html">Modes.CameraMode.SINGLE_CAPTURE</a> mode.
+Supported values are <a href="../-modes/-output-format/index.html">Modes.OutputFormat</a>.</p>
 </td>
 </tr>
 <tr>
@@ -144,7 +149,7 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">shutter</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Current shutter time in milliseconds. Supported values <a href="../-modes/-shutter/index.html">Modes.Shutter</a>.</p>
+<p>Current shutter time in milliseconds. Supported values are <a href="../-modes/-shutter/index.html">Modes.Shutter</a>.</p>
 </td>
 </tr>
 <tr>
@@ -158,11 +163,23 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 </tr>
 <tr>
 <td>
+<p><a href="video-stabilization.html">videoStabilization</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">videoStabilization</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Turn on or off video stabilization for video recording.
+Updating this flag only takes effect when a new video recording is started after setting the flag.
+See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE</a></p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="zsl.html">zsl</a></p>
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">zsl</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
-<p>Zero shutter lag mode capture.</p>
+<p>Set zero shutter lag mode capture.
+See <a href="#">android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG</a></p>
 </td>
 </tr>
 </tbody>
@@ -330,9 +347,9 @@ Supported values are <a href="../-modes/-facing/-f-a-c-i-n-g_-b-a-c-k.html">Mode
 <code><span class="keyword">fun </span><span class="identifier">setPreviewFrameListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
 <p>Set preview frame <a href="set-preview-frame-listener.html#com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((, kotlin.Unit)))/listener">listener</a>. Be careful while using this listener as it is invoked on each frame,
 which could be 60 times per second if frame rate is 60 fps.
-Ideally you should only process next frame once you are done processing previous frame.
-Don't continuously launch background tasks for each frame,
-it is not memory efficient, the device will run out of memory very quickly and force close the app.</p>
+Ideally, next frame should only be processed once current frame is done processing.
+Continuously launching background tasks for each frame is is not memory efficient,
+the device will run out of memory very quickly and force close the app.</p>
 </td>
 </tr>
 <tr>
