@@ -131,7 +131,7 @@ class CameraView @JvmOverloads constructor(
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean by camera::isCameraOpened
 
-    /** The mode in which camera starts. Supported values [Modes.CameraMode]. */
+    /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
     @get:Modes.CameraMode
     @setparam:Modes.CameraMode
     var cameraMode: Int by camera::cameraMode
@@ -147,15 +147,15 @@ class CameraView @JvmOverloads constructor(
             requestLayout()
         }
 
-    /** Format of the output of image data produced from the camera. Supported values [Modes.OutputFormat]. */
+    /**
+     * Set format of the output of image data produced from the camera for [Modes.CameraMode.SINGLE_CAPTURE] mode.
+     * Supported values are [Modes.OutputFormat].
+     */
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
     var outputFormat: Int by camera::outputFormat
 
-    /**
-     * Direction that the current camera faces.
-     * Supported values are [Modes.Facing.FACING_BACK] and [Modes.Facing.FACING_FRONT].
-     */
+    /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
     @setparam:Modes.Facing
     var facing: Int by camera::facing
@@ -163,7 +163,7 @@ class CameraView @JvmOverloads constructor(
     /** Gets all the aspect ratios supported by the current camera. */
     val supportedAspectRatios: Set<AspectRatio> by camera::supportedAspectRatios
 
-    /** Current aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
+    /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
     var aspectRatio: AspectRatio
         get() = camera.aspectRatio
         set(value) {
@@ -171,38 +171,61 @@ class CameraView @JvmOverloads constructor(
         }
 
     /**
-     * `true` if the continuous auto-focus mode is enabled. `false` if it is
-     * disabled, or if it is not supported by the current camera.
+     * Set `true` to enable continuous auto-focus mode and `false` to
+     * disable it. If it is not supported, this flag is automatically set to false.
+     * See [android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE]
      */
     var autoFocus: Boolean by camera::autoFocus
 
-    /** Current touch to focus mode. True is on and false if off. */
+    /** Set touch to focus mode. True is on and false if off. */
     private var touchToFocus: Boolean by camera::touchToFocus
 
-    /** Current auto white balance mode. Supported values [Modes.AutoWhiteBalance]. */
+    /**
+     * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
+     * See [android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE]
+     */
     @get:Modes.AutoWhiteBalance
     @setparam:Modes.AutoWhiteBalance
     var awb: Int by camera::awb
 
-    /** Current flash mode. Supported values [Modes.Flash]. */
+    /**
+     * Set flash mode. Supported values are [Modes.Flash].
+     * See [android.hardware.camera2.CaptureRequest.FLASH_MODE]
+     */
     @get:Modes.Flash
     @setparam:Modes.Flash
     var flash: Int by camera::flash
 
-    /** Current optical stabilization mode */
+    /**
+     * Turn on or off optical stabilization for preview and still captures.
+     * See [android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
+     */
     var opticalStabilization: Boolean by camera::opticalStabilization
 
-    /** Current noise reduction mode. Supported values [Modes.NoiseReduction]. */
+    /**
+     * Turn on or off video stabilization for video recording.
+     * Updating this flag only takes effect when a new video recording is started after setting the flag.
+     * See [android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE]
+     */
+    var videoStabilization: Boolean by camera::videoStabilization
+
+    /**
+     * Set noise reduction mode. Supported values are [Modes.NoiseReduction].
+     * See [android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE]
+     */
     @get:Modes.NoiseReduction
     @setparam:Modes.NoiseReduction
     var noiseReduction: Int by camera::noiseReduction
 
-    /** Current shutter time in milliseconds. Supported values [Modes.Shutter]. */
+    /** Current shutter time in milliseconds. Supported values are [Modes.Shutter]. */
     @get:Modes.Shutter
     @setparam:Modes.Shutter
     var shutter: Int by preview.shutterView::shutterTime
 
-    /** Zero shutter lag mode capture. */
+    /**
+     * Set zero shutter lag mode capture.
+     * See [android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG]
+     */
     var zsl: Boolean by camera::zsl
 
     init {
@@ -233,6 +256,7 @@ class CameraView @JvmOverloads constructor(
                 flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 //            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
                 opticalStabilization = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
+                videoStabilization = getBoolean(R.styleable.CameraView_videoStabilization, Modes.DEFAULT_VIDEO_STABILIZATION)
                 noiseReduction = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
                 shutter = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
                 zsl = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
@@ -336,6 +360,7 @@ class CameraView @JvmOverloads constructor(
                     awb,
                     flash,
                     opticalStabilization,
+                    videoStabilization,
                     noiseReduction,
                     shutter,
                     zsl
@@ -357,6 +382,7 @@ class CameraView @JvmOverloads constructor(
             awb = it.awb
             flash = it.flash
             opticalStabilization = it.opticalStabilization
+            videoStabilization = it.videoStabilization
             noiseReduction = it.noiseReduction
             shutter = it.shutter
             zsl = it.zsl
@@ -412,9 +438,9 @@ class CameraView @JvmOverloads constructor(
     /**
      * Set preview frame [listener]. Be careful while using this listener as it is invoked on each frame,
      * which could be 60 times per second if frame rate is 60 fps.
-     * Ideally you should only process next frame once you are done processing previous frame.
-     * Don't continuously launch background tasks for each frame,
-     * it is not memory efficient, the device will run out of memory very quickly and force close the app.
+     * Ideally, next frame should only be processed once current frame is done processing.
+     * Continuously launching background tasks for each frame is is not memory efficient,
+     * the device will run out of memory very quickly and force close the app.
      *
      * @param listener lambda with image of type [Image] as its argument which is the preview frame.
      * It is always of type [android.graphics.ImageFormat.YUV_420_888]
@@ -511,6 +537,11 @@ class CameraView @JvmOverloads constructor(
      * Start capturing video.
      * @param outputFile where video will be saved
      */
+    @RequiresPermission(allOf = [
+        Manifest.permission.CAMERA,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.RECORD_AUDIO
+    ])
     fun startVideoRecording(outputFile: File) {
         if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) camera.startVideoRecording(outputFile)
         else listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
@@ -548,6 +579,7 @@ class CameraView @JvmOverloads constructor(
             @Modes.AutoWhiteBalance val awb: Int,
             @Modes.Flash val flash: Int,
             val opticalStabilization: Boolean,
+            val videoStabilization: Boolean,
             @Modes.NoiseReduction val noiseReduction: Int,
             @Modes.Shutter val shutter: Int,
             val zsl: Boolean

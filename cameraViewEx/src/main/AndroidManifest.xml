@@ -22,6 +22,7 @@
     <uses-feature
         android:name="android.hardware.camera.autofocus"
         android:required="false" />
+    <uses-feature android:name="android.hardware.camera2" />
 
     <application>
 

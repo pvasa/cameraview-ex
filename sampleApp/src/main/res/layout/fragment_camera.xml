@@ -72,6 +72,7 @@
         app:opticalStabilization="true"
         app:outputFormat="jpeg"
         app:shutter="short_time"
+        app:videoStabilization="true"
         app:zsl="true" />
 
     <TextView

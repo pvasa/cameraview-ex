@@ -73,6 +73,8 @@
 
         <attr name="opticalStabilization" format="boolean" />
 
+        <attr name="videoStabilization" format="boolean" />
+
         <attr name="noiseReduction" format="enum">
             <enum name="off" value="0" />
             <enum name="fast" value="1" />
