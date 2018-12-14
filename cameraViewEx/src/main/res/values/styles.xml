@@ -22,6 +22,7 @@
         <item name="awb">auto</item>
         <!--<item name="ae">true</item>-->
         <item name="opticalStabilization">true</item>
+        <item name="videoStabilization">true</item>
         <item name="noiseReduction">high_quality</item>
         <item name="shutter">short_time</item>
         <item name="outputFormat">jpeg</item>
