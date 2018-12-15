@@ -1,4 +1,3 @@
-
 [![Build Status](https://travis-ci.org/pvasa/cameraview-ex.svg?branch=master)](https://travis-ci.org/pvasa/cameraview-ex)
 [![Download](https://api.bintray.com/packages/ryan652/android/cameraview-ex/images/download.svg)](https://bintray.com/ryan652/android/cameraview-ex/_latestVersion)
 [![License](https://img.shields.io/github/license/pvasa/cameraview-ex.svg)](LICENSE)
@@ -123,6 +122,7 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | app:flash                | **off**, on, torch, auto, redEye                       |
 | app:awb                  | **off**, auto, incandescent, fluorescent, warm_fluorescent, <br/> daylight, cloudy_daylight, twilight, shade |
 | app:opticalStabilization | **false**, true                                        |
+| app:videoStabilization   | **false**, true                                        |
 | app:noiseReduction       | **off**, fast, high_quality, minimal, zero_shutter_lag |
 | app:shutter              | **off**, short_time, long_time                         |
 | app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
