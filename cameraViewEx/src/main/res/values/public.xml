@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?><!--
+    Copyright 2018 Priyank Vasa
     Copyright (C) 2016 The Android Open Source Project
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,16 +16,17 @@
     <public name="aspectRatio" type="attr" />
     <public name="autoFocus" type="attr" />
     <public name="flash" type="attr" />
-    <!--<public name="touchToFocus" type="attr" />-->
+    <public name="touchToFocus" type="attr" />
     <public name="awb" type="attr" />
-    <!--<public name="ae" type="attr" />-->
+    <!--<public name="ae">true type="attr" /> -->
     <public name="opticalStabilization" type="attr" />
     <public name="videoStabilization" type="attr" />
     <public name="noiseReduction" type="attr" />
     <public name="shutter" type="attr" />
-    <public name="imageFormat" type="attr" />
+    <public name="outputFormat" type="attr" />
+    <public name="jpegQuality" type="attr" />
     <public name="zsl" type="attr" />
-    <public name="mode" type="attr" />
+    <public name="cameraMode" type="attr" />
 
     <public name="Widget.CameraView" type="style" />
 </resources>

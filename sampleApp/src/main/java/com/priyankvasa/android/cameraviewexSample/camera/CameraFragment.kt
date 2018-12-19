@@ -1,6 +1,7 @@
 package com.priyankvasa.android.cameraviewexSample.camera
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.media.Image
 import android.os.Bundle
@@ -12,7 +13,6 @@ import android.support.v4.view.GestureDetectorCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.bumptech.glide.Glide
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
@@ -21,8 +21,13 @@ import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewexSample.Direction
 import com.priyankvasa.android.cameraviewexSample.OnSwipeListener
 import com.priyankvasa.android.cameraviewexSample.R
+import com.priyankvasa.android.cameraviewexSample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.io.BufferedOutputStream
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -32,22 +37,33 @@ open class CameraFragment : Fragment() {
 
     private val imageCaptureListener = View.OnClickListener { camera.capture() }
 
-    private val videoOutputDirectory =
-            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/".also { File(it).mkdirs() }
+    private val imageOutputDirectory =
+            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
 
+    private val videoOutputDirectory =
+            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
+
+    private var videoFile: File? = null
+
+    private val nextImageFile: File
+        get() = File(imageOutputDirectory, "image_${System.currentTimeMillis()}.jpg")
+
+    private val nextVideoFile: File
+        get() = File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4")
+
+    @SuppressLint("MissingPermission")
     private val videoCaptureListener = View.OnClickListener {
-        camera.run {
-            if (isVideoRecording) {
-                stopVideoRecording()
-                ivPlayPause.visibility = View.GONE
-                ivPlayPause.isActivated = false
-                ivCaptureButton.isActivated = false
-            } else {
-                startVideoRecording(File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4"))
-                ivPlayPause.visibility = View.VISIBLE
-                ivPlayPause.isActivated = true
-                ivCaptureButton.isActivated = true
-            }
+        if (isVideoRecording) {
+            if (camera.stopVideoRecording()) context?.toast("Video saved to ${videoFile?.absolutePath}")
+            else context?.toast("Failed to save video!")
+            ivPlayPause.visibility = View.GONE
+            ivPlayPause.isActivated = false
+            ivCaptureButton.isActivated = false
+        } else {
+            videoFile = nextVideoFile.also { f -> camera.startVideoRecording(f) }
+            ivPlayPause.visibility = View.VISIBLE
+            ivPlayPause.isActivated = true
+            ivCaptureButton.isActivated = true
         }
         isVideoRecording = !isVideoRecording
     }
@@ -70,11 +86,11 @@ open class CameraFragment : Fragment() {
         )
     }
 
-    private val options = FirebaseVisionBarcodeDetectorOptions.Builder()
+    private val barcodeDetectorOptions = FirebaseVisionBarcodeDetectorOptions.Builder()
             .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
             .build()
 
-    private val detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options)
+    private val barcodeDetector = FirebaseVision.getInstance().getVisionBarcodeDetector(barcodeDetectorOptions)
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -84,11 +100,11 @@ open class CameraFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupCamera()
         setupView()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun setupCamera() {
 
         with(camera) {
@@ -114,7 +130,7 @@ open class CameraFragment : Fragment() {
                 if (!decoding.get()) {
                     decoding.set(true)
                     val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
-                    detector.detectInImage(visionImage)
+                    barcodeDetector.detectInImage(visionImage)
                             .addOnCompleteListener { decoding.set(false) }
                             .addOnSuccessListener(decodeSuccessListener)
                             .addOnFailureListener { e -> Timber.e(e) }
@@ -122,10 +138,7 @@ open class CameraFragment : Fragment() {
             }
 
             addPictureTakenListener { imageData: ByteArray ->
-                ivPhoto.visibility = View.VISIBLE
-                Glide.with(this@CameraFragment)
-                        .load(imageData)
-                        .into(ivPhoto)
+                GlobalScope.launch(Dispatchers.IO) { saveDataToFile(imageData) }
             }
 
             addCameraErrorListener { t -> Timber.e(t) }
@@ -137,6 +150,16 @@ open class CameraFragment : Fragment() {
                 return@setOnTouchListener true
             }
         }
+    }
+
+    private fun saveDataToFile(data: ByteArray): File = nextImageFile.apply {
+        createNewFile()
+        runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
+                .onFailure {
+                    context?.toast("Unable to save image to file.")
+                    Timber.e(it)
+                }
+                .onSuccess { context?.toast("Saved image to file $absolutePath") }
     }
 
     private fun setupView() {
@@ -161,7 +184,7 @@ open class CameraFragment : Fragment() {
                 else -> return@setOnClickListener
             }
 
-            context?.let { ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(it, flashDrawableId)) }
+            context?.let { c -> ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(c, flashDrawableId)) }
         }
 
         ivCameraMode.setOnClickListener {
@@ -221,22 +244,20 @@ open class CameraFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         updateViewState()
-        camera.run {
-            if (!isCameraOpened
-                    && ActivityCompat.checkSelfPermission(
-                            requireContext(),
-                            Manifest.permission.CAMERA
-                    ) == PackageManager.PERMISSION_GRANTED
-                    && ActivityCompat.checkSelfPermission(
-                            requireContext(),
-                            Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                    && ActivityCompat.checkSelfPermission(
-                            requireContext(),
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ) == PackageManager.PERMISSION_GRANTED) {
-                start()
-            }
+        if (!camera.isCameraOpened
+                && ActivityCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED) {
+            camera.start()
         }
     }
 

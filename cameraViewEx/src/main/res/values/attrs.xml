@@ -95,6 +95,13 @@
             <enum name="rgba_8888" value="2" />
         </attr>
 
+        <attr name="jpegQuality" format="enum">
+            <enum name="low" value="60" />
+            <enum name="medium" value="80" />
+            <enum name="default_quality" value="90" />
+            <enum name="high" value="100" />
+        </attr>
+
         <!-- Zero shutter lag capture -->
         <attr name="zsl" format="boolean" />
 

@@ -40,10 +40,12 @@ dependencies {
     app:cameraMode="single_capture"
     app:facing="back"
     app:flash="auto"
+    app:jpegQuality="high"
     app:noiseReduction="high_quality"
     app:opticalStabilization="true"
     app:outputFormat="jpeg"
     app:shutter="short_time"
+    app:touchToFocus="true"
     app:videoStabilization="true"
     app:zsl="true" />
 
@@ -126,6 +128,7 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | app:noiseReduction       | **off**, fast, high_quality, minimal, zero_shutter_lag |
 | app:shutter              | **off**, short_time, long_time                         |
 | app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
+| app:jpegQuality          | **default**, low, medium, high                         |
 | app:zsl                  | **false**, true                                        |
 
 _**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._

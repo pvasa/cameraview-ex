@@ -273,6 +273,8 @@ internal open class Camera2(
 
     override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
 
+    override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
+
     protected val internalOutputFormat: Int get() = internalOutputFormats[outputFormat]
 
     override var displayOrientation: Int = 0
@@ -600,9 +602,15 @@ internal open class Camera2(
             }
         }
 
-        return isRatioValid.also {
-            if (!it) listener.onCameraError(IllegalArgumentException("Aspect ratio $this is not supported by this device. Valid ratios are $sbRatios."))
+        if (!isRatioValid) {
+            val e = IllegalArgumentException(
+                    "Aspect ratio $this is not supported by this device." +
+                            " Valid ratios are $sbRatios. Refer CameraView.supportedAspectRatios"
+            )
+            listener.onCameraError(e, isCritical = true)
         }
+
+        return isRatioValid
     }
 
     override fun takePicture() {
@@ -1011,6 +1019,8 @@ internal open class Camera2(
                 if (imageReader?.imageFormat == ImageFormat.JPEG) {
                     set(CaptureRequest.JPEG_ORIENTATION, outputOrientation)
                 }
+
+                set(CaptureRequest.JPEG_QUALITY, jpegQuality.toByte())
             }
 
             // Stop preview and capture a still picture.
@@ -1037,7 +1047,7 @@ internal open class Camera2(
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setOutputFile(outputFile.absolutePath)
             setVideoEncodingBitRate(10000000)
-            setVideoFrameRate(30)
+            setVideoFrameRate(60)
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(MediaRecorder.VideoEncoder.H264)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -1052,7 +1062,7 @@ internal open class Camera2(
             return
         }
 
-        chooseOptimalSize(Template.Preview).run { preview.setBufferSize(width, height) }
+        with(chooseOptimalSize(Template.Preview)) { preview.setBufferSize(width, height) }
 
         val previewSurface = preview.surface
                 ?: run {

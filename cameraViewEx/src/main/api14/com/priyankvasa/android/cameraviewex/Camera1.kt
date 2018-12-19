@@ -78,6 +78,8 @@ internal class Camera1(
             }
         }
 
+    override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
+
     override var facing: Int = Modes.DEFAULT_FACING
         set(value) {
             if (field == value) return
