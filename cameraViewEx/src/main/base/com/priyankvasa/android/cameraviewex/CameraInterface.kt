@@ -75,6 +75,9 @@ internal interface CameraInterface {
 
     var displayOrientation: Int
 
+    @Modes.JpegQuality
+    var jpegQuality: Int
+
     /**
      * @return `true` if the implementation was able to start the camera session.
      */
@@ -126,7 +129,7 @@ internal interface CameraInterface {
         suspend fun onCameraOpened()
         suspend fun onCameraClosed()
         fun onPictureTaken(imageData: ByteArray)
-        fun onCameraError(e: Exception)
+        fun onCameraError(e: Exception, isCritical: Boolean = false)
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
         fun onPreviewFrame(reader: ImageReader)

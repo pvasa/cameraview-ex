@@ -56,6 +56,18 @@ object Modes {
         }
     }
 
+    @IntDef(JpegQuality.LOW, JpegQuality.MEDIUM, JpegQuality.DEFAULT, JpegQuality.HIGH)
+    @Retention(AnnotationRetention.SOURCE)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
+    annotation class JpegQuality {
+        companion object {
+            const val LOW = 60
+            const val MEDIUM = 80
+            const val DEFAULT = 90
+            const val HIGH = 100
+        }
+    }
+
     /** Direction the camera faces relative to device screen. */
     @IntDef(Facing.FACING_BACK, Facing.FACING_FRONT)
     @Retention(AnnotationRetention.SOURCE)
@@ -149,6 +161,7 @@ object Modes {
     val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
     const val DEFAULT_CAMERA_MODE = CameraMode.SINGLE_CAPTURE
     const val DEFAULT_OUTPUT_FORMAT = OutputFormat.JPEG
+    const val DEFAULT_JPEG_QUALITY = JpegQuality.DEFAULT
     const val DEFAULT_FACING = Facing.FACING_BACK
     const val DEFAULT_AUTO_FOCUS = false
     const val DEFAULT_TOUCH_TO_FOCUS = false

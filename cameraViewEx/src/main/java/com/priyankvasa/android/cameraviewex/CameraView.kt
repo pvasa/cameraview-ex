@@ -99,7 +99,8 @@ class CameraView @JvmOverloads constructor(
             pictureTakenListeners.forEach { it(imageData) }
         }
 
-        override fun onCameraError(e: Exception) {
+        override fun onCameraError(e: Exception, isCritical: Boolean) {
+            if (isCritical && cameraErrorListeners.isEmpty()) throw e
             cameraErrorListeners.forEach { it(e) }
         }
 
@@ -151,6 +152,15 @@ class CameraView @JvmOverloads constructor(
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
     var outputFormat: Int by camera::outputFormat
+
+    /**
+     * Set image quality of the output image.
+     * This property is only applicable for [outputFormat] [Modes.OutputFormat.JPEG]
+     * Supported values are [Modes.JpegQuality].
+     */
+    @get:Modes.JpegQuality
+    @setparam:Modes.JpegQuality
+    var jpegQuality: Int by camera::jpegQuality
 
     /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
@@ -240,6 +250,7 @@ class CameraView @JvmOverloads constructor(
                 adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
                 cameraMode = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
                 outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
+                jpegQuality = getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
                 facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio = getString(R.styleable.CameraView_aspectRatio)
                         .run ar@{
@@ -350,6 +361,7 @@ class CameraView @JvmOverloads constructor(
                     super.onSaveInstanceState() ?: Bundle(),
                     cameraMode,
                     outputFormat,
+                    jpegQuality,
                     facing,
                     aspectRatio,
                     autoFocus,
@@ -373,6 +385,7 @@ class CameraView @JvmOverloads constructor(
         ss?.let {
             cameraMode = it.cameraMode
             outputFormat = it.outputFormat
+            jpegQuality = it.jpegQuality
             facing = it.facing
             aspectRatio = it.ratio
             autoFocus = it.autoFocus
@@ -481,6 +494,9 @@ class CameraView @JvmOverloads constructor(
 
     /**
      * Add a new camera error [listener].
+     * If no error listeners are added, then "critical" errors will be thrown to system exception handler (ie. hard crash)
+     * The only critical error thrown for now is for invalid aspect ratio.
+     *
      * @param listener lambda with t of type [Throwable] as argument
      * @return instance of [CameraView] it is called on
      */
@@ -565,20 +581,21 @@ class CameraView @JvmOverloads constructor(
     fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
     @Parcelize
-    data class SavedState(
+    internal data class SavedState(
             val parcelable: Parcelable,
-            @Modes.CameraMode val cameraMode: Int,
-            @Modes.OutputFormat val outputFormat: Int,
-            @Modes.Facing val facing: Int,
+            val cameraMode: Int,
+            val outputFormat: Int,
+            val jpegQuality: Int,
+            val facing: Int,
             val ratio: AspectRatio,
             val autoFocus: Boolean,
             val touchToFocus: Boolean,
-            @Modes.AutoWhiteBalance val awb: Int,
-            @Modes.Flash val flash: Int,
+            val awb: Int,
+            val flash: Int,
             val opticalStabilization: Boolean,
             val videoStabilization: Boolean,
-            @Modes.NoiseReduction val noiseReduction: Int,
-            @Modes.Shutter val shutter: Int,
+            val noiseReduction: Int,
+            val shutter: Int,
             val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }
