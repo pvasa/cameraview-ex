@@ -62,9 +62,10 @@
         app:aspectRatio="4:3"
         app:autoFocus="true"
         app:awb="auto"
-        app:cameraMode="video_capture"
+        app:cameraMode="single_capture"
         app:facing="back"
         app:flash="auto"
+        app:jpegQuality="high"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -72,7 +73,7 @@
         app:opticalStabilization="true"
         app:outputFormat="jpeg"
         app:shutter="short_time"
-        app:videoStabilization="true"
+        app:touchToFocus="true"
         app:zsl="true" />
 
     <TextView

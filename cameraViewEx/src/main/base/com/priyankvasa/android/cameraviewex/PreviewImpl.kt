@@ -17,16 +17,18 @@
  */
 package com.priyankvasa.android.cameraviewex
 
+import android.graphics.Rect
+import android.graphics.SurfaceTexture
+import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
+import android.view.ViewGroup
 
 /**
  * Encapsulates all the operations related to camera preview in a backward-compatible manner.
  */
 internal abstract class PreviewImpl {
-
-    private var callback: Callback? = null
 
     var width: Int = 0
         private set
@@ -36,7 +38,13 @@ internal abstract class PreviewImpl {
 
     internal abstract val surface: Surface?
 
+    internal var surfaceChangeListener: (() -> Unit)? = null
+
+    internal var surfaceTouchListener: ((event: MotionEvent?) -> Boolean)? = null
+
     internal abstract val view: View
+
+    internal val overlayView: PreviewOverlayView by lazy { PreviewOverlayView(view.context) }
 
     internal val shutterView: ShutterView by lazy { ShutterView(view.context) }
 
@@ -46,26 +54,27 @@ internal abstract class PreviewImpl {
 
     internal open val surfaceHolder: SurfaceHolder? get() = null
 
-    internal open val surfaceTexture: Any? get() = null
-
-    internal interface Callback {
-        fun onSurfaceChanged()
-    }
-
-    fun setCallback(callback: Callback) {
-        this.callback = callback
-    }
+    internal open val surfaceTexture: SurfaceTexture? get() = null
 
     internal abstract fun setDisplayOrientation(displayOrientation: Int)
 
-    protected fun dispatchSurfaceChanged() {
-        callback?.onSurfaceChanged()
-    }
-
     internal open fun setBufferSize(width: Int, height: Int) {}
 
-    fun setSize(width: Int, height: Int) {
+    internal fun setSize(width: Int, height: Int) {
         this.width = width
         this.height = height
+    }
+
+    internal fun markTouchArea(rects: Array<Rect>) {
+
+        (view.parent as? ViewGroup)?.run {
+            overlayView.rects = rects
+            removeView(overlayView)
+            addView(overlayView)
+        }
+    }
+
+    internal fun removeOverlay() {
+        (view.parent as? ViewGroup)?.apply { removeView(overlayView) }
     }
 }

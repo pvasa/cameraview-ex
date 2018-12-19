@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewex
+package com.priyankvasa.android.cameraviewex.extension
 
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1

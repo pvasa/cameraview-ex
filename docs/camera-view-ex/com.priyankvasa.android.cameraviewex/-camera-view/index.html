@@ -9,18 +9,6 @@
 <br/>
 <h1>CameraView</h1>
 <code><span class="keyword">class </span><span class="identifier">CameraView</span></code>
-<h3>Types</h3>
-<table>
-<tbody>
-<tr>
-<td>
-<p><a href="-saved-state/index.html">SavedState</a></p>
-</td>
-<td>
-<code><span class="keyword">data</span> <span class="keyword">class </span><span class="identifier">SavedState</span></code></td>
-</tr>
-</tbody>
-</table>
 <h3>Constructors</h3>
 <table>
 <tbody>
@@ -115,6 +103,17 @@ See <a href="#">android.hardware.camera2.CaptureRequest.FLASH_MODE</a></p>
 </tr>
 <tr>
 <td>
+<p><a href="jpeg-quality.html">jpegQuality</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">jpegQuality</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
+<p>Set image quality of the output image.
+This property is only applicable for <a href="../-modes/-output-format/-j-p-e-g.html">outputFormat</a>
+Supported values are <a href="../-modes/-jpeg-quality/index.html">Modes.JpegQuality</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="noise-reduction.html">noiseReduction</a></p>
 </td>
 <td>
@@ -163,13 +162,11 @@ Supported values are <a href="../-modes/-output-format/index.html">Modes.OutputF
 </tr>
 <tr>
 <td>
-<p><a href="video-stabilization.html">videoStabilization</a></p>
+<p><a href="touch-to-focus.html">touchToFocus</a></p>
 </td>
 <td>
-<code><span class="keyword">var </span><span class="identifier">videoStabilization</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
-<p>Turn on or off video stabilization for video recording.
-Updating this flag only takes effect when a new video recording is started after setting the flag.
-See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE</a></p>
+<code><span class="keyword">var </span><span class="identifier">touchToFocus</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Set touch to focus mode. True is on and false if off.</p>
 </td>
 </tr>
 <tr>
@@ -202,7 +199,9 @@ See <a href="#">android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG<
 </td>
 <td>
 <code><span class="keyword">fun </span><span class="identifier">addCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">t</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Add a new camera error <a href="add-camera-error-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</a>.</p>
+<p>Add a new camera error <a href="add-camera-error-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</a>.
+If no error listeners are added, then "critical" errors will be thrown to system exception handler (ie. hard crash)
+The only critical error thrown for now is for invalid aspect ratio.</p>
 </td>
 </tr>
 <tr>
@@ -367,7 +366,8 @@ the device will run out of memory very quickly and force close the app.</p>
 <p><a href="start-video-recording.html">startVideoRecording</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File)/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((com.priyankvasa.android.cameraviewex.VideoConfiguration, kotlin.Unit)))/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">, </span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((com.priyankvasa.android.cameraviewex.VideoConfiguration, kotlin.Unit)))/config">config</span><span class="symbol">:</span>&nbsp;<a href="../-video-configuration/index.html"><span class="identifier">VideoConfiguration</span></a><span class="symbol">.</span><span class="symbol">(</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a>&nbsp;<span class="symbol">=</span>&nbsp;{}<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code><br/>
+<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((, kotlin.Unit)))/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">, </span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((, kotlin.Unit)))/config">config</span><span class="symbol">:</span>&nbsp;<span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">.</span><span class="symbol">(</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a>&nbsp;<span class="symbol">=</span>&nbsp;{}<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
 <p>Start capturing video.</p>
 </td>
 </tr>

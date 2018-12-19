@@ -32,10 +32,9 @@ import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import com.priyankvasa.android.cameraviewex.extension.getValue
+import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 
@@ -83,14 +82,12 @@ class CameraView @JvmOverloads constructor(
             cameraClosedListeners.clear()
         }
 
-        override fun onCameraOpened() {
-            GlobalScope.launch(Dispatchers.Main) {
-                if (requestLayoutOnOpen) {
-                    requestLayoutOnOpen = false
-                    requestLayout()
-                }
-                cameraOpenedListeners.forEach { it() }
+        override suspend fun onCameraOpened() {
+            if (requestLayoutOnOpen) {
+                requestLayoutOnOpen = false
+                requestLayout()
             }
+            cameraOpenedListeners.forEach { it() }
         }
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -102,12 +99,13 @@ class CameraView @JvmOverloads constructor(
             pictureTakenListeners.forEach { it(imageData) }
         }
 
-        override fun onCameraError(e: Exception) {
+        override fun onCameraError(e: Exception, isCritical: Boolean) {
+            if (isCritical && cameraErrorListeners.isEmpty()) throw e
             cameraErrorListeners.forEach { it(e) }
         }
 
-        override fun onCameraClosed() {
-            GlobalScope.launch(Dispatchers.Main) { cameraClosedListeners.forEach { it() } }
+        override suspend fun onCameraClosed() {
+            cameraClosedListeners.forEach { it.invoke() }
         }
     }
 
@@ -155,6 +153,15 @@ class CameraView @JvmOverloads constructor(
     @setparam:Modes.OutputFormat
     var outputFormat: Int by camera::outputFormat
 
+    /**
+     * Set image quality of the output image.
+     * This property is only applicable for [outputFormat] [Modes.OutputFormat.JPEG]
+     * Supported values are [Modes.JpegQuality].
+     */
+    @get:Modes.JpegQuality
+    @setparam:Modes.JpegQuality
+    var jpegQuality: Int by camera::jpegQuality
+
     /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
     @setparam:Modes.Facing
@@ -178,7 +185,7 @@ class CameraView @JvmOverloads constructor(
     var autoFocus: Boolean by camera::autoFocus
 
     /** Set touch to focus mode. True is on and false if off. */
-    private var touchToFocus: Boolean by camera::touchToFocus
+    var touchToFocus: Boolean by camera::touchToFocus
 
     /**
      * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
@@ -201,13 +208,6 @@ class CameraView @JvmOverloads constructor(
      * See [android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
      */
     var opticalStabilization: Boolean by camera::opticalStabilization
-
-    /**
-     * Turn on or off video stabilization for video recording.
-     * Updating this flag only takes effect when a new video recording is started after setting the flag.
-     * See [android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE]
-     */
-    var videoStabilization: Boolean by camera::videoStabilization
 
     /**
      * Set noise reduction mode. Supported values are [Modes.NoiseReduction].
@@ -243,6 +243,7 @@ class CameraView @JvmOverloads constructor(
                 adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
                 cameraMode = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
                 outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
+                jpegQuality = getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
                 facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio = getString(R.styleable.CameraView_aspectRatio)
                         .run ar@{
@@ -251,12 +252,11 @@ class CameraView @JvmOverloads constructor(
                         }
 
                 autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
-//            touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+                touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
                 awb = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
                 flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 //            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
                 opticalStabilization = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
-                videoStabilization = getBoolean(R.styleable.CameraView_videoStabilization, Modes.DEFAULT_VIDEO_STABILIZATION)
                 noiseReduction = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
                 shutter = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
                 zsl = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
@@ -353,6 +353,7 @@ class CameraView @JvmOverloads constructor(
                     super.onSaveInstanceState() ?: Bundle(),
                     cameraMode,
                     outputFormat,
+                    jpegQuality,
                     facing,
                     aspectRatio,
                     autoFocus,
@@ -360,7 +361,6 @@ class CameraView @JvmOverloads constructor(
                     awb,
                     flash,
                     opticalStabilization,
-                    videoStabilization,
                     noiseReduction,
                     shutter,
                     zsl
@@ -376,13 +376,13 @@ class CameraView @JvmOverloads constructor(
         ss?.let {
             cameraMode = it.cameraMode
             outputFormat = it.outputFormat
+            jpegQuality = it.jpegQuality
             facing = it.facing
             aspectRatio = it.ratio
             autoFocus = it.autoFocus
             awb = it.awb
             flash = it.flash
             opticalStabilization = it.opticalStabilization
-            videoStabilization = it.videoStabilization
             noiseReduction = it.noiseReduction
             shutter = it.shutter
             zsl = it.zsl
@@ -484,6 +484,9 @@ class CameraView @JvmOverloads constructor(
 
     /**
      * Add a new camera error [listener].
+     * If no error listeners are added, then "critical" errors will be thrown to system exception handler (ie. hard crash)
+     * The only critical error thrown for now is for invalid aspect ratio.
+     *
      * @param listener lambda with t of type [Throwable] as argument
      * @return instance of [CameraView] it is called on
      */
@@ -536,15 +539,19 @@ class CameraView @JvmOverloads constructor(
     /**
      * Start capturing video.
      * @param outputFile where video will be saved
+     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
      */
     @RequiresPermission(allOf = [
         Manifest.permission.CAMERA,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.RECORD_AUDIO
     ])
-    fun startVideoRecording(outputFile: File) {
-        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) camera.startVideoRecording(outputFile)
-        else listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
+    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}) {
+        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) {
+            camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
+        } else {
+            listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
+        }
     }
 
     /**
@@ -568,20 +575,20 @@ class CameraView @JvmOverloads constructor(
     fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
     @Parcelize
-    data class SavedState(
+    internal data class SavedState(
             val parcelable: Parcelable,
-            @Modes.CameraMode val cameraMode: Int,
-            @Modes.OutputFormat val outputFormat: Int,
-            @Modes.Facing val facing: Int,
+            val cameraMode: Int,
+            val outputFormat: Int,
+            val jpegQuality: Int,
+            val facing: Int,
             val ratio: AspectRatio,
             val autoFocus: Boolean,
             val touchToFocus: Boolean,
-            @Modes.AutoWhiteBalance val awb: Int,
-            @Modes.Flash val flash: Int,
+            val awb: Int,
+            val flash: Int,
             val opticalStabilization: Boolean,
-            val videoStabilization: Boolean,
-            @Modes.NoiseReduction val noiseReduction: Int,
-            @Modes.Shutter val shutter: Int,
+            val noiseReduction: Int,
+            val shutter: Int,
             val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }

@@ -27,6 +27,9 @@ import android.hardware.Camera
 import android.os.Build
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -74,6 +77,8 @@ internal class Camera1(
                 else -> ImageFormat.UNKNOWN
             }
         }
+
+    override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
 
     override var facing: Int = Modes.DEFAULT_FACING
         set(value) {
@@ -179,8 +184,6 @@ internal class Camera1(
             // TODO("set internal")
         }
 
-    override var videoStabilization: Boolean = Modes.DEFAULT_VIDEO_STABILIZATION
-
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         get() = if (!isCameraOpened) field else Modes.DEFAULT_NOISE_REDUCTION // TODO("Check cameraParameters")
         set(value) {
@@ -195,12 +198,12 @@ internal class Camera1(
         }
 
     init {
-        preview.setCallback(object : PreviewImpl.Callback {
-            override fun onSurfaceChanged() {
-                setUpPreview()
-                adjustCameraParameters()
-            }
-        })
+        preview.surfaceChangeListener = ::onPreviewSurfaceChanged
+    }
+
+    private fun onPreviewSurfaceChanged() {
+        setUpPreview()
+        adjustCameraParameters()
     }
 
     override fun start(): Boolean {
@@ -290,7 +293,7 @@ internal class Camera1(
         }
     }
 
-    override fun startVideoRecording(outputFile: File) {
+    override fun startVideoRecording(outputFile: File, config: VideoConfiguration) {
     }
 
     override fun pauseVideoRecording(): Boolean = false
@@ -333,7 +336,7 @@ internal class Camera1(
             }
             adjustCameraParameters()
             camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
-            listener.onCameraOpened()
+            GlobalScope.launch(Dispatchers.Main) { listener.onCameraOpened() }
         } catch (e: RuntimeException) {
             listener.onCameraError(e)
         }
@@ -400,7 +403,7 @@ internal class Camera1(
     private fun releaseCamera() {
         camera?.release()
         camera = null
-        listener.onCameraClosed()
+        GlobalScope.launch(Dispatchers.Main) { listener.onCameraClosed() }
     }
 
     /**

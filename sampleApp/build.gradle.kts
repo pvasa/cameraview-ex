@@ -82,6 +82,10 @@ dependencies {
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)
 
+    // Coroutines
+    implementation(Config.Libs.coroutinesCore)
+    implementation(Config.Libs.coroutinesAndroid)
+
     // Android support
     implementation(Config.Libs.appcompatV7)
     implementation(Config.Libs.constraintLayout)
