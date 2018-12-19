@@ -22,7 +22,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.4.1"
+    implementation "com.priyankvasa.android:cameraview-ex:2.4.2"
 }
 ```
 
