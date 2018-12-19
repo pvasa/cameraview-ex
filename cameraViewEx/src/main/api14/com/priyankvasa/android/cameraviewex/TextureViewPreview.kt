@@ -52,13 +52,13 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
                 setSize(width, height)
                 configureTransform()
-                dispatchSurfaceChanged()
+                surfaceChangeListener?.invoke()
             }
 
             override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
                 setSize(width, height)
                 configureTransform()
-                dispatchSurfaceChanged()
+                surfaceChangeListener?.invoke()
             }
 
             override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
@@ -68,6 +68,8 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
 
             override fun onSurfaceTextureUpdated(surface: SurfaceTexture) = Unit
         }
+
+        textureView.setOnTouchListener { _, event -> surfaceTouchListener?.invoke(event) ?: false }
     }
 
     // This method is called only from Camera2.

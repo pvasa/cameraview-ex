@@ -19,16 +19,23 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
+import android.content.Context
+import android.graphics.Rect
+import android.graphics.RectF
 import android.media.ImageReader
 import android.os.Build
+import android.support.v4.math.MathUtils
 import android.view.View
 import java.io.File
+import kotlin.math.roundToInt
 
 internal interface CameraInterface {
 
     val preview: PreviewImpl
 
     val view: View get() = preview.view
+
+    val context: Context get() = view.context
 
     val listener: Listener
 
@@ -92,9 +99,32 @@ internal interface CameraInterface {
 
     fun stopVideoRecording(): Boolean
 
+    fun calculateTouchArea(
+            surfaceWidth: Int,
+            surfaceHeight: Int,
+            x: Float,
+            y: Float,
+            coefficient: Float = 1.5f
+    ): Rect {
+
+        val areaSize = 100 * coefficient
+
+        val left = MathUtils.clamp(x - areaSize / 2, 0f, surfaceWidth - areaSize)
+        val top = MathUtils.clamp(y - areaSize / 2, 0f, surfaceHeight - areaSize)
+
+        val rectF = RectF(left, top, left + areaSize, top + areaSize)
+
+        return Rect(
+                rectF.left.roundToInt(),
+                rectF.top.roundToInt(),
+                rectF.right.roundToInt(),
+                rectF.bottom.roundToInt()
+        )
+    }
+
     interface Listener {
-        fun onCameraOpened()
-        fun onCameraClosed()
+        suspend fun onCameraOpened()
+        suspend fun onCameraClosed()
         fun onPictureTaken(imageData: ByteArray)
         fun onCameraError(e: Exception)
 

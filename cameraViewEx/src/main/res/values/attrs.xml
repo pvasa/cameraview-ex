@@ -31,7 +31,7 @@
         <!-- Continuous auto focus mode. -->
         <attr name="autoFocus" format="boolean" />
 
-        <!--<attr name="touchToFocus" format="boolean" />-->
+        <attr name="touchToFocus" format="boolean" />
 
         <attr name="awb" format="enum">
             <enum name="off" value="0" />

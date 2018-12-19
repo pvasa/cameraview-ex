@@ -27,6 +27,9 @@ import android.hardware.Camera
 import android.os.Build
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -195,12 +198,12 @@ internal class Camera1(
         }
 
     init {
-        preview.setCallback(object : PreviewImpl.Callback {
-            override fun onSurfaceChanged() {
-                setUpPreview()
-                adjustCameraParameters()
-            }
-        })
+        preview.surfaceChangeListener = ::onPreviewSurfaceChanged
+    }
+
+    private fun onPreviewSurfaceChanged() {
+        setUpPreview()
+        adjustCameraParameters()
     }
 
     override fun start(): Boolean {
@@ -333,7 +336,7 @@ internal class Camera1(
             }
             adjustCameraParameters()
             camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
-            listener.onCameraOpened()
+            GlobalScope.launch(Dispatchers.Main) { listener.onCameraOpened() }
         } catch (e: RuntimeException) {
             listener.onCameraError(e)
         }
@@ -400,7 +403,7 @@ internal class Camera1(
     private fun releaseCamera() {
         camera?.release()
         camera = null
-        listener.onCameraClosed()
+        GlobalScope.launch(Dispatchers.Main) { listener.onCameraClosed() }
     }
 
     /**

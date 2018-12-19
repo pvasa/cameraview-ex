@@ -11,9 +11,6 @@ import android.renderscript.RenderScript
 import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import java.io.ByteArrayOutputStream
 
 /**
@@ -25,25 +22,22 @@ import java.io.ByteArrayOutputStream
  */
 @Throws(IllegalStateException::class, IllegalArgumentException::class)
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-internal fun Image.decode(
-        outputFormat: Int,
-        rs: RenderScript
-): Deferred<ByteArray> = GlobalScope.async {
+internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
 
     val image = this@decode
 
-    return@async when (image.format) {
+    return when (image.format) {
 
         ImageFormat.JPEG -> with(image.planes[0].buffer) {
             rewind()
-            ByteArray(remaining()).also { get(it) }
+            ByteArray(limit()).also { get(it) }
         }
 
         ImageFormat.YUV_420_888 -> when (outputFormat) {
             Modes.OutputFormat.YUV_420_888 -> ImageProcessor.yuvImageData(image)
             Modes.OutputFormat.RGBA_8888 -> ImageProcessor.yuvToRgbNative(image, rs)
             else -> throw IllegalArgumentException("Output format $outputFormat is invalid.")
-        }.await()
+        }
 
         else -> throw IllegalArgumentException("${image.format} is not supported.")
     }
@@ -52,7 +46,7 @@ internal fun Image.decode(
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal object ImageProcessor {
 
-    internal fun yuvImageData(image: Image): Deferred<ByteArray> = GlobalScope.async {
+    suspend fun yuvImageData(image: Image): ByteArray {
 
         val imageWidth = image.width
         val imageHeight = image.height
@@ -73,7 +67,7 @@ internal object ImageProcessor {
         val v = ByteArray(vBuffer.remaining())
         vBuffer.get(v)
 
-        return@async ByteArrayOutputStream(imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8).apply {
+        return ByteArrayOutputStream(imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8).apply {
             write(y)
             write(u)
             write(v)
@@ -116,7 +110,7 @@ internal object ImageProcessor {
         return@async imageData*/
     }
 
-    internal fun yuvToN21(image: Image): Deferred<ByteArray> = GlobalScope.async {
+    suspend fun yuvToN21(image: Image): ByteArray {
 
         val width = image.width
         val ySize = width * image.height
@@ -162,10 +156,10 @@ internal object ImageProcessor {
             }
         }
 
-        return@async nv21
+        return nv21
     }
 
-    internal fun yuvToRgbNative(image: Image, rs: RenderScript): Deferred<ByteArray> = GlobalScope.async {
+    suspend fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
 
         val width = image.width
         val height = image.height
@@ -234,15 +228,15 @@ internal object ImageProcessor {
         outAlloc.copyTo(rgbData)
         outAlloc.copyTo(outBitmap)
 
-        return@async rgbData
+        return rgbData
     }
 
-    internal fun yuvToRgb(image: Image, rs: RenderScript): Deferred<ByteArray> = GlobalScope.async {
+    suspend fun yuvToRgb(image: Image, rs: RenderScript): ByteArray {
 
         val imageWidth = image.width
         val imageHeight = image.height
 
-        val imageData = yuvImageData(image).await()
+        val imageData = yuvImageData(image)
 
         val yuvType = Type.Builder(rs, Element.U8(rs))
                 .setX(imageWidth)
@@ -284,6 +278,6 @@ internal object ImageProcessor {
         yuvType.destroy()
         rgbType.destroy()
 
-        return@async rgbData
+        return rgbData
     }
 }
