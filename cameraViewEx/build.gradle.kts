@@ -182,11 +182,11 @@ tasks.getByName("dokka") {
     skipDeprecated = false
 
     // Emit warnings about not documented members. Applies globally, also can be overridden by packageOptions
-    reportUndocumented = true
+    reportUndocumented = false
 
     skipEmptyPackages = true // Do not create index pages for empty packages
 
-    impliedPlatforms = mutableListOf("JVM") // See platforms section of documentation
+    impliedPlatforms = mutableListOf("JVM", "Android") // See platforms section of documentation
 
     // Manual adding files to classpath
     // This property not overrides classpath collected from kotlinTasks but appends to it
