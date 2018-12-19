@@ -38,6 +38,13 @@ internal class ShutterView @JvmOverloads constructor(
 
     private val defaultShutterColor = ActivityCompat.getColor(context, android.R.color.black)
 
+    internal var shutterTime = Modes.DEFAULT_SHUTTER
+
+    init {
+        visibility = View.GONE
+        setBackgroundColor(defaultShutterColor)
+    }
+
     internal fun setShutterColor(@ColorRes colorRes: Int) {
         val color = try {
             ActivityCompat.getColor(context, colorRes)
@@ -46,13 +53,6 @@ internal class ShutterView @JvmOverloads constructor(
             defaultShutterColor
         }
         setBackgroundColor(color)
-    }
-
-    internal var shutterTime = Modes.DEFAULT_SHUTTER
-
-    init {
-        visibility = View.GONE
-        setBackgroundColor(defaultShutterColor)
     }
 
     /**

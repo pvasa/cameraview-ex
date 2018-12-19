@@ -43,7 +43,7 @@ open class CameraFragment : Fragment() {
                 ivPlayPause.isActivated = false
                 ivCaptureButton.isActivated = false
             } else {
-                startVideoRecording(File(videoOutputDirectory, "1.mp4"))
+                startVideoRecording(File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4"))
                 ivPlayPause.visibility = View.VISIBLE
                 ivPlayPause.isActivated = true
                 ivCaptureButton.isActivated = true

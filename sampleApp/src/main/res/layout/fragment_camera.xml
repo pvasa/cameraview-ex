@@ -62,7 +62,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="true"
         app:awb="auto"
-        app:cameraMode="video_capture"
+        app:cameraMode="single_capture"
         app:facing="back"
         app:flash="auto"
         app:layout_constraintEnd_toEndOf="parent"
@@ -72,6 +72,7 @@
         app:opticalStabilization="true"
         app:outputFormat="jpeg"
         app:shutter="short_time"
+        app:touchToFocus="true"
         app:videoStabilization="true"
         app:zsl="true" />
 

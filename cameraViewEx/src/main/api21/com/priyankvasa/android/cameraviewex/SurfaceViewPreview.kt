@@ -50,7 +50,7 @@ internal class SurfaceViewPreview(context: Context, parent: ViewGroup) : Preview
 
             override fun surfaceChanged(h: SurfaceHolder, format: Int, width: Int, height: Int) {
                 setSize(width, height)
-                if (!ViewCompat.isInLayout(surfaceView)) dispatchSurfaceChanged()
+                if (!ViewCompat.isInLayout(surfaceView)) surfaceChangeListener?.invoke()
             }
 
             override fun surfaceDestroyed(h: SurfaceHolder) {

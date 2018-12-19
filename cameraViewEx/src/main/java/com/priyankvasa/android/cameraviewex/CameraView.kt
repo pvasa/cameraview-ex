@@ -32,10 +32,9 @@ import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import com.priyankvasa.android.cameraviewex.extension.getValue
+import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 
@@ -83,14 +82,12 @@ class CameraView @JvmOverloads constructor(
             cameraClosedListeners.clear()
         }
 
-        override fun onCameraOpened() {
-            GlobalScope.launch(Dispatchers.Main) {
-                if (requestLayoutOnOpen) {
-                    requestLayoutOnOpen = false
-                    requestLayout()
-                }
-                cameraOpenedListeners.forEach { it() }
+        override suspend fun onCameraOpened() {
+            if (requestLayoutOnOpen) {
+                requestLayoutOnOpen = false
+                requestLayout()
             }
+            cameraOpenedListeners.forEach { it() }
         }
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -106,8 +103,8 @@ class CameraView @JvmOverloads constructor(
             cameraErrorListeners.forEach { it(e) }
         }
 
-        override fun onCameraClosed() {
-            GlobalScope.launch(Dispatchers.Main) { cameraClosedListeners.forEach { it() } }
+        override suspend fun onCameraClosed() {
+            cameraClosedListeners.forEach { it.invoke() }
         }
     }
 
@@ -178,7 +175,7 @@ class CameraView @JvmOverloads constructor(
     var autoFocus: Boolean by camera::autoFocus
 
     /** Set touch to focus mode. True is on and false if off. */
-    private var touchToFocus: Boolean by camera::touchToFocus
+    var touchToFocus: Boolean by camera::touchToFocus
 
     /**
      * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
@@ -251,7 +248,7 @@ class CameraView @JvmOverloads constructor(
                         }
 
                 autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
-//            touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+                touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
                 awb = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
                 flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 //            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)

@@ -151,7 +151,7 @@ object Modes {
     const val DEFAULT_OUTPUT_FORMAT = OutputFormat.JPEG
     const val DEFAULT_FACING = Facing.FACING_BACK
     const val DEFAULT_AUTO_FOCUS = false
-    internal const val DEFAULT_TOUCH_TO_FOCUS = false
+    const val DEFAULT_TOUCH_TO_FOCUS = false
     const val DEFAULT_OPTICAL_STABILIZATION = false
     const val DEFAULT_VIDEO_STABILIZATION = false
     const val DEFAULT_FLASH = Flash.FLASH_OFF

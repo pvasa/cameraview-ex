@@ -11,7 +11,7 @@ import android.os.Build
  * A [CameraCaptureSession.CaptureCallback] for capturing a still picture.
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-internal abstract class PictureCaptureCallback internal constructor() : CameraCaptureSession.CaptureCallback() {
+internal abstract class PictureCaptureCallback : CameraCaptureSession.CaptureCallback() {
 
     private var state: Int = 0
 
@@ -36,7 +36,9 @@ internal abstract class PictureCaptureCallback internal constructor() : CameraCa
     }
 
     private fun process(result: CaptureResult) {
+
         when (state) {
+
             STATE_LOCKING -> {
                 when (result.get(CaptureResult.CONTROL_AF_STATE) ?: return) { // af state
                     CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED,
@@ -56,14 +58,24 @@ internal abstract class PictureCaptureCallback internal constructor() : CameraCa
                     }
                 }
             }
+
             STATE_PRE_CAPTURE -> {
-                val ae = result.get(CaptureResult.CONTROL_AE_STATE)
-                if (ae == null || ae == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                        ae == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED ||
-                        ae == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                    setState(STATE_WAITING)
+                when (result.get(CaptureResult.CONTROL_AE_STATE)) {
+                    null,
+                    CaptureResult.CONTROL_AE_STATE_PRECAPTURE,
+                    CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED,
+                    CaptureResult.CONTROL_AE_STATE_CONVERGED -> {
+                        setState(STATE_WAITING)
+                        return
+                    }
+                }
+                when (result.get(CaptureResult.CONTROL_AWB_STATE)) {
+                    null,
+                    CaptureResult.CONTROL_AWB_STATE_SEARCHING,
+                    CaptureResult.CONTROL_AWB_STATE_CONVERGED -> setState(STATE_WAITING)
                 }
             }
+
             STATE_WAITING -> {
                 val ae = result.get(CaptureResult.CONTROL_AE_STATE)
                 if (ae == null || ae != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
