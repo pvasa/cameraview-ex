@@ -210,13 +210,6 @@ class CameraView @JvmOverloads constructor(
     var opticalStabilization: Boolean by camera::opticalStabilization
 
     /**
-     * Turn on or off video stabilization for video recording.
-     * Updating this flag only takes effect when a new video recording is started after setting the flag.
-     * See [android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE]
-     */
-    var videoStabilization: Boolean by camera::videoStabilization
-
-    /**
      * Set noise reduction mode. Supported values are [Modes.NoiseReduction].
      * See [android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE]
      */
@@ -264,7 +257,6 @@ class CameraView @JvmOverloads constructor(
                 flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 //            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
                 opticalStabilization = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
-                videoStabilization = getBoolean(R.styleable.CameraView_videoStabilization, Modes.DEFAULT_VIDEO_STABILIZATION)
                 noiseReduction = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
                 shutter = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
                 zsl = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
@@ -369,7 +361,6 @@ class CameraView @JvmOverloads constructor(
                     awb,
                     flash,
                     opticalStabilization,
-                    videoStabilization,
                     noiseReduction,
                     shutter,
                     zsl
@@ -392,7 +383,6 @@ class CameraView @JvmOverloads constructor(
             awb = it.awb
             flash = it.flash
             opticalStabilization = it.opticalStabilization
-            videoStabilization = it.videoStabilization
             noiseReduction = it.noiseReduction
             shutter = it.shutter
             zsl = it.zsl
@@ -549,15 +539,19 @@ class CameraView @JvmOverloads constructor(
     /**
      * Start capturing video.
      * @param outputFile where video will be saved
+     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
      */
     @RequiresPermission(allOf = [
         Manifest.permission.CAMERA,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.RECORD_AUDIO
     ])
-    fun startVideoRecording(outputFile: File) {
-        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) camera.startVideoRecording(outputFile)
-        else listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
+    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}) {
+        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) {
+            camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
+        } else {
+            listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
+        }
     }
 
     /**
@@ -593,7 +587,6 @@ class CameraView @JvmOverloads constructor(
             val awb: Int,
             val flash: Int,
             val opticalStabilization: Boolean,
-            val videoStabilization: Boolean,
             val noiseReduction: Int,
             val shutter: Int,
             val zsl: Boolean

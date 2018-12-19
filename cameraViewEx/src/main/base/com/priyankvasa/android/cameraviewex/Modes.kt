@@ -166,7 +166,6 @@ object Modes {
     const val DEFAULT_AUTO_FOCUS = false
     const val DEFAULT_TOUCH_TO_FOCUS = false
     const val DEFAULT_OPTICAL_STABILIZATION = false
-    const val DEFAULT_VIDEO_STABILIZATION = false
     const val DEFAULT_FLASH = Flash.FLASH_OFF
     const val DEFAULT_NOISE_REDUCTION = NoiseReduction.NOISE_REDUCTION_OFF
     const val DEFAULT_SHUTTER = Shutter.SHUTTER_OFF

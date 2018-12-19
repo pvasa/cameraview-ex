@@ -66,8 +66,6 @@ internal interface CameraInterface {
 
     var opticalStabilization: Boolean
 
-    var videoStabilization: Boolean
-
     @Modes.NoiseReduction
     var noiseReduction: Int
 
@@ -92,7 +90,7 @@ internal interface CameraInterface {
 
     fun takePicture()
 
-    fun startVideoRecording(outputFile: File)
+    fun startVideoRecording(outputFile: File, config: VideoConfiguration)
 
     @TargetApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean
