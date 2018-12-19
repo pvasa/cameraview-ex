@@ -46,7 +46,6 @@ dependencies {
     app:outputFormat="jpeg"
     app:shutter="short_time"
     app:touchToFocus="true"
-    app:videoStabilization="true"
     app:zsl="true" />
 
 <!-- Or to apply all those params as mentioned above use Widget.CameraView style -->
@@ -102,7 +101,12 @@ camera.setPreviewFrameListener { image: Image -> /* Preview frame available. */ 
 #### Record video
 ```kotlin
 camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
-camera.startVideoRecording(outputFile)
+camera.startVideoRecording(outputFile) {
+    // Configure video (MediaRecorder) parameters
+    audioEncoder = AudioEncoder.Aac
+    videoFrameRate = 120
+    videoStabilization = true
+}
 // When done recording
 camera.stopVideoRecording()
 
@@ -124,7 +128,6 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | app:flash                | **off**, on, torch, auto, redEye                       |
 | app:awb                  | **off**, auto, incandescent, fluorescent, warm_fluorescent, <br/> daylight, cloudy_daylight, twilight, shade |
 | app:opticalStabilization | **false**, true                                        |
-| app:videoStabilization   | **false**, true                                        |
 | app:noiseReduction       | **off**, fast, high_quality, minimal, zero_shutter_lag |
 | app:shutter              | **off**, short_time, long_time                         |
 | app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |

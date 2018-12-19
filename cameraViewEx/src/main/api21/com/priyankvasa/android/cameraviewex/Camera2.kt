@@ -389,8 +389,6 @@ internal open class Camera2(
             }
         }
 
-    override var videoStabilization: Boolean = Modes.DEFAULT_VIDEO_STABILIZATION
-
     override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
         set(value) {
             if (field == value) return
@@ -1031,7 +1029,7 @@ internal open class Camera2(
         }
     }
 
-    override fun startVideoRecording(outputFile: File) {
+    override fun startVideoRecording(outputFile: File, config: VideoConfiguration) {
 
         val videoSize = chooseOptimalSize(Template.Record)
 
@@ -1042,15 +1040,15 @@ internal open class Camera2(
                         listener.onCameraError(t as Exception)
                         return
                     }
-            setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
+            setAudioSource(config.audioSource.value)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setOutputFormat(config.outputFormat.value)
             setOutputFile(outputFile.absolutePath)
-            setVideoEncodingBitRate(10000000)
-            setVideoFrameRate(60)
+            setVideoEncodingBitRate(config.videoEncodingBitRate)
+            setVideoFrameRate(config.videoFrameRate)
             setVideoSize(videoSize.width, videoSize.height)
-            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setVideoEncoder(config.videoEncoder.value)
+            setAudioEncoder(config.audioEncoder.value)
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 return
@@ -1092,7 +1090,7 @@ internal open class Camera2(
                     set(CaptureRequest.CONTROL_AWB_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AWB_MODE))
 
                     val videoStabilizationMode =
-                            if (videoStabilization) CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
+                            if (config.videoStabilization) CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
                             else CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
 
                     set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, videoStabilizationMode)

@@ -74,7 +74,6 @@
         app:outputFormat="jpeg"
         app:shutter="short_time"
         app:touchToFocus="true"
-        app:videoStabilization="true"
         app:zsl="true" />
 
     <TextView

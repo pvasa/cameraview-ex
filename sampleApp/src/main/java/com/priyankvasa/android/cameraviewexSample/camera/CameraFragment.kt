@@ -17,6 +17,7 @@ import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
+import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewexSample.Direction
 import com.priyankvasa.android.cameraviewexSample.OnSwipeListener
@@ -60,7 +61,13 @@ open class CameraFragment : Fragment() {
             ivPlayPause.isActivated = false
             ivCaptureButton.isActivated = false
         } else {
-            videoFile = nextVideoFile.also { f -> camera.startVideoRecording(f) }
+            videoFile = nextVideoFile.also { outputFile ->
+                camera.startVideoRecording(outputFile) {
+                    audioEncoder = AudioEncoder.Aac
+                    videoFrameRate = 120
+                    videoStabilization = true
+                }
+            }
             ivPlayPause.visibility = View.VISIBLE
             ivPlayPause.isActivated = true
             ivCaptureButton.isActivated = true
