@@ -20,6 +20,7 @@
         <item name="autoFocus">true</item>
         <item name="flash">auto</item>
         <item name="touchToFocus">true</item>
+        <item name="pinchToZoom">true</item>
         <item name="awb">auto</item>
         <!--<item name="ae">true</item>-->
         <item name="opticalStabilization">true</item>

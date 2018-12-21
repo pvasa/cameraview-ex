@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.priyankvasa.android.cameraviewex
 
 import android.graphics.Rect
 import android.graphics.SurfaceTexture
-import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
@@ -40,11 +40,13 @@ internal abstract class PreviewImpl {
 
     internal var surfaceChangeListener: (() -> Unit)? = null
 
-    internal var surfaceTouchListener: ((event: MotionEvent?) -> Boolean)? = null
+    internal var surfaceTapListener: ((x: Float, y: Float) -> Boolean)? = null
+
+    internal var surfacePinchListener: ((scaleFactor: Float) -> Boolean)? = null
 
     internal abstract val view: View
 
-    internal val overlayView: PreviewOverlayView by lazy { PreviewOverlayView(view.context) }
+    private val overlayView: PreviewOverlayView by lazy { PreviewOverlayView(view.context) }
 
     internal val shutterView: ShutterView by lazy { ShutterView(view.context) }
 
@@ -65,7 +67,7 @@ internal abstract class PreviewImpl {
         this.height = height
     }
 
-    internal fun markTouchArea(rects: Array<Rect>) {
+    internal fun markTouchAreas(rects: Array<Rect>) {
 
         (view.parent as? ViewGroup)?.run {
             overlayView.rects = rects

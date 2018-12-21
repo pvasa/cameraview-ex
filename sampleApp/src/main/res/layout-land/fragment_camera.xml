@@ -82,9 +82,20 @@
         android:text="Barcodes"
         android:textColor="@color/white"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
         tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivCameraSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="32dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_camera_switch"
+        app:layout_constraintEnd_toEndOf="@id/ivCaptureButton"
+        app:layout_constraintStart_toStartOf="@id/ivCaptureButton"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/ivPlayPause"

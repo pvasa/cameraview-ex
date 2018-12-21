@@ -41,7 +41,6 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.renderscript.RenderScript
 import android.util.SparseIntArray
-import android.view.MotionEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -56,7 +55,6 @@ internal open class Camera2(
 
     init {
         preview.surfaceChangeListener = ::startPreviewCaptureSession
-        preview.surfaceTouchListener = ::onPreviewSurfaceTouched
     }
 
     private val rs = RenderScript.create(context)
@@ -330,7 +328,14 @@ internal open class Camera2(
         set(value) {
             if (field == value) return
             field = value
-            preview.surfaceTouchListener = if (field) ::onPreviewSurfaceTouched else null
+            preview.surfaceTapListener = if (field) ::onPreviewSurfaceTapped else null
+        }
+
+    override var pinchToZoom: Boolean = Modes.DEFAULT_PINCH_TO_ZOOM
+        set(value) {
+            if (field == value) return
+            field = value
+            preview.surfacePinchListener = if (field) ::onPreviewSurfacePinched else null
         }
 
     override var awb: Int = Modes.DEFAULT_AWB
@@ -420,34 +425,55 @@ internal open class Camera2(
             }
         }
 
+    private val digitalZoom: DigitalZoom = DigitalZoom { cameraCharacteristics }
+
+    override var currentDigitalZoom: Float = 1f
+        get() = digitalZoom.currentZoom
+        set(value) {
+            if (field == value) return
+            digitalZoom.currentZoom = value
+            updateScalerCropRegion(digitalZoom.cropRegionForCurrentZoom)
+        }
+
+    override val maxDigitalZoom: Float get() = digitalZoom.maxZoom
+
     private var manualFocusEngaged = false
 
-    private fun onPreviewSurfaceTouched(motionEvent: MotionEvent?): Boolean {
+    private val isMeteringAreaAFSupported: Boolean
+        get() = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) ?: 0 > 0
+
+    private val isMeteringAreaAESupported: Boolean
+        get() = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE) ?: 0 > 0
+
+    private val isMeteringAreaAWBSupported: Boolean
+        get() = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AWB) ?: 0 > 0
+
+    private fun onPreviewSurfaceTapped(x: Float, y: Float): Boolean {
 
         val previewRequestBuilder = previewRequestBuilder
 
         if (!isMeteringAreaAFSupported ||
-                motionEvent == null ||
                 previewRequestBuilder == null ||
-                motionEvent.actionMasked != MotionEvent.ACTION_DOWN ||
                 manualFocusEngaged) {
             return false
         }
 
-        val sensorArraySize: Rect = cameraCharacteristics
+        val sensorRect: Rect = cameraCharacteristics
                 ?.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
                 ?: return false
 
-        val tapAreaRect = calculateTouchArea(
-                sensorArraySize.width() - 1,
-                sensorArraySize.height() - 1,
-                motionEvent.x,
-                motionEvent.y
+        val tapRect = calculateTouchAreaRect(
+                sensorRect.width() - 1,
+                sensorRect.height() - 1,
+                centerX = x,
+                centerY = y
         )
 
-        preview.markTouchArea(arrayOf(tapAreaRect))
+        preview.markTouchAreas(arrayOf(tapRect))
 
-        val focusAreaTouch = MeteringRectangle(tapAreaRect, MeteringRectangle.METERING_WEIGHT_MAX)
+        val focusAreaMeteringRect = MeteringRectangle(tapRect, MeteringRectangle.METERING_WEIGHT_MAX)
+
+        val sensorAreaMeteringRect = MeteringRectangle(sensorRect, MeteringRectangle.METERING_WEIGHT_MIN)
 
         val captureCallback = object : CameraCaptureSession.CaptureCallback() {
 
@@ -456,20 +482,30 @@ internal open class Camera2(
                     request: CaptureRequest,
                     result: TotalCaptureResult
             ) {
-                super.onCaptureCompleted(session, request, result)
+                val afState = result.get(CaptureResult.CONTROL_AF_STATE)
+                val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
+                val awbState = result.get(CaptureResult.CONTROL_AWB_STATE)
 
-                if (result.get(CaptureResult.CONTROL_AF_MODE) != CaptureResult.CONTROL_AF_MODE_AUTO) return
-
-                previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
+                if (afState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED &&
+                        afState != CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED &&
+                        aeState != CaptureResult.CONTROL_AE_STATE_CONVERGED &&
+                        aeState != CaptureResult.CONTROL_AE_STATE_LOCKED &&
+                        awbState != CaptureResult.CONTROL_AWB_STATE_CONVERGED &&
+                        awbState != CaptureResult.CONTROL_AWB_STATE_LOCKED) return
 
                 runCatching {
 
-                    captureSession?.capture(previewRequestBuilder.build(), null, backgroundHandler)
-
                     previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL)
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        previewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL)
+                    }
+
                     captureSession?.capture(previewRequestBuilder.build(), null, backgroundHandler)
 
                     previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
+                    previewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE)
+
                     captureSession?.setRepeatingRequest(
                             previewRequestBuilder.build(),
                             defaultCaptureCallback,
@@ -484,46 +520,77 @@ internal open class Camera2(
         }
 
         runCatching {
-            // First stop the existing repeating request
-            captureSession?.stopRepeating()
-
             // Cancel any existing AF trigger (repeated touches, etc.)
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL)
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                previewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL)
+            }
+
             captureSession?.capture(previewRequestBuilder.build(), null, backgroundHandler)
 
             // Add a new AE trigger with focus region
             if (isMeteringAreaAESupported) {
-                previewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, arrayOf(focusAreaTouch))
+                previewRequestBuilder.set(
+                        CaptureRequest.CONTROL_AE_REGIONS,
+                        arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
+                )
             }
 
             // Add a new AWB trigger with focus region
             if (isMeteringAreaAWBSupported) {
-                previewRequestBuilder.set(CaptureRequest.CONTROL_AWB_REGIONS, arrayOf(focusAreaTouch))
+                previewRequestBuilder.set(
+                        CaptureRequest.CONTROL_AWB_REGIONS,
+                        arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
+                )
             }
 
             // Now add a new AF trigger with focus region
-            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, arrayOf(focusAreaTouch))
+            previewRequestBuilder.set(
+                    CaptureRequest.CONTROL_AF_REGIONS,
+                    arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
+            )
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
 
-            // Then we ask for a single request (not repeating!)
-            captureSession?.setRepeatingRequest(previewRequestBuilder.build(), captureCallback, backgroundHandler)
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START)
+
+            captureSession
+                    ?.setRepeatingRequest(previewRequestBuilder.build(), captureCallback, backgroundHandler)
+                    ?: return false
 
             manualFocusEngaged = true
 
-        }.onFailure { t -> listener.onCameraError(Exception("Failed to lock focus.", t)) }
+        }.onFailure { t ->
+            listener.onCameraError(Exception("Failed to lock focus.", t))
+            return false
+        }
 
         return true
     }
 
-    private val isMeteringAreaAFSupported: Boolean
-        get() = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) ?: 0 > 0
+    private fun onPreviewSurfacePinched(scaleFactor: Float): Boolean =
+            updateScalerCropRegion(digitalZoom.getCropRegionForScaleFactor(scaleFactor))
 
-    private val isMeteringAreaAESupported: Boolean
-        get() = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE) ?: 0 > 0
+    private fun updateScalerCropRegion(cropRect: Rect?): Boolean {
 
-    private val isMeteringAreaAWBSupported: Boolean
-        get() = cameraCharacteristics?.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AWB) ?: 0 > 0
+        cropRect ?: return false
+
+        val previewRequestBuilder = previewRequestBuilder ?: return false
+
+        previewRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, cropRect)
+
+        runCatching {
+            captureSession?.setRepeatingRequest(
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
+            ) ?: return false
+        }.onFailure { return false }
+
+        return true
+    }
 
     /**
      * Starts a background thread and its [Handler].
@@ -920,9 +987,9 @@ internal open class Camera2(
     private fun updateOpticalStabilization() {
         if (opticalStabilization) {
             val modes = cameraCharacteristics?.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION)
-            if (modes == null
-                    || modes.isEmpty()
-                    || (modes.size == 1 && modes[0] == CameraCharacteristics.LENS_OPTICAL_STABILIZATION_MODE_OFF)) {
+            if (modes == null ||
+                    modes.isEmpty() ||
+                    (modes.size == 1 && modes[0] == CameraCharacteristics.LENS_OPTICAL_STABILIZATION_MODE_OFF)) {
                 previewRequestBuilder?.set(
                         CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
                         CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
@@ -944,15 +1011,16 @@ internal open class Camera2(
     private fun updateNoiseReduction() {
         previewRequestBuilder?.apply {
             val modes = cameraCharacteristics?.get(CameraCharacteristics.NOISE_REDUCTION_AVAILABLE_NOISE_REDUCTION_MODES)
-            if (modes == null
-                    || modes.isEmpty()
-                    || (modes.size == 1 && modes[0] == CameraCharacteristics.NOISE_REDUCTION_MODE_OFF)) {
+            if (modes == null ||
+                    modes.isEmpty() ||
+                    (modes.size == 1 && modes[0] == CameraCharacteristics.NOISE_REDUCTION_MODE_OFF)) {
                 set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF)
             } else if (modes.contains(noiseReduction)) set(CaptureRequest.NOISE_REDUCTION_MODE, noiseReduction)
         }
     }
 
     fun updateModes() {
+        previewRequestBuilder?.set(CaptureRequest.SCALER_CROP_REGION, digitalZoom.cropRegionForCurrentZoom)
         updateAutoFocus()
         updateFlash()
         updateAutoWhiteBalance()
@@ -1007,6 +1075,7 @@ internal open class Camera2(
 
                 addTarget(surface)
 
+                set(CaptureRequest.SCALER_CROP_REGION, previewRequestBuilder?.get(CaptureRequest.SCALER_CROP_REGION))
                 set(CaptureRequest.CONTROL_AF_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AF_MODE))
                 set(CaptureRequest.CONTROL_AWB_MODE, previewRequestBuilder?.get(CaptureRequest.CONTROL_AWB_MODE))
                 set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, previewRequestBuilder?.get(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE))
@@ -1080,6 +1149,8 @@ internal open class Camera2(
         videoRequestBuilder = camera?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
                 ?.apply {
                     surfaces.forEach(::addTarget)
+
+                    set(CaptureRequest.SCALER_CROP_REGION, previewRequestBuilder?.get(CaptureRequest.SCALER_CROP_REGION))
 
                     val afMode = when (previewRequestBuilder?.get(CaptureRequest.CONTROL_AF_MODE)) {
                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE -> CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
