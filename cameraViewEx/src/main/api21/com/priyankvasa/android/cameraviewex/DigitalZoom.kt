@@ -28,6 +28,14 @@ internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCha
 
     /** Current zoom value. */
     var currentZoom: Float = 1f
+        set(value) {
+            field = when {
+                field == value -> return
+                value > maxZoom -> maxZoom
+                value < 1f -> 1f
+                else -> value
+            }
+        }
 
     val cropRegionForCurrentZoom: Rect? get() = getCropRegionForZoom(currentZoom)
 
