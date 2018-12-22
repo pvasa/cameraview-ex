@@ -3,12 +3,12 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 2
-    private const val minorVersion = 4
-    private const val patchVersion = 2
+    private const val minorVersion = 5
+    private const val patchVersion = 0
 
-    public val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
+    val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
 
-    public val versionCode: Int
+    val versionCode: Int
         get() = Android.minSdkLib * 10000000 +
                 majorVersion * 10000 +
                 minorVersion * 100 +

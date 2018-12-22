@@ -76,6 +76,15 @@ See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE</a></p>
 </tr>
 <tr>
 <td>
+<p><a href="current-digital-zoom.html">currentDigitalZoom</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">currentDigitalZoom</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html"><span class="identifier">Float</span></a></code>
+<p>Set digital zoom value. Must be between 1.0f and <a href="max-digital-zoom.html">maxDigitalZoom</a> inclusive.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="facing.html">facing</a></p>
 </td>
 <td>
@@ -115,6 +124,15 @@ Supported values are <a href="../-modes/-jpeg-quality/index.html">Modes.JpegQual
 </tr>
 <tr>
 <td>
+<p><a href="max-digital-zoom.html">maxDigitalZoom</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">maxDigitalZoom</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html"><span class="identifier">Float</span></a></code>
+<p>Maximum digital zoom supported by selected camera device.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="noise-reduction.html">noiseReduction</a></p>
 </td>
 <td>
@@ -145,6 +163,15 @@ Supported values are <a href="../-modes/-output-format/index.html">Modes.OutputF
 </tr>
 <tr>
 <td>
+<p><a href="pinch-to-zoom.html">pinchToZoom</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">pinchToZoom</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Allow pinch gesture on camera view for digital zooming. True is on and false is off.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="shutter.html">shutter</a></p>
 </td>
 <td>
@@ -167,7 +194,7 @@ Supported values are <a href="../-modes/-output-format/index.html">Modes.OutputF
 </td>
 <td>
 <code><span class="keyword">var </span><span class="identifier">touchToFocus</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
-<p>Set touch to focus mode. True is on and false if off.</p>
+<p>Allow manual focus on an area by tapping on camera view. True is on and false is off.</p>
 </td>
 </tr>
 <tr>

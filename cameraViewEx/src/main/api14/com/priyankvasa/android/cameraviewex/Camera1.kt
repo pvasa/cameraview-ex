@@ -146,6 +146,12 @@ internal class Camera1(
             // TODO("set internal")
         }
 
+    override var pinchToZoom: Boolean = Modes.DEFAULT_PINCH_TO_ZOOM
+
+    override var currentDigitalZoom: Float = 1f
+
+    override val maxDigitalZoom: Float = 1f
+
     override var awb: Int = Modes.DEFAULT_AWB
         get() = if (!isCameraOpened) field else Modes.DEFAULT_AWB // TODO("Check cameraParameters")
         set(value) {

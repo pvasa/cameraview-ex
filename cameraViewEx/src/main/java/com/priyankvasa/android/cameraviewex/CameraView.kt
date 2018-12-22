@@ -184,8 +184,17 @@ class CameraView @JvmOverloads constructor(
      */
     var autoFocus: Boolean by camera::autoFocus
 
-    /** Set touch to focus mode. True is on and false if off. */
+    /** Allow manual focus on an area by tapping on camera view. True is on and false is off. */
     var touchToFocus: Boolean by camera::touchToFocus
+
+    /** Allow pinch gesture on camera view for digital zooming. True is on and false is off. */
+    var pinchToZoom: Boolean by camera::pinchToZoom
+
+    /** Maximum digital zoom supported by selected camera device. */
+    val maxDigitalZoom: Float by camera::maxDigitalZoom
+
+    /** Set digital zoom value. Must be between 1.0f and [maxDigitalZoom] inclusive. */
+    var currentDigitalZoom: Float by camera::currentDigitalZoom
 
     /**
      * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
@@ -253,6 +262,7 @@ class CameraView @JvmOverloads constructor(
 
                 autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
                 touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+                pinchToZoom = getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
                 awb = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
                 flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 //            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
@@ -358,6 +368,8 @@ class CameraView @JvmOverloads constructor(
                     aspectRatio,
                     autoFocus,
                     touchToFocus,
+                    pinchToZoom,
+                    currentDigitalZoom,
                     awb,
                     flash,
                     opticalStabilization,
@@ -380,6 +392,9 @@ class CameraView @JvmOverloads constructor(
             facing = it.facing
             aspectRatio = it.ratio
             autoFocus = it.autoFocus
+            touchToFocus = it.touchToFocus
+            pinchToZoom = it.pinchToZoom
+            currentDigitalZoom = it.currentDigitalZoom
             awb = it.awb
             flash = it.flash
             opticalStabilization = it.opticalStabilization
@@ -584,6 +599,8 @@ class CameraView @JvmOverloads constructor(
             val ratio: AspectRatio,
             val autoFocus: Boolean,
             val touchToFocus: Boolean,
+            val pinchToZoom: Boolean,
+            val currentDigitalZoom: Float,
             val awb: Int,
             val flash: Int,
             val opticalStabilization: Boolean,

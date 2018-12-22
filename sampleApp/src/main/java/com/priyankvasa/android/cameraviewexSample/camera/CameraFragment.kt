@@ -9,7 +9,6 @@ import android.os.Environment
 import android.support.annotation.DrawableRes
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
-import android.support.v4.view.GestureDetectorCompat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,8 +18,6 @@ import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOption
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.Modes
-import com.priyankvasa.android.cameraviewexSample.Direction
-import com.priyankvasa.android.cameraviewexSample.OnSwipeListener
 import com.priyankvasa.android.cameraviewexSample.R
 import com.priyankvasa.android.cameraviewexSample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
@@ -73,24 +70,6 @@ open class CameraFragment : Fragment() {
             ivCaptureButton.isActivated = true
         }
         isVideoRecording = !isVideoRecording
-    }
-
-    private val gestureDetector: GestureDetectorCompat by lazy {
-        GestureDetectorCompat(
-                context,
-                object : OnSwipeListener() {
-                    override fun onSwipe(direction: Direction): Boolean {
-                        camera.facing = when (direction) {
-                            Direction.down,
-                            Direction.up ->
-                                if (camera.facing == Modes.Facing.FACING_BACK) Modes.Facing.FACING_FRONT
-                                else Modes.Facing.FACING_BACK
-                            else -> return false
-                        }
-                        return true
-                    }
-                }
-        )
     }
 
     private val barcodeDetectorOptions = FirebaseVisionBarcodeDetectorOptions.Builder()
@@ -151,11 +130,6 @@ open class CameraFragment : Fragment() {
             addCameraErrorListener { t -> Timber.e(t) }
 
             addCameraClosedListener { Timber.i("Camera closed.") }
-
-            setOnTouchListener { _, event ->
-                gestureDetector.onTouchEvent(event)
-                return@setOnTouchListener true
-            }
         }
     }
 
@@ -206,6 +180,7 @@ open class CameraFragment : Fragment() {
 
         ivBarcodeScanner.setOnClickListener {
             camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
+            camera.facing = Modes.Facing.FACING_BACK
             updateViewState()
         }
 
@@ -220,6 +195,14 @@ open class CameraFragment : Fragment() {
             isVideoRecording = !isVideoRecording
         }
 
+        ivCameraSwitch.setOnClickListener {
+            camera.facing = when (camera.facing) {
+                Modes.Facing.FACING_BACK -> Modes.Facing.FACING_FRONT
+                else -> Modes.Facing.FACING_BACK
+            }
+            updateViewState()
+        }
+
         ivPhoto.setOnClickListener { it.visibility = View.GONE }
     }
 
@@ -230,12 +213,14 @@ open class CameraFragment : Fragment() {
                 tvBarcodes.visibility = View.GONE
                 ivCaptureButton.visibility = View.VISIBLE
                 ivPlayPause.visibility = View.GONE
+                ivCameraSwitch.visibility = View.VISIBLE
                 context?.let { ivCaptureButton.setImageDrawable(ActivityCompat.getDrawable(it, R.drawable.ic_camera_capture)) }
                 ivCaptureButton.setOnClickListener(imageCaptureListener)
             }
             Modes.CameraMode.VIDEO_CAPTURE -> {
                 tvBarcodes.visibility = View.GONE
                 ivCaptureButton.visibility = View.VISIBLE
+                ivCameraSwitch.visibility = View.VISIBLE
                 context?.let { ivCaptureButton.setImageDrawable(ActivityCompat.getDrawable(it, R.drawable.ic_camera_video_capture)) }
                 ivCaptureButton.setOnClickListener(videoCaptureListener)
             }
@@ -243,9 +228,12 @@ open class CameraFragment : Fragment() {
                 tvBarcodes.visibility = View.VISIBLE
                 ivCaptureButton.visibility = View.GONE
                 ivPlayPause.visibility = View.GONE
+                ivCameraSwitch.visibility = View.GONE
                 ivCaptureButton.setOnClickListener(null)
             }
         }
+
+        ivCameraSwitch.isActivated = camera.facing != Modes.Facing.FACING_BACK
     }
 
     override fun onResume() {

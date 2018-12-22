@@ -25,7 +25,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.4.2"
+    implementation "com.priyankvasa.android:cameraview-ex:2.5.0"
 }
 ```
 
@@ -122,20 +122,24 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 
 ## Features
 
-| XML Attribute            | Possible Values <br/> (bold value is the default one)  |
-|--------------------------|--------------------------------------------------------|
-| app:cameraMode           | **single_capture**, continuous_frame, video_capture    |
-| app:facing               | **back**, front                                        |
-| app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_ |
-| app:autoFocus            | **false**, true                                        |
-| app:flash                | **off**, on, torch, auto, redEye                       |
-| app:awb                  | **off**, auto, incandescent, fluorescent, warm_fluorescent, <br/> daylight, cloudy_daylight, twilight, shade |
-| app:opticalStabilization | **false**, true                                        |
-| app:noiseReduction       | **off**, fast, high_quality, minimal, zero_shutter_lag |
-| app:shutter              | **off**, short_time, long_time                         |
-| app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
-| app:jpegQuality          | **default**, low, medium, high                         |
-| app:zsl                  | **false**, true                                        |
+| CameraView property       | XML Attribute            | Possible Values <br/> (bold value is the default one)  |
+|---------------------------|--------------------------|--------------------------------------------------------|
+| cameraMode                | app:cameraMode           | **single_capture**, continuous_frame, video_capture    |
+| facing                    | app:facing               | **back**, front                                        |
+| aspectRatio               | app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_ |
+| autoFocus                 | app:autoFocus            | **false**, true                                        |
+| flash                     | app:flash                | **off**, on, torch, auto, redEye                       |
+| awb                       | app:awb                  | **off**, auto, incandescent, fluorescent, warm_fluorescent, <br/> daylight, cloudy_daylight, twilight, shade |
+| opticalStabilization      | app:opticalStabilization | **false**, true                                        |
+| noiseReduction            | app:noiseReduction       | **off**, fast, high_quality, minimal, zero_shutter_lag |
+| shutter                   | app:shutter              | **off**, short_time, long_time                         |
+| outputFormat              | app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
+| jpegQuality               | app:jpegQuality          | **default**, low, medium, high                         |
+| zsl                       | app:zsl                  | **false**, true                                        |
+| isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise              |
+| supportedAspectRatios <br> (get only) | N/A          | Returns list of AspectRatio supported by selected camera |
+| maxDigitalZoom <br> (get only) | N/A                      | Returns a float value which is the maximum possible digital zoom value supported by selected camera |
+| currentDigitalZoom        | N/A                      | Set camera digital zoom value <br> Must be between 1.0 and maxDigitalZoom inclusive |
 
 _**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 

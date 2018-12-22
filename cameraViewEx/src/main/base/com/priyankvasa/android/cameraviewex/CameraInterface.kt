@@ -26,6 +26,7 @@ import android.media.ImageReader
 import android.os.Build
 import android.support.v4.math.MathUtils
 import android.view.View
+import com.priyankvasa.android.cameraviewex.extension.convertDpToPixelF
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -58,6 +59,8 @@ internal interface CameraInterface {
 
     var touchToFocus: Boolean
 
+    var pinchToZoom: Boolean
+
     @Modes.AutoWhiteBalance
     var awb: Int
 
@@ -75,6 +78,10 @@ internal interface CameraInterface {
 
     @Modes.JpegQuality
     var jpegQuality: Int
+
+    var currentDigitalZoom: Float
+
+    val maxDigitalZoom: Float
 
     /**
      * @return `true` if the implementation was able to start the camera session.
@@ -100,18 +107,18 @@ internal interface CameraInterface {
 
     fun stopVideoRecording(): Boolean
 
-    fun calculateTouchArea(
+    fun calculateTouchAreaRect(
             surfaceWidth: Int,
             surfaceHeight: Int,
-            x: Float,
-            y: Float,
-            coefficient: Float = 1.5f
+            centerX: Float,
+            centerY: Float,
+            sideLengthInDp: Float = 80f
     ): Rect {
 
-        val areaSize = 100 * coefficient
+        val areaSize: Float = context.convertDpToPixelF(sideLengthInDp)
 
-        val left = MathUtils.clamp(x - areaSize / 2, 0f, surfaceWidth - areaSize)
-        val top = MathUtils.clamp(y - areaSize / 2, 0f, surfaceHeight - areaSize)
+        val left = MathUtils.clamp(centerX - areaSize / 2, 0f, surfaceWidth - areaSize)
+        val top = MathUtils.clamp(centerY - areaSize / 2, 0f, surfaceHeight - areaSize)
 
         val rectF = RectF(left, top, left + areaSize, top + areaSize)
 

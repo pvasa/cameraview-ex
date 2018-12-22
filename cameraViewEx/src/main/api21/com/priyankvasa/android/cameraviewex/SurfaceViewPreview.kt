@@ -18,6 +18,7 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.support.v4.view.ViewCompat
 import android.view.Surface
@@ -27,7 +28,7 @@ import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.surface_view.view.*
 
-
+@SuppressLint("ClickableViewAccessibility")
 internal class SurfaceViewPreview(context: Context, parent: ViewGroup) : PreviewImpl() {
 
     val surfaceView: SurfaceView = View.inflate(context, R.layout.surface_view, parent).surfaceView
@@ -57,6 +58,12 @@ internal class SurfaceViewPreview(context: Context, parent: ViewGroup) : Preview
                 setSize(0, 0)
             }
         })
+
+        surfaceView.setOnTouchListener(SurfaceTouchListener(
+                context,
+                { x, y -> surfaceTapListener?.invoke(x, y) ?: false },
+                { scaleFactor -> surfacePinchListener?.invoke(scaleFactor) ?: false }
+        ))
     }
 
     override fun setDisplayOrientation(displayOrientation: Int) {}

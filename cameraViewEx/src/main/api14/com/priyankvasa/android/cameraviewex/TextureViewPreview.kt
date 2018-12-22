@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
@@ -69,7 +70,11 @@ internal class TextureViewPreview(context: Context, parent: ViewGroup) : Preview
             override fun onSurfaceTextureUpdated(surface: SurfaceTexture) = Unit
         }
 
-        textureView.setOnTouchListener { _, event -> surfaceTouchListener?.invoke(event) ?: false }
+        textureView.setOnTouchListener(SurfaceTouchListener(
+                context,
+                { x, y -> surfaceTapListener?.invoke(x, y) ?: false },
+                { scaleFactor -> surfacePinchListener?.invoke(scaleFactor) ?: false }
+        ))
     }
 
     // This method is called only from Camera2.
