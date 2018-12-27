@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.DrawableRes
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
@@ -29,7 +30,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
-open class CameraFragment : androidx.fragment.app.Fragment() {
+open class CameraFragment : Fragment() {
 
     private var isVideoRecording = false
 

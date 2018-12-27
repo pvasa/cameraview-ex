@@ -18,13 +18,13 @@ package com.priyankvasa.android.cameraviewex
 
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 
 internal class MutableLiveData<T>(
-        initialValue: T,
-        val defaultValue: T = initialValue
+        private val defaultValue: T
 ) : MutableLiveData<T>() {
 
-    internal var value: T = initialValue
+    internal var value: T = defaultValue
         get() = super.getValue() ?: defaultValue
         set(value) {
             if (field == value) return
@@ -34,16 +34,16 @@ internal class MutableLiveData<T>(
         }
 
     init {
-        value = initialValue
+        value = defaultValue
     }
 
-    private var lastValue: T = initialValue
+    private var lastValue: T = defaultValue
 
     internal fun revert() {
         value = lastValue
     }
 
     internal fun observe(owner: LifecycleOwner, observer: (t: T) -> Unit) {
-        super.observe(owner, androidx.lifecycle.Observer { observer(it ?: defaultValue) })
+        super.observe(owner, Observer { observer(it ?: defaultValue) })
     }
 }

@@ -25,6 +25,7 @@ import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.os.Build
 import android.view.SurfaceHolder
+import androidx.collection.SparseArrayCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
 import kotlinx.coroutines.Dispatchers
@@ -461,7 +462,7 @@ internal class Camera1(
 
         private const val INVALID_CAMERA_ID = -1
 
-        private val FLASH_MODES = androidx.collection.SparseArrayCompat<String>()
+        private val FLASH_MODES = SparseArrayCompat<String>()
 
         init {
             FLASH_MODES.put(Modes.Flash.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
