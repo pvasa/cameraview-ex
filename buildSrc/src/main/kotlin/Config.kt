@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 Priyank Vasa
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 object Config {
 
     const val jvmTarget = "1.8"
@@ -16,9 +32,12 @@ object Config {
 
     object Versions {
         const val kotlin = "1.3.11"
-        const val support = "28.0.0"
+        const val ktxCore = "1.0.0"
+        const val support = "1.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"
+
+        const val lifecycle = "2.0.0"
 
         const val googleServices = "4.2.0"
         const val firebaseCore = "16.0.5"
@@ -34,9 +53,9 @@ object Config {
         const val jUnit5 = "5.3.1"
 
         // Android tests
-        const val runner = "1.0.2"
-        const val rules = "1.0.2"
-        const val espressoCore = "3.0.2"
+        const val runner = "1.1.0"
+        const val rules = "1.1.0"
+        const val espressoCore = "3.1.0"
     }
 
     object Android {
@@ -46,13 +65,16 @@ object Config {
     }
 
     object Libs {
-        const val kotlinStdLibJdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.10"
+        const val kotlinStdLibJdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Versions.kotlin}"
 
-        const val supportAnnotations = "com.android.support:support-annotations:${Versions.support}"
-        const val supportV4 = "com.android.support:support-v4:${Versions.support}"
-        const val appcompatV7 = "com.android.support:appcompat-v7:${Versions.support}"
-        const val supportTransition = "com.android.support:transition:${Versions.support}"
-        const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
+        const val ktxCore = "androidx.core:core-ktx:${Versions.ktxCore}"
+
+        const val supportAnnotations = "androidx.annotation:annotation:${Versions.support}"
+        const val appcompatV7 = "androidx.appcompat:appcompat:${Versions.support}"
+        const val supportTransition = "androidx.transition:transition:${Versions.support}"
+        const val constraintLayout = "androidx.constraintlayout:constraintlayout:${Versions.constraintLayout}"
+
+        const val lifecycleLivedata = "androidx.lifecycle:lifecycle-livedata-core:${Versions.lifecycle}"
 
         const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
         const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
@@ -72,8 +94,8 @@ object Config {
     }
 
     object AndroidTestLibs {
-        const val testRunner = "com.android.support.test:runner:${Versions.runner}"
-        const val testRules = "com.android.support.test:rules:${Versions.rules}"
-        const val testEspressoCore = "com.android.support.test.espresso:espresso-core:${Versions.espressoCore}"
+        const val testRunner = "androidx.test:runner:${Versions.runner}"
+        const val testRules = "androidx.test:rules:${Versions.rules}"
+        const val testEspressoCore = "androidx.test.espresso:espresso-core:${Versions.espressoCore}"
     }
 }

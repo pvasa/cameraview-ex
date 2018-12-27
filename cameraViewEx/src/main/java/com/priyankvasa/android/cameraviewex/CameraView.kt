@@ -27,11 +27,12 @@ import android.media.ImageReader
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.annotation.RequiresPermission
-import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import androidx.annotation.RequiresPermission
+import androidx.core.view.ViewCompat
+import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
@@ -55,7 +56,7 @@ class CameraView @JvmOverloads constructor(
     private val cameraOpenedListeners = HashSet<() -> Unit>()
     private val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
     private var previewFrameListener: ((image: Image) -> Unit)? = null
-    private val cameraErrorListeners = HashSet<(t: Throwable) -> Unit>()
+    private val cameraErrorListeners = HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>()
     private val cameraClosedListeners = HashSet<() -> Unit>()
 
     private val listener = object : CameraInterface.Listener {
@@ -99,24 +100,16 @@ class CameraView @JvmOverloads constructor(
             pictureTakenListeners.forEach { it(imageData) }
         }
 
-        override fun onCameraError(e: Exception, isCritical: Boolean) {
+        override fun onCameraError(e: Exception, errorLevel: ErrorLevel, isCritical: Boolean) {
             if (isCritical && cameraErrorListeners.isEmpty()) throw e
-            cameraErrorListeners.forEach { it(e) }
+            if (errorLevel == ErrorLevel.Debug) Timber.d(e)
+            else cameraErrorListeners.forEach { it(e, errorLevel) }
         }
 
         override suspend fun onCameraClosed() {
             cameraClosedListeners.forEach { it.invoke() }
         }
     }
-
-    private var camera: CameraInterface = when {
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview)
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, context)
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, context)
-        else -> Camera2Api24(listener, preview, context)
-    }
-
-    internal val isUiTestCompatible: Boolean get() = camera is Camera2
 
     /** Display orientation detector */
     private val displayOrientationDetector: DisplayOrientationDetector =
@@ -126,13 +119,75 @@ class CameraView @JvmOverloads constructor(
                 }
             }
 
+    private val config: CameraConfiguration = if (isInEditMode) {
+        listener.disable()
+        displayOrientationDetector.disable()
+        CameraConfiguration()
+    } else {
+
+        // Add shutter view
+        addView(preview.shutterView)
+        preview.shutterView.layoutParams = preview.view.layoutParams
+
+        // Attributes
+        context.obtainStyledAttributes(
+                attrs,
+                R.styleable.CameraView,
+                defStyleAttr,
+                R.style.Widget_CameraView
+        ).run {
+
+            adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
+
+            CameraConfiguration().apply {
+
+                facing.value = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
+                aspectRatio.value = getString(R.styleable.CameraView_aspectRatio)
+                        .run ar@{
+                            if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
+                            else AspectRatio.parse(this@ar)
+                        }
+                autoFocus.value = getInt(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
+                flash.value = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
+
+                // API 21+
+                cameraMode.value = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
+                outputFormat.value = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
+                jpegQuality.value = getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
+                touchToFocus.value = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+                pinchToZoom.value = getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
+                awb.value = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
+                opticalStabilization.value = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
+                noiseReduction.value = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
+                shutter.value = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
+                zsl.value = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
+            }.also { recycle() }
+        }
+    }
+
+    private var camera: CameraInterface = when {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, context)
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, context)
+        else -> Camera2Api24(listener, preview, config, context)
+    }
+
+    init {
+        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+    }
+
+    internal val isUiTestCompatible: Boolean get() = camera is Camera2
+
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean by camera::isCameraOpened
+
+    /** `true` if there is a video recording in progress, `false` otherwise. */
+    val isVideoRecording: Boolean by camera::isVideoRecording
 
     /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
     @get:Modes.CameraMode
     @setparam:Modes.CameraMode
-    var cameraMode: Int by camera::cameraMode
+    var cameraMode: Int by config.cameraMode::value
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
@@ -151,7 +206,7 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
-    var outputFormat: Int by camera::outputFormat
+    var outputFormat: Int by config.outputFormat::value
 
     /**
      * Set image quality of the output image.
@@ -160,41 +215,38 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.JpegQuality
     @setparam:Modes.JpegQuality
-    var jpegQuality: Int by camera::jpegQuality
+    var jpegQuality: Int by config.jpegQuality::value
 
     /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
     @setparam:Modes.Facing
-    var facing: Int by camera::facing
+    var facing: Int by config.facing::value
 
     /** Gets all the aspect ratios supported by the current camera. */
     val supportedAspectRatios: Set<AspectRatio> by camera::supportedAspectRatios
 
     /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio
-        get() = camera.aspectRatio
-        set(value) {
-            if (camera.setAspectRatio(value)) requestLayout()
-        }
+    var aspectRatio: AspectRatio by config.aspectRatio::value
 
     /**
-     * Set `true` to enable continuous auto-focus mode and `false` to
-     * disable it. If it is not supported, this flag is automatically set to false.
+     * Set auto focus mode for selected camera. Supported modes are [Modes.AutoFocus].
      * See [android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE]
      */
-    var autoFocus: Boolean by camera::autoFocus
+    @get:Modes.AutoFocus
+    @setparam:Modes.AutoFocus
+    var autoFocus: Int by config.autoFocus::value
 
     /** Allow manual focus on an area by tapping on camera view. True is on and false is off. */
-    var touchToFocus: Boolean by camera::touchToFocus
+    var touchToFocus: Boolean by config.touchToFocus::value
 
     /** Allow pinch gesture on camera view for digital zooming. True is on and false is off. */
-    var pinchToZoom: Boolean by camera::pinchToZoom
+    var pinchToZoom: Boolean by config.pinchToZoom::value
 
     /** Maximum digital zoom supported by selected camera device. */
     val maxDigitalZoom: Float by camera::maxDigitalZoom
 
     /** Set digital zoom value. Must be between 1.0f and [maxDigitalZoom] inclusive. */
-    var currentDigitalZoom: Float by camera::currentDigitalZoom
+    var currentDigitalZoom: Float by config.currentDigitalZoom::value
 
     /**
      * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
@@ -202,7 +254,7 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.AutoWhiteBalance
     @setparam:Modes.AutoWhiteBalance
-    var awb: Int by camera::awb
+    var awb: Int by config.awb::value
 
     /**
      * Set flash mode. Supported values are [Modes.Flash].
@@ -210,13 +262,13 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.Flash
     @setparam:Modes.Flash
-    var flash: Int by camera::flash
+    var flash: Int by config.flash::value
 
     /**
      * Turn on or off optical stabilization for preview and still captures.
      * See [android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
      */
-    var opticalStabilization: Boolean by camera::opticalStabilization
+    var opticalStabilization: Boolean by config.opticalStabilization::value
 
     /**
      * Set noise reduction mode. Supported values are [Modes.NoiseReduction].
@@ -224,7 +276,7 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.NoiseReduction
     @setparam:Modes.NoiseReduction
-    var noiseReduction: Int by camera::noiseReduction
+    var noiseReduction: Int by config.noiseReduction::value
 
     /** Current shutter time in milliseconds. Supported values are [Modes.Shutter]. */
     @get:Modes.Shutter
@@ -235,50 +287,7 @@ class CameraView @JvmOverloads constructor(
      * Set zero shutter lag mode capture.
      * See [android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG]
      */
-    var zsl: Boolean by camera::zsl
-
-    init {
-        if (isInEditMode) {
-            listener.disable()
-            displayOrientationDetector.disable()
-        } else {
-            // Attributes
-            context.obtainStyledAttributes(
-                    attrs,
-                    R.styleable.CameraView,
-                    defStyleAttr,
-                    R.style.Widget_CameraView
-            ).run {
-                adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
-                cameraMode = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
-                outputFormat = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
-                jpegQuality = getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
-                facing = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
-                aspectRatio = getString(R.styleable.CameraView_aspectRatio)
-                        .run ar@{
-                            if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
-                            else AspectRatio.parse(this@ar)
-                        }
-
-                autoFocus = getBoolean(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
-                touchToFocus = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
-                pinchToZoom = getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
-                awb = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
-                flash = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
-//            ae = getBoolean(R.styleable.CameraView_ae, Modes.DEFAULT_AUTO_EXPOSURE)
-                opticalStabilization = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
-                noiseReduction = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
-                shutter = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
-                zsl = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
-
-                recycle()
-            }
-
-            // Add shutter view
-            addView(preview.shutterView)
-            preview.shutterView.layoutParams = preview.view.layoutParams
-        }
-    }
+    var zsl: Boolean by config.zsl::value
 
     private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)
 
@@ -341,13 +350,13 @@ class CameraView @JvmOverloads constructor(
 
         if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
-        if (height < width * ratio.y / ratio.x) camera.view.measure(
+        if (height < width * ratio.y / ratio.x) preview.view.measure(
                 View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(
                         width * ratio.y / ratio.x,
                         View.MeasureSpec.EXACTLY
                 )
-        ) else camera.view.measure(
+        ) else preview.view.measure(
                 View.MeasureSpec.makeMeasureSpec(
                         height * ratio.x / ratio.y,
                         View.MeasureSpec.EXACTLY
@@ -361,6 +370,7 @@ class CameraView @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable? =
             SavedState(
                     super.onSaveInstanceState() ?: Bundle(),
+                    adjustViewBounds,
                     cameraMode,
                     outputFormat,
                     jpegQuality,
@@ -379,28 +389,27 @@ class CameraView @JvmOverloads constructor(
             )
 
     override fun onRestoreInstanceState(state: Parcelable?) {
-        if (state !is SavedState) {
-            super.onRestoreInstanceState(state)
-            return
-        }
-        val ss = state as? SavedState?
-        super.onRestoreInstanceState(ss?.superState)
-        ss?.let {
-            cameraMode = it.cameraMode
-            outputFormat = it.outputFormat
-            jpegQuality = it.jpegQuality
-            facing = it.facing
-            aspectRatio = it.ratio
-            autoFocus = it.autoFocus
-            touchToFocus = it.touchToFocus
-            pinchToZoom = it.pinchToZoom
-            currentDigitalZoom = it.currentDigitalZoom
-            awb = it.awb
-            flash = it.flash
-            opticalStabilization = it.opticalStabilization
-            noiseReduction = it.noiseReduction
-            shutter = it.shutter
-            zsl = it.zsl
+        when (state) {
+            is SavedState -> {
+                super.onRestoreInstanceState(state.superState)
+                adjustViewBounds = state.adjustViewBounds
+                facing = state.facing
+                cameraMode = state.cameraMode
+                outputFormat = state.outputFormat
+                jpegQuality = state.jpegQuality
+                aspectRatio = state.ratio
+                autoFocus = state.autoFocus
+                touchToFocus = state.touchToFocus
+                pinchToZoom = state.pinchToZoom
+                currentDigitalZoom = state.currentDigitalZoom
+                awb = state.awb
+                flash = state.flash
+                opticalStabilization = state.opticalStabilization
+                noiseReduction = state.noiseReduction
+                shutter = state.shutter
+                zsl = state.zsl
+            }
+            else -> super.onRestoreInstanceState(state)
         }
     }
 
@@ -411,10 +420,10 @@ class CameraView @JvmOverloads constructor(
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
         if (!camera.start()) {
-            //store the state ,and restore this state after fall back o Camera1
+            // Store the state and restore this state after falling back to Camera1
             val state = onSaveInstanceState()
-            // Camera2 uses legacy hardware layer; fall back to Camera1
-            camera = Camera1(listener, preview)
+            // Device uses legacy hardware layer; fall back to Camera1
+            camera = Camera1(listener, preview, config)
             onRestoreInstanceState(state)
             camera.start()
         }
@@ -502,10 +511,10 @@ class CameraView @JvmOverloads constructor(
      * If no error listeners are added, then "critical" errors will be thrown to system exception handler (ie. hard crash)
      * The only critical error thrown for now is for invalid aspect ratio.
      *
-     * @param listener lambda with t of type [Throwable] as argument
+     * @param listener lambda with t of type [Throwable] and errorLevel of type [ErrorLevel] as arguments
      * @return instance of [CameraView] it is called on
      */
-    fun addCameraErrorListener(listener: (t: Throwable) -> Unit): CameraView {
+    fun addCameraErrorListener(listener: (t: Throwable, errorLevel: ErrorLevel) -> Unit): CameraView {
         cameraErrorListeners.add(listener)
         return this
     }
@@ -515,7 +524,7 @@ class CameraView @JvmOverloads constructor(
      * @param listener that was previously added.
      * @return instance of [CameraView] it is called on
      */
-    fun removeCameraErrorListener(listener: (Throwable) -> Unit): CameraView {
+    fun removeCameraErrorListener(listener: (Throwable, ErrorLevel) -> Unit): CameraView {
         cameraErrorListeners.remove(listener)
         return this
     }
@@ -548,24 +557,30 @@ class CameraView @JvmOverloads constructor(
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
     fun capture() {
         if (cameraMode == Modes.CameraMode.SINGLE_CAPTURE) camera.takePicture()
-        else listener.onCameraError(Exception("Cannot capture still picture in camera mode $cameraMode"))
+        else listener.onCameraError(
+                CameraViewException("Cannot capture still picture in camera mode $cameraMode")
+        )
     }
 
     /**
      * Start capturing video.
      * @param outputFile where video will be saved
      * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
+     *
      */
     @RequiresPermission(allOf = [
         Manifest.permission.CAMERA,
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.RECORD_AUDIO
     ])
+    @JvmOverloads
     fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}) {
         if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) {
             camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
         } else {
-            listener.onCameraError(Exception("Cannot start video recording in camera mode $cameraMode"))
+            listener.onCameraError(
+                    CameraViewException("Cannot start video recording in camera mode $cameraMode")
+            )
         }
     }
 
@@ -592,12 +607,13 @@ class CameraView @JvmOverloads constructor(
     @Parcelize
     internal data class SavedState(
             val parcelable: Parcelable,
+            val adjustViewBounds: Boolean,
             val cameraMode: Int,
             val outputFormat: Int,
             val jpegQuality: Int,
             val facing: Int,
             val ratio: AspectRatio,
-            val autoFocus: Boolean,
+            val autoFocus: Int,
             val touchToFocus: Boolean,
             val pinchToZoom: Boolean,
             val currentDigitalZoom: Float,

@@ -120,15 +120,18 @@ dependencies {
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)
+    implementation(Config.Libs.ktxCore)
 
     // Android support
     implementation(Config.Libs.supportAnnotations)
-    implementation(Config.Libs.supportV4)
     implementation(Config.Libs.supportTransition)
 
     // KotlinX
     implementation(Config.Libs.coroutinesCore)
     implementation(Config.Libs.coroutinesAndroid)
+
+    // Lifecycle
+    implementation(Config.Libs.lifecycleLivedata)
 
     // Timber
     implementation(Config.Libs.timber)

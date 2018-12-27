@@ -21,12 +21,12 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
-import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.os.Build
-import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -36,8 +36,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal class Camera1(
         override val listener: CameraInterface.Listener,
-        override val preview: PreviewImpl
+        override val preview: PreviewImpl,
+        override val config: CameraConfiguration
 ) : CameraInterface {
+
+    private val lifecycleRegistry: LifecycleRegistry =
+            LifecycleRegistry(this).also { it.markState(Lifecycle.State.CREATED) }
+
+    override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
     private var cameraId: Int = Modes.Facing.FACING_BACK
 
@@ -53,7 +59,7 @@ internal class Camera1(
 
     private val pictureSizes = SizeMap()
 
-    override var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
+    private var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
         set(value) {
             if (field == value) return
             field = value
@@ -65,22 +71,9 @@ internal class Camera1(
 
     private var showingPreview: Boolean = false
 
-    private var internalOutputFormat = ImageFormat.JPEG
-
-    override var outputFormat: Int = Modes.DEFAULT_OUTPUT_FORMAT
-        set(value) {
-            field = value
-            internalOutputFormat = when (value) {
-                Modes.OutputFormat.JPEG -> ImageFormat.JPEG
-                Modes.OutputFormat.YUV_420_888,
-                Modes.OutputFormat.RGBA_8888 -> ImageFormat.NV21
-                else -> ImageFormat.UNKNOWN
-            }
-        }
-
     override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
 
-    override var facing: Int = Modes.DEFAULT_FACING
+    private var facing: Int = Modes.DEFAULT_FACING
         set(value) {
             if (field == value) return
             field = value
@@ -110,6 +103,8 @@ internal class Camera1(
 
     override val isCameraOpened: Boolean get() = camera != null
 
+    override var isVideoRecording: Boolean = false
+
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
             previewSizes.ratios()
@@ -119,9 +114,7 @@ internal class Camera1(
             return previewSizes.ratios()
         }
 
-    override var cameraMode: Int = Modes.DEFAULT_CAMERA_MODE
-
-    override var autoFocus: Boolean = Modes.DEFAULT_AUTO_FOCUS
+    private var autoFocus: Boolean = false
         get() {
             if (!isCameraOpened) return field
             val focusMode = cameraParameters?.focusMode
@@ -139,39 +132,21 @@ internal class Camera1(
             }
         }
 
-    override var touchToFocus: Boolean = Modes.DEFAULT_TOUCH_TO_FOCUS
-        get() = if (!isCameraOpened) field else false // TODO("Check cameraParameters")
-        set(value) {
-            if (field == value) return
-            // TODO("set internal")
-        }
-
-    override var pinchToZoom: Boolean = Modes.DEFAULT_PINCH_TO_ZOOM
-
-    override var currentDigitalZoom: Float = 1f
-
     override val maxDigitalZoom: Float = 1f
 
-    override var awb: Int = Modes.DEFAULT_AWB
-        get() = if (!isCameraOpened) field else Modes.DEFAULT_AWB // TODO("Check cameraParameters")
-        set(value) {
-            if (field == value) return
-            // TODO("set internal")
-        }
-
-    override var flash: Int = Modes.DEFAULT_FLASH
+    private var flash: Int = Modes.DEFAULT_FLASH
         set(value) {
             if (field == value) return
             if (isCameraOpened) {
                 try {
                     val modes = cameraParameters?.supportedFlashModes
-                    val mode = FLASH_MODES.get(flash)
+                    val mode = FLASH_MODES.get(value)
                     if (modes?.contains(mode) == true) {
                         cameraParameters?.flashMode = mode
                         field = value
                         camera?.parameters = cameraParameters
                     }
-                    val currentMode = FLASH_MODES.get(this.flash)
+                    val currentMode = FLASH_MODES.get(field)
                     if (modes == null || !modes.contains(currentMode)) {
                         cameraParameters?.flashMode = Camera.Parameters.FLASH_MODE_OFF
                         field = Modes.Flash.FLASH_OFF
@@ -183,33 +158,23 @@ internal class Camera1(
             } else field = value
         }
 
-    override var opticalStabilization: Boolean = Modes.DEFAULT_OPTICAL_STABILIZATION
-        get() = if (!isCameraOpened) field else Modes.DEFAULT_OPTICAL_STABILIZATION // TODO("Check cameraParameters")
-        set(value) {
-            if (field == value) return
-            // TODO("set internal")
-        }
-
-    override var noiseReduction: Int = Modes.DEFAULT_NOISE_REDUCTION
-        get() = if (!isCameraOpened) field else Modes.DEFAULT_NOISE_REDUCTION // TODO("Check cameraParameters")
-        set(value) {
-            if (field == value) return
-            // TODO("set internal")
-        }
-
-    override var zsl: Boolean = Modes.DEFAULT_ZSL
-        set(value) {
-            if (field == value) return
-            // TODO("set internal")
-        }
-
-    init {
-        preview.surfaceChangeListener = ::onPreviewSurfaceChanged
-    }
-
-    private fun onPreviewSurfaceChanged() {
+    private val previewSurfaceChangedListener: () -> Unit = {
         setUpPreview()
         adjustCameraParameters()
+    }
+
+    init {
+        preview.surfaceChangeListener = previewSurfaceChangedListener
+        addObservers()
+    }
+
+    private fun addObservers() {
+        config.run {
+            facing.observe(this@Camera1) { this@Camera1.facing = it }
+            autoFocus.observe(this@Camera1) { this@Camera1.autoFocus = it != Modes.AutoFocus.AF_OFF }
+            flash.observe(this@Camera1) { this@Camera1.flash = it }
+            aspectRatio.observe(this@Camera1) { this@Camera1.aspectRatio = it }
+        }
     }
 
     override fun start(): Boolean {
@@ -248,6 +213,7 @@ internal class Camera1(
             } else {
                 camera?.setPreviewTexture(preview.surfaceTexture as SurfaceTexture)
             }
+            lifecycleRegistry.markState(Lifecycle.State.STARTED)
         } catch (e: Exception) {
             listener.onCameraError(e)
         }
@@ -359,7 +325,7 @@ internal class Camera1(
         return r
     }
 
-    fun adjustCameraParameters() {
+    private fun adjustCameraParameters() {
         var sizes = previewSizes.sizes(aspectRatio)
         if (sizes.isEmpty()) { // Not supported
             aspectRatio = chooseAspectRatio()
@@ -495,7 +461,7 @@ internal class Camera1(
 
         private const val INVALID_CAMERA_ID = -1
 
-        private val FLASH_MODES = SparseArrayCompat<String>()
+        private val FLASH_MODES = androidx.collection.SparseArrayCompat<String>()
 
         init {
             FLASH_MODES.put(Modes.Flash.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)

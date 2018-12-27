@@ -16,7 +16,6 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.support.v4.util.ArrayMap
 import java.util.SortedSet
 import java.util.TreeSet
 
@@ -25,7 +24,7 @@ import java.util.TreeSet
  */
 internal class SizeMap {
 
-    private val ratios = ArrayMap<AspectRatio, SortedSet<Size>>()
+    private val ratios = androidx.collection.ArrayMap<AspectRatio, SortedSet<Size>>()
 
     val isEmpty: Boolean get() = ratios.isEmpty
 
