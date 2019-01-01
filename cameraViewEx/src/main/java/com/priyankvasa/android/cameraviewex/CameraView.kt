@@ -173,7 +173,7 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+        config.aspectRatio.observeForever { if (camera.setAspectRatio(it)) requestLayout() }
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2

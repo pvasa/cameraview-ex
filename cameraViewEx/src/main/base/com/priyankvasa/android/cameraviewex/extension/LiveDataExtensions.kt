@@ -16,8 +16,8 @@
 
 package com.priyankvasa.android.cameraviewex.extension
 
-import com.priyankvasa.android.cameraviewex.MutableLiveData
+import com.priyankvasa.android.cameraviewex.CameraConfigLiveData
 
-internal operator fun MutableLiveData<Boolean>.not() = !value
+internal operator fun CameraConfigLiveData<Boolean>.not() = !value
 
-internal fun <T> MutableLiveData<T>.get() = value
+internal fun <T> CameraConfigLiveData<T>.get() = value
