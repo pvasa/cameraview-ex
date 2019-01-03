@@ -23,15 +23,7 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Rect
-import android.hardware.camera2.CameraAccessException
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.CaptureResult
-import android.hardware.camera2.TotalCaptureResult
+import android.hardware.camera2.*
 import android.hardware.camera2.params.MeteringRectangle
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ImageReader
@@ -44,12 +36,7 @@ import android.util.SparseIntArray
 import android.view.Surface
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
-import com.priyankvasa.android.cameraviewex.extension.calculateVideoBitRate
-import com.priyankvasa.android.cameraviewex.extension.isAfSupported
-import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
-import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
-import com.priyankvasa.android.cameraviewex.extension.isOisSupported
-import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
+import com.priyankvasa.android.cameraviewex.extension.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -945,7 +932,7 @@ internal open class Camera2(
                     CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.autoFocus.value = Modes.DEFAULT_AUTO_FOCUS
+            config.autoFocus.postValue(Modes.DEFAULT_AUTO_FOCUS)
         }
     }
 
@@ -1135,6 +1122,12 @@ internal open class Camera2(
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
+
+            // Let's not have videos less than one second
+            if (config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION) {
+                setMaxDuration(config.maxDuration)
+            }
+
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 return
