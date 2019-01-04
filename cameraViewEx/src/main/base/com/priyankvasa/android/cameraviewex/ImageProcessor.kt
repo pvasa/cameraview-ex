@@ -83,7 +83,9 @@ internal object ImageProcessor {
         val v = ByteArray(vBuffer.remaining())
         vBuffer.get(v)
 
-        return ByteArrayOutputStream(imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8).apply {
+        val size = imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8
+
+        return ByteArrayOutputStream(size).apply {
             write(y)
             write(u)
             write(v)

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -21,24 +21,26 @@
     <com.priyankvasa.android.cameraviewex.CameraView
         android:id="@+id/camera"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="?attr/actionBarSize"
         android:adjustViewBounds="true"
         android:keepScreenOn="true"
         app:aspectRatio="4:3"
-        app:autoFocus="true"
+        app:autoFocus="continuous_picture"
         app:awb="auto"
         app:cameraMode="single_capture"
         app:facing="back"
         app:flash="auto"
-        app:layout_constraintDimensionRatio="W,4:3"
+        app:jpegQuality="high"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:noiseReduction="high_quality"
         app:opticalStabilization="true"
         app:outputFormat="jpeg"
+        app:pinchToZoom="true"
         app:shutter="short_time"
+        app:touchToFocus="true"
         app:zsl="true" />
 
     <TextView
@@ -74,4 +76,4 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-</android.support.constraint.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

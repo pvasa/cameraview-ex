@@ -19,23 +19,23 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.os.Build
-import android.os.SystemClock
-import android.support.test.espresso.Espresso.onView
-import android.support.test.espresso.IdlingRegistry
-import android.support.test.espresso.IdlingResource
-import android.support.test.espresso.NoMatchingViewException
-import android.support.test.espresso.UiController
-import android.support.test.espresso.ViewAction
-import android.support.test.espresso.ViewAssertion
-import android.support.test.espresso.assertion.ViewAssertions.matches
-import android.support.test.espresso.matcher.ViewMatchers.assertThat
-import android.support.test.espresso.matcher.ViewMatchers.isDisplayed
-import android.support.test.espresso.matcher.ViewMatchers.withId
-import android.support.test.filters.FlakyTest
-import android.support.test.rule.ActivityTestRule
-import android.support.test.runner.AndroidJUnit4
+import android.os.Environment
 import android.view.View
 import android.view.ViewGroup
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.IdlingRegistry
+import androidx.test.espresso.IdlingResource
+import androidx.test.espresso.NoMatchingViewException
+import androidx.test.espresso.UiController
+import androidx.test.espresso.ViewAction
+import androidx.test.espresso.ViewAssertion
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.assertThat
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.FlakyTest
+import androidx.test.rule.ActivityTestRule
 import com.priyankvasa.android.cameraviewex.CameraViewActions.setAspectRatio
 import com.priyankvasa.android.cameraviewex.CameraViewMatchers.hasAspectRatio
 import com.priyankvasa.android.cameraviewex.test.R
@@ -50,6 +50,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.Closeable
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class CameraViewTest : GrantPermissionsRule() {
@@ -59,14 +60,17 @@ class CameraViewTest : GrantPermissionsRule() {
 
     private var cameraViewIdlingResource: CameraViewIdlingResource? = null
 
+    private val videoOutputDirectory =
+            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos/".also { File(it).mkdirs() }
+
     private fun waitFor(ms: Long): ViewAction = object : AnythingAction("wait") {
 
-        override fun perform(uiController: UiController, view: View) {
-            SystemClock.sleep(ms)
+        override fun perform(uiController: UiController?, view: View) {
+            uiController?.loopMainThreadForAtLeast(ms)
         }
     }
 
-    private fun showingPreview(): ViewAssertion = ViewAssertion { view, noViewFoundException ->
+    private fun showingPreview(): ViewAssertion = ViewAssertion { view, _ ->
 
         if (Build.VERSION.SDK_INT < 14) return@ViewAssertion
 
@@ -132,7 +136,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testAdjustViewBounds() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = view as CameraView
                     assertThat(cameraView.adjustViewBounds, `is`(true))
                     cameraView.adjustViewBounds = false
@@ -147,7 +151,7 @@ class CameraViewTest : GrantPermissionsRule() {
                         view.layoutParams = params
                     }
                 })
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = view as CameraView
                     val cameraRatio = cameraView.aspectRatio
                     val viewRatio = AspectRatio.of(view.getWidth(), view.getHeight())
@@ -161,7 +165,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testPreviewViewSize() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = view as CameraView
                     val preview: View = view.textureView ?: view.surfaceView
 
@@ -180,21 +184,21 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testAutoFocus() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     // This can fail on devices without auto-focus support
-                    assertThat(cameraView.autoFocus, `is`(true))
-                    cameraView.autoFocus = false
-                    assertThat(cameraView.autoFocus, `is`(false))
-                    cameraView.autoFocus = true
-                    assertThat(cameraView.autoFocus, `is`(true))
+                    assertThat(cameraView.autoFocus, `is`(Modes.AutoFocus.AF_CONTINUOUS_PICTURE))
+                    cameraView.autoFocus = Modes.DEFAULT_AUTO_FOCUS
+                    assertThat(cameraView.autoFocus, `is`(Modes.DEFAULT_AUTO_FOCUS))
+                    cameraView.autoFocus = Modes.AutoFocus.AF_AUTO
+                    assertThat(cameraView.autoFocus, `is`(Modes.AutoFocus.AF_AUTO))
                 }
     }
 
     @Test
     fun testFacing() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = view as CameraView
                     assertThat<Any>(cameraView.facing, `is`(Modes.Facing.FACING_BACK))
                     cameraView.facing = Modes.Facing.FACING_FRONT
@@ -207,7 +211,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testFlash() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = view as CameraView
                     assertThat<Any>(cameraView.flash, `is`(Modes.Flash.FLASH_AUTO))
                     cameraView.flash = Modes.Flash.FLASH_TORCH
@@ -218,7 +222,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testOpticalStabilization() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat<Any>(cameraView.opticalStabilization, `is`(true))
                     cameraView.opticalStabilization = false
@@ -231,7 +235,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testAwb() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat<Any>(cameraView.awb, `is`(Modes.AutoWhiteBalance.AWB_AUTO))
                     cameraView.awb = Modes.AutoWhiteBalance.AWB_FLUORESCENT
@@ -242,7 +246,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testNoiseReduction() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat<Any>(cameraView.noiseReduction, `is`(Modes.NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY))
                     cameraView.noiseReduction = Modes.NoiseReduction.NOISE_REDUCTION_FAST
@@ -253,7 +257,7 @@ class CameraViewTest : GrantPermissionsRule() {
     @Test
     fun testZeroShutterLag() {
         onView(withId(R.id.camera))
-                .check { view, noViewFoundException ->
+                .check { view, _ ->
                     val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
                     assertThat(cameraView.zsl, `is`(true))
                     cameraView.zsl = false
@@ -262,7 +266,50 @@ class CameraViewTest : GrantPermissionsRule() {
     }
 
     @Test
-    @Throws(Exception::class)
+    fun testCameraMode() {
+        onView(withId(R.id.camera))
+                .check { view, _ ->
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
+                    assertThat(cameraView.cameraMode, `is`(Modes.DEFAULT_CAMERA_MODE))
+                    cameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+                    assertThat(cameraView.cameraMode, `is`(Modes.CameraMode.VIDEO_CAPTURE))
+                }
+    }
+
+    @Test
+    fun testPinchToZoom() {
+        onView(withId(R.id.camera))
+                .check { view, _ ->
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
+                    assertThat(cameraView.pinchToZoom, `is`(true))
+                    cameraView.pinchToZoom = false
+                    assertThat(cameraView.pinchToZoom, `is`(false))
+                }
+    }
+
+    @Test
+    fun testTouchToFocus() {
+        onView(withId(R.id.camera))
+                .check { view, _ ->
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
+                    assertThat(cameraView.touchToFocus, `is`(true))
+                    cameraView.touchToFocus = false
+                    assertThat(cameraView.touchToFocus, `is`(false))
+                }
+    }
+
+    @Test
+    fun testDigitalZoom() {
+        onView(withId(R.id.camera))
+                .check { view, _ ->
+                    val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
+                    assertThat(cameraView.currentDigitalZoom, `is`(1f))
+                    cameraView.currentDigitalZoom = cameraView.maxDigitalZoom
+                    assertThat(cameraView.currentDigitalZoom, `is`(cameraView.maxDigitalZoom))
+                }
+    }
+
+    @Test
     fun testTakePicture() {
         val resource = TakePictureIdlingResource(rule.activity.findViewById(R.id.camera) as CameraView)
         onView(withId(R.id.camera))
@@ -283,9 +330,33 @@ class CameraViewTest : GrantPermissionsRule() {
         }
     }
 
-    /**
-     * Wait for a camera to open.
-     */
+    @Test
+    fun testRecordVideo() {
+        val recordingFile = File("$videoOutputDirectory/test_video.mp4")
+        var saved = false
+        onView(withId(R.id.camera))
+                .perform(object : AnythingAction("take picture") {
+                    override fun perform(uiController: UiController, view: View) {
+                        val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return }
+                        cameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+                        uiController.loopMainThreadForAtLeast(1000)
+                        cameraView.startVideoRecording(recordingFile)
+                        uiController.loopMainThreadForAtLeast(4000)
+                        saved = cameraView.stopVideoRecording()
+                        cameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+                    }
+                })
+                .check(showingPreview())
+        assertThat("Didn't save video file.", saved, `is`(true))
+        assertThat(
+                "Didn't record valid video file.",
+                recordingFile.exists() && recordingFile.isFile && recordingFile.length() > 0,
+                `is`(true)
+        )
+        recordingFile.delete()
+    }
+
+    /** Wait for a camera to open. */
     private class CameraViewIdlingResource(
             private val cameraView: CameraView
     ) : IdlingResource, Closeable {
@@ -294,12 +365,14 @@ class CameraViewTest : GrantPermissionsRule() {
         private var isIdleNow: Boolean = false
 
         init {
-            cameraView.addCameraOpenedListener {
-                if (!isIdleNow) {
-                    isIdleNow = true
-                    resourceCallback?.onTransitionToIdle()
-                }
-            }.addCameraClosedListener { isIdleNow = false }
+            cameraView
+                    .addCameraOpenedListener {
+                        if (!isIdleNow) {
+                            isIdleNow = true
+                            resourceCallback?.onTransitionToIdle()
+                        }
+                    }
+                    .addCameraClosedListener { isIdleNow = false }
             isIdleNow = cameraView.isCameraOpened
         }
 
@@ -329,7 +402,8 @@ class CameraViewTest : GrantPermissionsRule() {
                 if (!isIdleNow) {
                     isIdleNow = true
                     validJpeg = imageData.size > 2 &&
-                            imageData[0] == 0xFF.toByte() && imageData[1] == 0xD8.toByte()
+                            imageData[0] == 0xFF.toByte() &&
+                            imageData[1] == 0xD8.toByte()
                     resourceCallback?.onTransitionToIdle()
                 }
             }

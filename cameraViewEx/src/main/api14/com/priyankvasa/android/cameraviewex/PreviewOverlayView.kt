@@ -21,8 +21,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.support.v4.app.ActivityCompat
 import android.view.View
+import androidx.core.app.ActivityCompat
 import com.priyankvasa.android.cameraviewex.extension.convertDpToPixelF
 
 internal class PreviewOverlayView(context: Context) : View(context) {

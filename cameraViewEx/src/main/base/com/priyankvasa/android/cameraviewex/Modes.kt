@@ -18,7 +18,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
 import android.os.Build
-import android.support.annotation.IntDef
+import androidx.annotation.IntDef
 
 object Modes {
 
@@ -74,6 +74,26 @@ object Modes {
         companion object {
             const val FACING_BACK = 0
             const val FACING_FRONT = 1
+        }
+    }
+
+    /** The mode for the camera device's auto focus control */
+    @IntDef(AutoFocus.AF_OFF,
+            AutoFocus.AF_AUTO,
+            AutoFocus.AF_MACRO,
+            AutoFocus.AF_CONTINUOUS_VIDEO,
+            AutoFocus.AF_CONTINUOUS_PICTURE,
+            AutoFocus.AF_EDOF)
+    @Retention(AnnotationRetention.SOURCE)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
+    annotation class AutoFocus {
+        companion object {
+            const val AF_OFF = 0
+            const val AF_AUTO = 1
+            const val AF_MACRO = 2
+            const val AF_CONTINUOUS_VIDEO = 3
+            const val AF_CONTINUOUS_PICTURE = 4
+            const val AF_EDOF = 5
         }
     }
 
@@ -161,7 +181,7 @@ object Modes {
     const val DEFAULT_OUTPUT_FORMAT = OutputFormat.JPEG
     const val DEFAULT_JPEG_QUALITY = JpegQuality.DEFAULT
     const val DEFAULT_FACING = Facing.FACING_BACK
-    const val DEFAULT_AUTO_FOCUS = false
+    const val DEFAULT_AUTO_FOCUS = AutoFocus.AF_OFF
     const val DEFAULT_TOUCH_TO_FOCUS = false
     const val DEFAULT_PINCH_TO_ZOOM = false
     const val DEFAULT_OPTICAL_STABILIZATION = false

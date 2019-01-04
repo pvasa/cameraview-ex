@@ -49,9 +49,8 @@ camera.</p>
 <p><a href="auto-focus.html">autoFocus</a></p>
 </td>
 <td>
-<code><span class="keyword">var </span><span class="identifier">autoFocus</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
-<p>Set <code>true</code> to enable continuous auto-focus mode and <code>false</code> to
-disable it. If it is not supported, this flag is automatically set to false.
+<code><span class="keyword">var </span><span class="identifier">autoFocus</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
+<p>Set auto focus mode for selected camera. Supported modes are <a href="../-modes/-auto-focus/index.html">Modes.AutoFocus</a>.
 See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE</a></p>
 </td>
 </tr>
@@ -109,6 +108,15 @@ See <a href="#">android.hardware.camera2.CaptureRequest.FLASH_MODE</a></p>
 <td>
 <code><span class="keyword">val </span><span class="identifier">isCameraOpened</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
 <p><code>true</code> if the camera is opened <code>false</code> otherwise.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="is-video-recording.html">isVideoRecording</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">isVideoRecording</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p><code>true</code> if there is a video recording in progress, <code>false</code> otherwise.</p>
 </td>
 </tr>
 <tr>
@@ -226,8 +234,9 @@ See <a href="#">android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG<
 <p><a href="add-camera-error-listener.html">addCameraErrorListener</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">addCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">t</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Add a new camera error <a href="add-camera-error-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</a>.
+<code><span class="keyword">fun </span><span class="identifier">addCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function2((kotlin.Throwable, com.priyankvasa.android.cameraviewex.ErrorLevel, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">t</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">,</span>&nbsp;<span class="identifier">errorLevel</span><span class="symbol">:</span>&nbsp;<a href="../-error-level/index.html"><span class="identifier">ErrorLevel</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code><br/>
+<code><span class="keyword">fun </span><span class="identifier">addCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function2((kotlin.Throwable, , kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">t</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">,</span>&nbsp;<span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+<p>Add a new camera error <a href="add-camera-error-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addCameraErrorListener(kotlin.Function2((kotlin.Throwable, com.priyankvasa.android.cameraviewex.ErrorLevel, kotlin.Unit)))/listener">listener</a>.
 If no error listeners are added, then "critical" errors will be thrown to system exception handler (ie. hard crash)
 The only critical error thrown for now is for invalid aspect ratio.</p>
 </td>
@@ -326,8 +335,9 @@ The only critical error thrown for now is for invalid aspect ratio.</p>
 <p><a href="remove-camera-error-listener.html">removeCameraErrorListener</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">removeCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$removeCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Remove camera error <a href="remove-camera-error-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removeCameraErrorListener(kotlin.Function1((kotlin.Throwable, kotlin.Unit)))/listener">listener</a>.</p>
+<code><span class="keyword">fun </span><span class="identifier">removeCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$removeCameraErrorListener(kotlin.Function2((kotlin.Throwable, com.priyankvasa.android.cameraviewex.ErrorLevel, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">,</span>&nbsp;<a href="../-error-level/index.html"><span class="identifier">ErrorLevel</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code><br/>
+<code><span class="keyword">fun </span><span class="identifier">removeCameraErrorListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$removeCameraErrorListener(kotlin.Function2((kotlin.Throwable, , kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html"><span class="identifier">Throwable</span></a><span class="symbol">,</span>&nbsp;<span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+<p>Remove camera error <a href="remove-camera-error-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removeCameraErrorListener(kotlin.Function2((kotlin.Throwable, com.priyankvasa.android.cameraviewex.ErrorLevel, kotlin.Unit)))/listener">listener</a>.</p>
 </td>
 </tr>
 <tr>

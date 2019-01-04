@@ -4,11 +4,6 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.media.Image;
 import android.os.Bundle;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,9 +11,15 @@ import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 import com.priyankvasa.android.cameraviewex.CameraView;
+import com.priyankvasa.android.cameraviewex.ErrorLevel;
 import com.priyankvasa.android.cameraviewex.Modes;
 import com.priyankvasa.android.cameraviewexSample.R;
 
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.Fragment;
 import kotlin.Unit;
 import timber.log.Timber;
 
@@ -91,7 +92,7 @@ public class CameraFragment extends Fragment {
 
         camera.addPictureTakenListener((byte[] imageData) -> {
             ivPhoto.setVisibility(View.VISIBLE);
-            Glide.with(this)
+            Glide.with(requireContext())
                     .load(imageData)
                     .into(ivPhoto);
             return Unit.INSTANCE;
@@ -99,6 +100,12 @@ public class CameraFragment extends Fragment {
 
         camera.setPreviewFrameListener((Image image) -> {
             Timber.i("Preview frame available.");
+            return Unit.INSTANCE;
+        });
+
+        camera.addCameraErrorListener((Throwable t, ErrorLevel errorLevel) -> {
+            if (errorLevel instanceof ErrorLevel.Warning) Timber.w(t);
+            else if (errorLevel instanceof ErrorLevel.Error) Timber.e(t);
             return Unit.INSTANCE;
         });
 
