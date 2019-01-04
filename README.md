@@ -38,7 +38,7 @@ dependencies {
     android:adjustViewBounds="true"
     android:keepScreenOn="true"
     app:aspectRatio="4:3"
-    app:autoFocus="true"
+    app:autoFocus="continuous_picture"
     app:awb="auto"
     app:cameraMode="single_capture"
     app:facing="back"
@@ -47,6 +47,7 @@ dependencies {
     app:noiseReduction="high_quality"
     app:opticalStabilization="true"
     app:outputFormat="jpeg"
+    app:pinchToZoom="true"
     app:shutter="short_time"
     app:touchToFocus="true"
     app:zsl="true" />
@@ -66,7 +67,7 @@ override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
     
     camera.addCameraOpenedListener { /* Camera opened. */ }
-        .addCameraErrorListener { t: Throwable -> /* Camera error! */ }
+        .addCameraErrorListener { t: Throwable, errorLevel: ErrorLevel -> /* Camera error! */ }
         .addCameraClosedListener { /* Camera closed. */ }
 }
 
@@ -107,7 +108,7 @@ camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
 camera.startVideoRecording(outputFile) {
     // Configure video (MediaRecorder) parameters
     audioEncoder = AudioEncoder.Aac
-    videoFrameRate = 120
+    videoFrameRate = 60
     videoStabilization = true
 }
 // When done recording
@@ -127,7 +128,7 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | cameraMode                | app:cameraMode           | **single_capture**, continuous_frame, video_capture    |
 | facing                    | app:facing               | **back**, front                                        |
 | aspectRatio               | app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_ |
-| autoFocus                 | app:autoFocus            | **false**, true                                        |
+| autoFocus                 | app:autoFocus            | **off**, auto, macro, continuous_video, <br/> continuous_picture, edof |
 | flash                     | app:flash                | **off**, on, torch, auto, redEye                       |
 | awb                       | app:awb                  | **off**, auto, incandescent, fluorescent, warm_fluorescent, <br/> daylight, cloudy_daylight, twilight, shade |
 | opticalStabilization      | app:opticalStabilization | **false**, true                                        |
@@ -137,11 +138,12 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | jpegQuality               | app:jpegQuality          | **default**, low, medium, high                         |
 | zsl                       | app:zsl                  | **false**, true                                        |
 | isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise              |
+| isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise |
 | supportedAspectRatios <br> (get only) | N/A          | Returns list of AspectRatio supported by selected camera |
 | maxDigitalZoom <br> (get only) | N/A                      | Returns a float value which is the maximum possible digital zoom value supported by selected camera |
 | currentDigitalZoom        | N/A                      | Set camera digital zoom value <br> Must be between 1.0 and maxDigitalZoom inclusive |
 
-_**Note:** Devices that run **Camera1** implementation will only support **app:aspectRatio**, **app:autoFocus**, and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
+_**Note:** Devices that run **Camera1** implementation will only support **app:facing**, **app:aspectRatio**, **app:autoFocus** (`off` and `continuous_picture`), and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 
 ## Documentation
 For detailed documentation, please refer these [docs](https://pvasa.github.io/cameraview-ex/camera-view-ex/com.priyankvasa.android.cameraviewex/-camera-view/index.html).

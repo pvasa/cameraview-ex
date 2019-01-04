@@ -19,25 +19,15 @@ package com.priyankvasa.android.cameraviewex
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
-import android.support.annotation.RequiresApi
+import androidx.annotation.RequiresApi
 import kotlin.math.roundToInt
 
 /** This is a helper class for digital zooming. */
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCharacteristics?) {
 
-    /** Current zoom value. */
-    var currentZoom: Float = 1f
-        set(value) {
-            field = when {
-                field == value -> return
-                value > maxZoom -> maxZoom
-                value < 1f -> 1f
-                else -> value
-            }
-        }
-
-    val cropRegionForCurrentZoom: Rect? get() = getCropRegionForZoom(currentZoom)
+    /** Current zoom level. */
+    private var currentZoom: Float = 1f
 
     /** Maximum possible digital zoom based on [CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM]. */
     val maxZoom: Float
@@ -53,7 +43,7 @@ internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCha
     private val tolerance = 0.004f
 
     /** Calculate crop region rect for [scaleFactor]. */
-    fun getCropRegionForScaleFactor(scaleFactor: Float): Rect? {
+    fun getZoomForScaleFactor(scaleFactor: Float): Float {
 
         val maxZoom = maxZoom
 
@@ -70,15 +60,13 @@ internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCha
                 if (currentZoom - delta < 1f) delta = currentZoom - 1f
                 currentZoom -= delta
             }
-            else -> return null
         }
 
-        // Finally, return the zoomed visible area
-        return getCropRegionForZoom(currentZoom)
+        return currentZoom
     }
 
     /** Calculate crop region rect for [zoom] value. */
-    private fun getCropRegionForZoom(zoom: Float): Rect? {
+    fun getCropRegionForZoom(zoom: Float): Rect? {
 
         val sensorArraySize = sensorArraySize ?: return null
 
@@ -92,6 +80,6 @@ internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCha
                 (yCenter - yDelta).roundToInt(),
                 (xCenter + xDelta).roundToInt(),
                 (yCenter + yDelta).roundToInt()
-        )
+        ).also { currentZoom = zoom }
     }
 }

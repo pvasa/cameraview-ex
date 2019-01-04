@@ -16,10 +16,10 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.support.test.espresso.UiController
-import android.support.test.espresso.ViewAction
-import android.support.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import android.view.View
+import androidx.test.espresso.UiController
+import androidx.test.espresso.ViewAction
+import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import org.hamcrest.Matcher
 
 internal object CameraViewActions {
@@ -30,8 +30,8 @@ internal object CameraViewActions {
 
         override fun getDescription(): String = "Set aspect ratio to $ratio"
 
-        override fun perform(controller: UiController, view: View) {
-            (view as CameraView).aspectRatio = ratio
+        override fun perform(uiController: UiController?, view: View?) {
+            (view as? CameraView)?.aspectRatio = ratio
         }
     }
 }
