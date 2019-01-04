@@ -24,8 +24,9 @@ import android.os.Build
 internal open class Camera2Api24(
         listener: CameraInterface.Listener,
         preview: PreviewImpl,
+        config: CameraConfiguration,
         context: Context
-) : Camera2Api23(listener, preview, context) {
+) : Camera2Api23(listener, preview, config, context) {
 
     override fun pauseVideoRecording(): Boolean = runCatching {
         mediaRecorder?.pause()

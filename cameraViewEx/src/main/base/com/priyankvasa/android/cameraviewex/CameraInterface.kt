@@ -19,67 +19,29 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
-import android.content.Context
-import android.graphics.Rect
-import android.graphics.RectF
 import android.media.ImageReader
 import android.os.Build
-import android.support.v4.math.MathUtils
-import android.view.View
-import com.priyankvasa.android.cameraviewex.extension.convertDpToPixelF
+import androidx.lifecycle.LifecycleOwner
 import java.io.File
-import kotlin.math.roundToInt
 
-internal interface CameraInterface {
+internal interface CameraInterface : LifecycleOwner {
 
     val preview: PreviewImpl
 
-    val view: View get() = preview.view
-
-    val context: Context get() = view.context
+    val config: CameraConfiguration
 
     val listener: Listener
 
     val isCameraOpened: Boolean
 
+    var isVideoRecording: Boolean
+
     val supportedAspectRatios: Set<AspectRatio>
-
-    val aspectRatio: AspectRatio
-
-    @Modes.CameraMode
-    var cameraMode: Int
-
-    @Modes.OutputFormat
-    var outputFormat: Int
-
-    @Modes.Facing
-    var facing: Int
-
-    var autoFocus: Boolean
-
-    var touchToFocus: Boolean
-
-    var pinchToZoom: Boolean
-
-    @Modes.AutoWhiteBalance
-    var awb: Int
-
-    @Modes.Flash
-    var flash: Int
-
-    var opticalStabilization: Boolean
-
-    @Modes.NoiseReduction
-    var noiseReduction: Int
-
-    var zsl: Boolean
 
     var displayOrientation: Int
 
     @Modes.JpegQuality
     var jpegQuality: Int
-
-    var currentDigitalZoom: Float
 
     val maxDigitalZoom: Float
 
@@ -107,34 +69,15 @@ internal interface CameraInterface {
 
     fun stopVideoRecording(): Boolean
 
-    fun calculateTouchAreaRect(
-            surfaceWidth: Int,
-            surfaceHeight: Int,
-            centerX: Float,
-            centerY: Float,
-            sideLengthInDp: Float = 80f
-    ): Rect {
-
-        val areaSize: Float = context.convertDpToPixelF(sideLengthInDp)
-
-        val left = MathUtils.clamp(centerX - areaSize / 2, 0f, surfaceWidth - areaSize)
-        val top = MathUtils.clamp(centerY - areaSize / 2, 0f, surfaceHeight - areaSize)
-
-        val rectF = RectF(left, top, left + areaSize, top + areaSize)
-
-        return Rect(
-                rectF.left.roundToInt(),
-                rectF.top.roundToInt(),
-                rectF.right.roundToInt(),
-                rectF.bottom.roundToInt()
-        )
-    }
-
     interface Listener {
         suspend fun onCameraOpened()
         suspend fun onCameraClosed()
         fun onPictureTaken(imageData: ByteArray)
-        fun onCameraError(e: Exception, isCritical: Boolean = false)
+        fun onCameraError(
+                e: Exception,
+                errorLevel: ErrorLevel = ErrorLevel.Error,
+                isCritical: Boolean = false
+        )
 
         @TargetApi(Build.VERSION_CODES.KITKAT)
         fun onPreviewFrame(reader: ImageReader)
