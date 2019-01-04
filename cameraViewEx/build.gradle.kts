@@ -50,7 +50,7 @@ android {
         targetSdkVersion(Config.Android.sdk)
         versionCode = Config.versionCode
         versionName = Config.versionName
-        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("proguard-rules.pro")
         renderscriptTargetApi = 21
     }
@@ -145,7 +145,7 @@ dependencies {
     testImplementation(Config.TestLibs.junitJupiterParams)
 
     // Android tests
-    androidTestImplementation(Config.AndroidTestLibs.testRunner) { exclude("support-annotations") }
+    androidTestImplementation(Config.AndroidTestLibs.junit) { exclude("support-annotations") }
     androidTestImplementation(Config.AndroidTestLibs.testRules) { exclude("support-annotations") }
     androidTestImplementation(Config.AndroidTestLibs.testEspressoCore) { exclude("support-annotations") }
 }

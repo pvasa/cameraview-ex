@@ -855,22 +855,23 @@ internal open class Camera2(
                 if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
                 else CameraDevice.TEMPLATE_PREVIEW
 
-        previewRequestBuilder = camera?.createCaptureRequest(template)
-                ?.apply {
-                    when (config.cameraMode.value) {
-                        Modes.CameraMode.CONTINUOUS_FRAME -> surfaces.forEach(::addTarget)
-                        else -> addTarget(previewSurface)
-                    }
-                }
-                ?: run {
-            listener.onCameraError(CameraViewException("Camera not started or already stopped"))
-            return
-        }
-
         try {
+            previewRequestBuilder = camera?.createCaptureRequest(template)
+                    ?.apply {
+                        when (config.cameraMode.value) {
+                            Modes.CameraMode.CONTINUOUS_FRAME -> surfaces.forEach(::addTarget)
+                            else -> addTarget(previewSurface)
+                        }
+                    }
+                    ?: run {
+                listener.onCameraError(CameraViewException("Camera not started or already stopped"))
+                return
+            }
+
             camera?.createCaptureSession(surfaces, previewSessionStateCallback, backgroundHandler)
         } catch (e: Exception) {
             listener.onCameraError(CameraViewException("Failed to start camera session", e))
+            return
         }
 
         lifecycleRegistry.markState(Lifecycle.State.STARTED)

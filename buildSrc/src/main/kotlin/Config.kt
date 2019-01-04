@@ -19,7 +19,7 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 2
-    private const val minorVersion = 5
+    private const val minorVersion = 6
     private const val patchVersion = 0
 
     val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
@@ -53,6 +53,7 @@ object Config {
         const val jUnit5 = "5.3.1"
 
         // Android tests
+        const val junit = "1.1.0"
         const val runner = "1.1.0"
         const val rules = "1.1.0"
         const val espressoCore = "3.1.0"
@@ -94,7 +95,7 @@ object Config {
     }
 
     object AndroidTestLibs {
-        const val testRunner = "androidx.test:runner:${Versions.runner}"
+        const val junit = "androidx.test.ext:junit:${Versions.junit}"
         const val testRules = "androidx.test:rules:${Versions.rules}"
         const val testEspressoCore = "androidx.test.espresso:espresso-core:${Versions.espressoCore}"
     }
