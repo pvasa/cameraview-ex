@@ -54,6 +54,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -1023,7 +1024,7 @@ internal open class Camera2(
         }
     }
 
-    private fun updateModes() {
+    private fun updateModes() = runBlocking(Dispatchers.Main) {
         updateScalerCropRegion()
         updateAf()
         updateFlash()
