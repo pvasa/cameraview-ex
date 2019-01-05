@@ -20,7 +20,7 @@ object Config {
 
     private const val majorVersion = 2
     private const val minorVersion = 6
-    private const val patchVersion = 0
+    private const val patchVersion = 1
 
     val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
 
