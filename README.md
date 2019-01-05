@@ -25,7 +25,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.5.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.6.1"
 }
 ```
 
