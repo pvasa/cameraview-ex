@@ -178,16 +178,22 @@ internal open class Camera2(
                 )
             } catch (e: Exception) {
                 listener.onCameraError(CameraViewException("Failed to start camera preview.", e))
+                isVideoRecording = false
+                return
             }
 
             GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
                     .invokeOnCompletion { t ->
-                        if (t != null) listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                        if (t != null) {
+                            listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                            isVideoRecording = false
+                        }
                     }
         }
 
         override fun onConfigureFailed(session: CameraCaptureSession) {
             listener.onCameraError(CameraViewException("Failed to configure video capture session."))
+            isVideoRecording = false
         }
     }
 
@@ -1119,6 +1125,7 @@ internal open class Camera2(
                     .onFailure { t ->
                         // Angle outputOrientation is not supported
                         listener.onCameraError(t as Exception)
+                        isVideoRecording = false
                         return
                     }
             setAudioSource(config.audioSource.value)
@@ -1138,12 +1145,14 @@ internal open class Camera2(
             setAudioEncoder(config.audioEncoder.value)
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
+                isVideoRecording = false
                 return
             }
         }
 
         if (!isCameraOpened || !preview.isReady) {
             listener.onCameraError(CameraViewException("Camera not started or already stopped"))
+            isVideoRecording = false
             return
         }
 
@@ -1152,6 +1161,7 @@ internal open class Camera2(
         val previewSurface = preview.surface
                 ?: run {
                     listener.onCameraError(IllegalStateException("Preview surface not available"))
+                    isVideoRecording = false
                     return
                 }
 
@@ -1159,6 +1169,7 @@ internal open class Camera2(
             mediaRecorder?.surface
         } catch (e: IllegalStateException) {
             listener.onCameraError(CameraViewException("Cannot retrieve recorder surface", e))
+            isVideoRecording = false
             return
         }
 
@@ -1211,6 +1222,7 @@ internal open class Camera2(
                 }
                 ?: run {
             listener.onCameraError(CameraViewException("Camera not initialized or already stopped"))
+            isVideoRecording = false
             return
         }
 
