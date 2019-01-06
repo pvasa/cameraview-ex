@@ -23,7 +23,15 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Rect
-import android.hardware.camera2.*
+import android.hardware.camera2.CameraAccessException
+import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.TotalCaptureResult
 import android.hardware.camera2.params.MeteringRectangle
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ImageReader
