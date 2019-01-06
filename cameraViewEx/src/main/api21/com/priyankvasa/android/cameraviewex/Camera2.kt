@@ -1128,12 +1128,6 @@ internal open class Camera2(
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
-
-            // Let's not have videos less than one second
-            if (config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION) {
-                setMaxDuration(config.maxDuration)
-            }
-
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 isVideoRecording = false
