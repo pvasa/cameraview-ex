@@ -114,9 +114,11 @@ class CameraView @JvmOverloads constructor(
     /** Display orientation detector */
     private val displayOrientationDetector: DisplayOrientationDetector =
             object : DisplayOrientationDetector(context) {
-                override fun onDisplayOrientationChanged(displayOrientation: Int, cameraOrientation: Int) {
+                override fun onDisplayOrientationChanged(displayOrientation: Int) {
                     camera.displayOrientation = displayOrientation
-                    camera.cameraOrientation = cameraOrientation
+                }
+                override fun onSensorOrientationChanged(sensorOrientation: Int) {
+                    camera.sensorOrientation = sensorOrientation
                 }
             }
 

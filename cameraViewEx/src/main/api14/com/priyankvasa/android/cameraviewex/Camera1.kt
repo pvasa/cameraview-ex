@@ -102,7 +102,7 @@ internal class Camera1(
             }
         }
 
-    override var cameraOrientation: Int = 0
+    override var sensorOrientation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 

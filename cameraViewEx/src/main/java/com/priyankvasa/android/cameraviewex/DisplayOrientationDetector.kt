@@ -36,24 +36,29 @@ internal abstract class DisplayOrientationDetector(context: Context) {
     var lastKnownDisplayOrientation = 0
         private set
 
-    var lastKnownCameraOrientation = 0
+    var lastKnownSensorOrientation = 0
         private set
 
     init {
         orientationEventListener = object : OrientationEventListener(context) {
 
             /** This is either Surface.Rotation_0, _90, _180, _270, or -1 (invalid).  */
-            private var lastKnownRotation = -1
+            private var lastKnownDisplayRotation = -1
+            private var lastKnownSensorRotation = -1
 
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN || display == null) {
                     return
                 }
-                val displayRotation = display?.rotation ?: lastKnownRotation
-                val cameraRotation = ((orientation + 45) / 90 * 90) % 360 // 0, 90, 180, 270
-                if (lastKnownRotation != cameraRotation) {
-                    lastKnownRotation = cameraRotation
-                    dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(displayRotation), cameraRotation)
+                val displayRotation = display?.rotation ?: lastKnownDisplayRotation
+                if (lastKnownDisplayRotation != displayRotation) {
+                    lastKnownDisplayRotation = displayRotation
+                    dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(displayRotation))
+                }
+                val sensorRotation = ((orientation + 45) / 90 * 90) % 360 // 0, 90, 180, 270
+                if (lastKnownSensorRotation != sensorRotation) {
+                    lastKnownSensorRotation = sensorRotation
+                    dispatchOnSensorOrientationChanged(sensorRotation)
                 }
             }
         }
@@ -63,7 +68,7 @@ internal abstract class DisplayOrientationDetector(context: Context) {
         this.display = display
         orientationEventListener.enable()
         // Immediately dispatch the first callback
-        dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(display.rotation), lastKnownCameraOrientation)
+        dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(display.rotation))
     }
 
     fun disable() {
@@ -71,9 +76,14 @@ internal abstract class DisplayOrientationDetector(context: Context) {
         display = null
     }
 
-    fun dispatchOnDisplayOrientationChanged(displayOrientation: Int, cameraOrientation: Int) {
+    fun dispatchOnDisplayOrientationChanged(displayOrientation: Int) {
         lastKnownDisplayOrientation = displayOrientation
-        onDisplayOrientationChanged(displayOrientation, cameraOrientation)
+        onDisplayOrientationChanged(displayOrientation)
+    }
+
+    fun dispatchOnSensorOrientationChanged(sensorOrientation: Int) {
+        lastKnownSensorOrientation = sensorOrientation
+        onSensorOrientationChanged(sensorOrientation)
     }
 
     /**
@@ -81,7 +91,14 @@ internal abstract class DisplayOrientationDetector(context: Context) {
      *
      * @param displayOrientation One of 0, 90, 180, and 270.
      */
-    abstract fun onDisplayOrientationChanged(displayOrientation: Int, cameraOrientation: Int)
+    abstract fun onDisplayOrientationChanged(displayOrientation: Int)
+
+    /**
+     * Called when sensor orientation is changed.
+     *
+     * @param sensorOrientation One of 0, 90, 180, and 270.
+     */
+    abstract fun onSensorOrientationChanged(sensorOrientation: Int)
 
     companion object {
 

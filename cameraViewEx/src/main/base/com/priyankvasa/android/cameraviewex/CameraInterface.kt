@@ -40,7 +40,7 @@ internal interface CameraInterface : LifecycleOwner {
 
     var displayOrientation: Int
 
-    var cameraOrientation: Int
+    var sensorOrientation: Int
 
     @Modes.JpegQuality
     var jpegQuality: Int

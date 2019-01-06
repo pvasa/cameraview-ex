@@ -286,7 +286,7 @@ internal open class Camera2(
             preview.setDisplayOrientation(value)
         }
 
-    override var cameraOrientation: Int = 0
+    override var sensorOrientation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 
@@ -1048,7 +1048,7 @@ internal open class Camera2(
                     ?: throw CameraViewException("Camera characteristics not available")
 
             return (sensorOrientation
-                    + (cameraOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) -1 else 1)
+                    + (this.sensorOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) -1 else 1)
                     + 360) % 360
         }
 
