@@ -54,6 +54,9 @@ class VideoConfiguration {
      */
     var videoStabilization: Boolean = DEFAULT_VIDEO_STABILIZATION
 
+    /** Max length a video can be */
+    var maxDuration: Int = DEFAULT_MAX_DURATION
+
     companion object {
         val DEFAULT_AUDIO_SOURCE: AudioSource = AudioSource.Camcorder
         val DEFAULT_OUTPUT_FORMAT: VideoOutputFormat = VideoOutputFormat.Mpeg4
@@ -65,6 +68,9 @@ class VideoConfiguration {
         const val BIT_RATE_1080P = 16000000
         const val BIT_RATE_MIN = 64000
         const val BIT_RATE_MAX = 40000000
+
+        const val DEFAULT_MAX_DURATION = 0
+        const val DEFAULT_MIN_DURATION = 1000
     }
 }
 

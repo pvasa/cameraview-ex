@@ -23,15 +23,7 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Rect
-import android.hardware.camera2.CameraAccessException
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.CaptureResult
-import android.hardware.camera2.TotalCaptureResult
+import android.hardware.camera2.*
 import android.hardware.camera2.params.MeteringRectangle
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ImageReader
@@ -44,17 +36,8 @@ import android.util.SparseIntArray
 import android.view.Surface
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
-import com.priyankvasa.android.cameraviewex.extension.calculateVideoBitRate
-import com.priyankvasa.android.cameraviewex.extension.isAfSupported
-import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
-import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
-import com.priyankvasa.android.cameraviewex.extension.isOisSupported
-import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import com.priyankvasa.android.cameraviewex.extension.*
+import kotlinx.coroutines.*
 import java.io.File
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -302,6 +285,8 @@ internal open class Camera2(
             field = value
             preview.setDisplayOrientation(value)
         }
+
+    override var cameraOrientation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 
@@ -1063,7 +1048,7 @@ internal open class Camera2(
                     ?: throw CameraViewException("Camera characteristics not available")
 
             return (sensorOrientation
-                    + (displayOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+                    + (cameraOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) -1 else 1)
                     + 360) % 360
         }
 
@@ -1143,6 +1128,12 @@ internal open class Camera2(
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
+
+            // Let's not have videos less than one second
+            if (config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION) {
+                setMaxDuration(config.maxDuration)
+            }
+
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 isVideoRecording = false

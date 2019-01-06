@@ -21,6 +21,7 @@
 
         <activity
             android:name=".camera.CameraActivity"
+            android:screenOrientation="userPortrait"
             android:theme="@style/AppTheme.FullScreen">
 
             <intent-filter>

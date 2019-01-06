@@ -36,6 +36,9 @@ internal abstract class DisplayOrientationDetector(context: Context) {
     var lastKnownDisplayOrientation = 0
         private set
 
+    var lastKnownCameraOrientation = 0
+        private set
+
     init {
         orientationEventListener = object : OrientationEventListener(context) {
 
@@ -46,10 +49,11 @@ internal abstract class DisplayOrientationDetector(context: Context) {
                 if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN || display == null) {
                     return
                 }
-                val rotation = display?.rotation ?: lastKnownRotation
-                if (lastKnownRotation != rotation) {
-                    lastKnownRotation = rotation
-                    dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(rotation))
+                val displayRotation = display?.rotation ?: lastKnownRotation
+                val cameraRotation = ((orientation + 45) / 90 * 90) % 360 // 0, 90, 180, 270
+                if (lastKnownRotation != cameraRotation) {
+                    lastKnownRotation = cameraRotation
+                    dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(displayRotation), cameraRotation)
                 }
             }
         }
@@ -59,7 +63,7 @@ internal abstract class DisplayOrientationDetector(context: Context) {
         this.display = display
         orientationEventListener.enable()
         // Immediately dispatch the first callback
-        dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(display.rotation))
+        dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(display.rotation), lastKnownCameraOrientation)
     }
 
     fun disable() {
@@ -67,9 +71,9 @@ internal abstract class DisplayOrientationDetector(context: Context) {
         display = null
     }
 
-    fun dispatchOnDisplayOrientationChanged(displayOrientation: Int) {
+    fun dispatchOnDisplayOrientationChanged(displayOrientation: Int, cameraOrientation: Int) {
         lastKnownDisplayOrientation = displayOrientation
-        onDisplayOrientationChanged(displayOrientation)
+        onDisplayOrientationChanged(displayOrientation, cameraOrientation)
     }
 
     /**
@@ -77,7 +81,7 @@ internal abstract class DisplayOrientationDetector(context: Context) {
      *
      * @param displayOrientation One of 0, 90, 180, and 270.
      */
-    abstract fun onDisplayOrientationChanged(displayOrientation: Int)
+    abstract fun onDisplayOrientationChanged(displayOrientation: Int, cameraOrientation: Int)
 
     companion object {
 

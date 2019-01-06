@@ -32,7 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.SortedSet
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class Camera1(
@@ -101,6 +101,8 @@ internal class Camera1(
                 }
             }
         }
+
+    override var cameraOrientation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 
