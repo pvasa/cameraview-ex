@@ -54,6 +54,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -177,16 +178,22 @@ internal open class Camera2(
                 )
             } catch (e: Exception) {
                 listener.onCameraError(CameraViewException("Failed to start camera preview.", e))
+                isVideoRecording = false
+                return
             }
 
             GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
                     .invokeOnCompletion { t ->
-                        if (t != null) listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                        if (t != null) {
+                            listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                            isVideoRecording = false
+                        }
                     }
         }
 
         override fun onConfigureFailed(session: CameraCaptureSession) {
             listener.onCameraError(CameraViewException("Failed to configure video capture session."))
+            isVideoRecording = false
         }
     }
 
@@ -946,7 +953,7 @@ internal open class Camera2(
                     CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.autoFocus.value = Modes.DEFAULT_AUTO_FOCUS
+            config.autoFocus.value = Modes.AutoFocus.AF_OFF
         }
     }
 
@@ -986,7 +993,7 @@ internal open class Camera2(
                     CameraViewException("Awb mode ${config.awb.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.awb.value = Modes.DEFAULT_AWB
+            config.awb.value = Modes.AutoWhiteBalance.AWB_OFF
         }
     }
 
@@ -1000,10 +1007,7 @@ internal open class Camera2(
                         CameraViewException("Optical image stabilization is not supported by selected camera $cameraId. Setting it to off."),
                         ErrorLevel.Warning
                 )
-                previewRequestBuilder.set(
-                        CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-                        CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
-                )
+                config.opticalStabilization.value = false
             }
         } else previewRequestBuilder.set(
                 CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
@@ -1019,17 +1023,19 @@ internal open class Camera2(
                     CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.noiseReduction.value = Modes.DEFAULT_NOISE_REDUCTION
+            config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF
         }
     }
 
-    private fun updateModes() {
-        updateScalerCropRegion()
-        updateAf()
-        updateFlash()
-        updateAwb()
-        updateOis()
-        updateNoiseReduction()
+    private fun updateModes() = runBlocking {
+        GlobalScope.launch(Dispatchers.Main) {
+            updateScalerCropRegion()
+            updateAf()
+            updateFlash()
+            updateAwb()
+            updateOis()
+            updateNoiseReduction()
+        }
     }
 
     /** Locks the focus as the first step for a still image capture. */
@@ -1119,6 +1125,7 @@ internal open class Camera2(
                     .onFailure { t ->
                         // Angle outputOrientation is not supported
                         listener.onCameraError(t as Exception)
+                        isVideoRecording = false
                         return
                     }
             setAudioSource(config.audioSource.value)
@@ -1138,12 +1145,14 @@ internal open class Camera2(
             setAudioEncoder(config.audioEncoder.value)
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
+                isVideoRecording = false
                 return
             }
         }
 
         if (!isCameraOpened || !preview.isReady) {
             listener.onCameraError(CameraViewException("Camera not started or already stopped"))
+            isVideoRecording = false
             return
         }
 
@@ -1152,6 +1161,7 @@ internal open class Camera2(
         val previewSurface = preview.surface
                 ?: run {
                     listener.onCameraError(IllegalStateException("Preview surface not available"))
+                    isVideoRecording = false
                     return
                 }
 
@@ -1159,6 +1169,7 @@ internal open class Camera2(
             mediaRecorder?.surface
         } catch (e: IllegalStateException) {
             listener.onCameraError(CameraViewException("Cannot retrieve recorder surface", e))
+            isVideoRecording = false
             return
         }
 
@@ -1211,6 +1222,7 @@ internal open class Camera2(
                 }
                 ?: run {
             listener.onCameraError(CameraViewException("Camera not initialized or already stopped"))
+            isVideoRecording = false
             return
         }
 
