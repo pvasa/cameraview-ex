@@ -32,7 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.*
+import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class Camera1(
