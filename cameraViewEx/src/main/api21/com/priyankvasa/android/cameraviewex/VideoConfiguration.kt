@@ -69,7 +69,7 @@ class VideoConfiguration {
         const val BIT_RATE_MIN = 64000
         const val BIT_RATE_MAX = 40000000
 
-        const val DEFAULT_MAX_DURATION = 0
+        const val DEFAULT_MAX_DURATION = 3600000
         const val DEFAULT_MIN_DURATION = 1000
     }
 }
