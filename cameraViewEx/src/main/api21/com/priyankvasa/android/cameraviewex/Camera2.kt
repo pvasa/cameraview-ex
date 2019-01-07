@@ -484,9 +484,9 @@ internal open class Camera2(
         facing.observe(this@Camera2) {
             if (isCameraOpened) {
                 stop()
-                start()
+                start(it)
             } else {
-                chooseCameraIdByFacing()
+                chooseCameraById(it.toString())
                 collectCameraInfo()
             }
         }

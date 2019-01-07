@@ -179,7 +179,7 @@ internal class Camera1(
     }
 
     override fun start(): Boolean {
-        chooseCamera()
+        chooseCameraById(facing)
         openCamera()
         if (preview.isReady) setUpPreview()
         showingPreview = true
