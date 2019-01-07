@@ -305,15 +305,12 @@ internal class Camera1(
      * This rewrites [.cameraId] and [.cameraInfo].
      */
     private fun chooseCamera() {
-        var i = 0
-        val count = Camera.getNumberOfCameras()
-        while (i < count) {
+        for (i in 0..(Camera.getNumberOfCameras()-1)) {
             Camera.getCameraInfo(i, cameraInfo)
             if (cameraInfo.facing == facing) {
                 cameraId = i
                 return
             }
-            i++
         }
         cameraId = INVALID_CAMERA_ID
     }
