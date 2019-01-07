@@ -430,6 +430,49 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
+     * Open a camera device to a specified camera and start showing camera preview.
+     * This is typically called from [Activity.onResume].
+     */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun start(id: Int) {
+        if (!camera.start(id)) {
+            // Store the state and restore this state after falling back to Camera1
+            val state = onSaveInstanceState()
+            // Device uses legacy hardware layer; fall back to Camera1
+            camera = Camera1(listener, preview, config)
+            onRestoreInstanceState(state)
+            camera.start(id)
+        }
+    }
+
+    /**
+     * This will switch to the next camera, looping through all back and front
+     * cameras
+     */
+    fun nextCameraByFacing() {
+        val backCameras = camera.cameraIdsByFacing(Modes.Facing.FACING_BACK)
+        val frontCameras = camera.cameraIdsByFacing(Modes.Facing.FACING_FRONT)
+        when (camera.facingByCameraId(facing)) {
+            Modes.Facing.FACING_BACK -> {
+                val index = backCameras.indexOf(facing)
+                if (index + 1 == backCameras.size) {
+                    this.facing = frontCameras[0]
+                } else {
+                    this.facing = backCameras[index + 1]
+                }
+            }
+            Modes.Facing.FACING_FRONT -> {
+                val index = frontCameras.indexOf(facing)
+                if (index + 1 == frontCameras.size) {
+                    this.facing = backCameras[0]
+                } else {
+                    this.facing = frontCameras[index + 1]
+                }
+            }
+        }
+    }
+
+    /**
      * Stop camera preview and close the device. This is typically called from
      * [Activity.onPause].
      * @param removeAllListeners if `true`, removes all listeners previously set. See [CameraView.removeAllListeners]

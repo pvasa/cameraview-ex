@@ -32,7 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.SortedSet
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class Camera1(
@@ -192,10 +192,36 @@ internal class Camera1(
         }
     }
 
+    /**
+     * Can be used to open the camera to a specified cameraId
+     */
+    override fun start(cameraId: Int): Boolean {
+        chooseCameraById(cameraId)
+        openCamera()
+        if (preview.isReady) setUpPreview()
+        showingPreview = true
+        return try {
+            camera?.startPreview()
+            true
+        } catch (e: RuntimeException) {
+            listener.onCameraError(e)
+            false
+        }
+    }
+
     override fun stop() {
         runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it as Exception) }
         showingPreview = false
         releaseCamera()
+    }
+
+    override fun facingByCameraId(cameraId: Int): Int {
+        val info = android.hardware.Camera.CameraInfo()
+        Camera.getCameraInfo(cameraId, info)
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            return Modes.Facing.FACING_FRONT
+        }
+        return Modes.Facing.FACING_BACK
     }
 
     // Suppresses Camera#setPreviewTexture
@@ -290,6 +316,40 @@ internal class Camera1(
             i++
         }
         cameraId = INVALID_CAMERA_ID
+    }
+
+    /**
+     * Gets the cameraIds that are facing front or back.
+     * Pass in either Modes.Facing.FACING_BACK or FACING_FRONT
+     */
+    override fun cameraIdsByFacing(facing: Int): List<Int> {
+        val ids = mutableListOf<Int>()
+        val info = android.hardware.Camera.CameraInfo()
+        for (i in 0..(Camera.getNumberOfCameras()-1)) {
+            Camera.getCameraInfo(i, info)
+            if (facing == Modes.Facing.FACING_BACK &&
+                    info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                ids.add(i)
+            }
+            else if (facing == Modes.Facing.FACING_FRONT &&
+                    info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                ids.add(i)
+            }
+        }
+        return ids
+    }
+
+    /**
+     * This will choose a camera based on a passed in cameraId
+     * Called from [start(cameraId)]
+     */
+    private fun chooseCameraById(cameraId: Int): Boolean {
+        if (cameraId >= 0 && cameraId < Camera.getNumberOfCameras()) {
+            Camera.getCameraInfo(cameraId, cameraInfo)
+            this.cameraId = cameraId
+            return true
+        }
+        return false
     }
 
     private fun openCamera() {

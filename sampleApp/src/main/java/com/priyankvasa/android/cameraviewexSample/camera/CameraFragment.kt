@@ -202,10 +202,24 @@ open class CameraFragment : Fragment() {
         }
 
         ivCameraSwitch.setOnClickListener {
+
+            /*
+             * This block will switch between the default front and back
+             * camera. If there are more than two cameras it will only switch between 2.
+             */
+            /*
             camera.facing = when (camera.facing) {
                 Modes.Facing.FACING_BACK -> Modes.Facing.FACING_FRONT
                 else -> Modes.Facing.FACING_BACK
             }
+            */
+
+            /*
+             * This will switch to the next camera, looping through all back and front
+             * cameras
+             */
+            camera.nextCameraByFacing()
+
             updateViewState()
         }
 

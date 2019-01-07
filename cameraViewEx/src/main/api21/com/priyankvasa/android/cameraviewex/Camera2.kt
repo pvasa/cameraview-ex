@@ -482,12 +482,22 @@ internal open class Camera2(
             }
         }
         facing.observe(this@Camera2) {
-            if (isCameraOpened) {
-                stop()
-                start()
+            if (it > Modes.Facing.FACING_FRONT) {
+                if (isCameraOpened) {
+                    stop()
+                    start(it)
+                } else {
+                    chooseCameraById(it.toString())
+                    collectCameraInfo()
+                }
             } else {
-                chooseCameraIdByFacing()
-                collectCameraInfo()
+                if (isCameraOpened) {
+                    stop()
+                    start()
+                } else {
+                    chooseCameraIdByFacing()
+                    collectCameraInfo()
+                }
             }
         }
         autoFocus.observe(this@Camera2) {
@@ -634,6 +644,19 @@ internal open class Camera2(
         return true
     }
 
+    /**
+     * Can be used to open the camera to a specified cameraId
+     */
+    override fun start(cameraId: Int): Boolean {
+        cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
+        if (!chooseCameraById(cameraId.toString())) return false
+        if (backgroundThread == null && backgroundHandler == null) startBackgroundThread()
+        collectCameraInfo()
+        prepareImageReader()
+        startOpeningCamera()
+        return true
+    }
+
     override fun stop() {
         try {
             cameraOpenCloseLock.acquire()
@@ -652,6 +675,15 @@ internal open class Camera2(
         } finally {
             cameraOpenCloseLock.release()
         }
+    }
+
+    override fun facingByCameraId(cameraId: Int): Int {
+        val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId.toString())
+        val lensFacing = cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)
+        if (lensFacing == CameraCharacteristics.LENS_FACING_FRONT) {
+            return Modes.Facing.FACING_FRONT
+        }
+        return Modes.Facing.FACING_BACK
     }
 
     override fun setAspectRatio(ratio: AspectRatio): Boolean {
@@ -752,6 +784,51 @@ internal open class Camera2(
             listener.onCameraError(CameraViewException("Failed to get a list of camera devices", e))
             return false
         }
+    }
+
+    /**
+     * Gets the cameraIds that are facing front or back.
+     * Pass in either Modes.Facing.FACING_BACK or FACING_FRONT
+     */
+    override fun cameraIdsByFacing(facing: Int): List<Int> {
+        val ids = mutableListOf<Int>()
+        cameraManager.cameraIdList.run {
+            forEach { id ->
+                val characteristics = cameraManager.getCameraCharacteristics(id)
+                val level = characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+                if (level != null &&
+                        level != CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
+                    val internal = characteristics.get(CameraCharacteristics.LENS_FACING)
+                    if (internal != null && internal == CameraCharacteristics.LENS_FACING_BACK &&
+                            facing == Modes.Facing.FACING_BACK) {
+                        ids.add(Integer.parseInt(id))
+                    }
+                    else if (internal != null && internal == CameraCharacteristics.LENS_FACING_FRONT &&
+                            facing == Modes.Facing.FACING_FRONT) {
+                        ids.add(Integer.parseInt(id))
+                    }
+                }
+            }
+        }
+        return ids
+    }
+
+    /**
+     * This will choose a camera based on a passed in cameraId
+     * Called from [start(cameraId)]
+     */
+    private fun chooseCameraById(cameraId: String): Boolean {
+        if (cameraManager.cameraIdList.contains(cameraId)) {
+            val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+            val level = cameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+            if (level != null &&
+                    level != CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
+                this.cameraId = cameraId
+                this.cameraCharacteristics = cameraCharacteristics
+                return true
+            }
+        }
+        return false
     }
 
     /**
