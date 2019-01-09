@@ -1143,6 +1143,16 @@ internal open class Camera2(
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
+
+            // Let's not have videos less than one second
+            when {
+                config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION -> setMaxDuration(config.maxDuration)
+                else -> {
+                    listener.onCameraError(CameraViewException("${config.maxDuration} is not a valid max duration value for video recording. Using minimum default ${VideoConfiguration.DEFAULT_MIN_DURATION}."))
+                    setMaxDuration(VideoConfiguration.DEFAULT_MIN_DURATION)
+                }
+            }
+
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 isVideoRecording = false
