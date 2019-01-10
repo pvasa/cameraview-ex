@@ -1160,6 +1160,14 @@ internal open class Camera2(
             }
         }
 
+        mediaRecorder?.setOnInfoListener { mediaRecorder, what, extra ->
+            when (what) {
+                MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> {
+                    stopVideoRecording()
+                }
+            }
+        }
+
         if (!isCameraOpened || !preview.isReady) {
             listener.onCameraError(CameraViewException("Camera not started or already stopped"))
             isVideoRecording = false
