@@ -25,8 +25,9 @@ import android.os.Build
 internal open class Camera2Api23(
         listener: CameraInterface.Listener,
         preview: PreviewImpl,
+        config: CameraConfiguration,
         context: Context
-) : Camera2(listener, preview, context) {
+) : Camera2(listener, preview, config, context) {
 
     override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         // Try to get hi-res output sizes

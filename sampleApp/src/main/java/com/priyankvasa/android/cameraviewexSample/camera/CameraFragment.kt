@@ -6,17 +6,18 @@ import android.content.pm.PackageManager
 import android.media.Image
 import android.os.Bundle
 import android.os.Environment
-import android.support.annotation.DrawableRes
-import android.support.v4.app.ActivityCompat
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.DrawableRes
+import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.priyankvasa.android.cameraviewex.AudioEncoder
+import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewexSample.R
 import com.priyankvasa.android.cameraviewexSample.extensions.toast
@@ -61,7 +62,7 @@ open class CameraFragment : Fragment() {
             videoFile = nextVideoFile.also { outputFile ->
                 camera.startVideoRecording(outputFile) {
                     audioEncoder = AudioEncoder.Aac
-                    videoFrameRate = 120
+                    videoFrameRate = 60
                     videoStabilization = true
                 }
             }
@@ -127,7 +128,12 @@ open class CameraFragment : Fragment() {
                 GlobalScope.launch(Dispatchers.IO) { saveDataToFile(imageData) }
             }
 
-            addCameraErrorListener { t -> Timber.e(t) }
+            addCameraErrorListener { t, errorLevel ->
+                when (errorLevel) {
+                    ErrorLevel.Error -> Timber.e(t)
+                    ErrorLevel.Warning -> Timber.w(t)
+                }
+            }
 
             addCameraClosedListener { Timber.i("Camera closed.") }
         }

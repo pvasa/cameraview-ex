@@ -20,7 +20,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.media.MediaRecorder
 import android.os.Build
-import android.support.annotation.RequiresApi
+import androidx.annotation.RequiresApi
 
 /**
  * Configuration that abstracts [MediaRecorder] parameters for video recording
@@ -40,7 +40,7 @@ class VideoConfiguration {
     var videoFrameRate: Int = DEFAULT_VIDEO_FRAME_RATE
 
     /** The video encoding bit rate in bits per second. */
-    var videoEncodingBitRate: Int = DEFAULT_VIDEO_ENCODING_BIT_RATE
+    var videoEncodingBitRate: Int = BIT_RATE_1080P
 
     /** The encoding used for audio. */
     var audioEncoder: AudioEncoder = DEFAULT_AUDIO_ENCODER
@@ -54,14 +54,23 @@ class VideoConfiguration {
      */
     var videoStabilization: Boolean = DEFAULT_VIDEO_STABILIZATION
 
+    /** Max length a video can be */
+    var maxDuration: Int = DEFAULT_MAX_DURATION
+
     companion object {
         val DEFAULT_AUDIO_SOURCE: AudioSource = AudioSource.Camcorder
         val DEFAULT_OUTPUT_FORMAT: VideoOutputFormat = VideoOutputFormat.Mpeg4
-        const val DEFAULT_VIDEO_FRAME_RATE: Int = 60
-        const val DEFAULT_VIDEO_ENCODING_BIT_RATE: Int = 10000000
+        const val DEFAULT_VIDEO_FRAME_RATE: Int = 30
         val DEFAULT_AUDIO_ENCODER: AudioEncoder = AudioEncoder.Aac
         val DEFAULT_VIDEO_ENCODER: VideoEncoder = VideoEncoder.H264
         const val DEFAULT_VIDEO_STABILIZATION = true
+
+        const val BIT_RATE_1080P = 16000000
+        const val BIT_RATE_MIN = 64000
+        const val BIT_RATE_MAX = 40000000
+
+        const val DEFAULT_MAX_DURATION = 3600000
+        const val DEFAULT_MIN_DURATION = 1000
     }
 }
 

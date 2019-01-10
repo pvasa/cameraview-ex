@@ -28,8 +28,16 @@
         </attr>
         <!-- Aspect ratio of camera preview and pictures. -->
         <attr name="aspectRatio" format="string" />
-        <!-- Continuous auto focus mode. -->
-        <attr name="autoFocus" format="boolean" />
+
+        <!-- Auto focus mode. -->
+        <attr name="autoFocus" format="enum">
+            <enum name="off" value="0" />
+            <enum name="auto" value="1" />
+            <enum name="macro" value="2" />
+            <enum name="continuous_video" value="3" />
+            <enum name="continuous_picture" value="4" />
+            <enum name="edof" value="5" />
+        </attr>
 
         <attr name="touchToFocus" format="boolean" />
 
