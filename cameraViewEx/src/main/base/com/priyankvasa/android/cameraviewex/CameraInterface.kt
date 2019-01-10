@@ -38,6 +38,8 @@ internal interface CameraInterface : LifecycleOwner {
 
     val supportedAspectRatios: Set<AspectRatio>
 
+    val supportedVideoSizes: SizeMap
+
     var displayOrientation: Int
 
     @Modes.JpegQuality

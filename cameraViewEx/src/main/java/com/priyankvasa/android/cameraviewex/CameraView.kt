@@ -604,6 +604,17 @@ class CameraView @JvmOverloads constructor(
      */
     fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
+    /**
+     * Gets a list of video sizes for the current camera
+     * @return a SizeMap of the video sizes
+     */
+    fun supportedVideoSizes(): SizeMap {
+        if (camera.isCameraOpened) {
+            return camera.supportedVideoSizes
+        }
+        return SizeMap()
+    }
+
     @Parcelize
     internal data class SavedState(
             val parcelable: Parcelable,
