@@ -19,7 +19,7 @@ package com.priyankvasa.android.cameraviewex
 /**
  * Immutable class for describing width and height dimensions in pixels.
  */
-class Size
+open class Size
 /**
  * Create a new immutable Size instance.
  *

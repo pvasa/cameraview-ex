@@ -60,8 +60,6 @@ internal class Camera1(
 
     private val pictureSizes = SizeMap()
 
-    override val supportedVideoSizes = SizeMap()
-
     private var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
         set(value) {
             if (field == value) return

@@ -23,7 +23,7 @@ import java.util.TreeSet
 /**
  * A collection class that automatically groups [Size]s by their [AspectRatio]s.
  */
-class SizeMap {
+internal class SizeMap {
 
     private val ratios = ArrayMap<AspectRatio, SortedSet<Size>>()
 

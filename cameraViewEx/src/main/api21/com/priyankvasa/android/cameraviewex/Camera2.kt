@@ -289,7 +289,7 @@ internal open class Camera2(
 
     private val pictureSizes = SizeMap()
 
-    override val supportedVideoSizes = SizeMap()
+    private val videoSizes = SizeMap()
 
     private val startPreviewJob: Job = Job()
 
@@ -786,11 +786,9 @@ internal open class Camera2(
 
         supportedAspectRatios.run { if (!contains(config.aspectRatio.value)) config.aspectRatio.value = iterator().next() }
 
-        supportedVideoSizes.clear()
+        videoSizes.clear()
 
-        map.getOutputSizes(MediaRecorder::class.java).forEach {
-            supportedVideoSizes.add(Size(it.width, it.height))
-        }
+        map.getOutputSizes(MediaRecorder::class.java).forEach { videoSizes.add(Size(it.width, it.height)) }
     }
 
     protected open fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
@@ -906,6 +904,10 @@ internal open class Camera2(
      * @return The picked optimal size.
      */
     private fun chooseOptimalSize(template: Template): Size {
+        return chooseOptimalSize(config.aspectRatio.value, template)
+    }
+
+    private fun chooseOptimalSize(aspectRatio: AspectRatio, template: Template): Size {
 
         val surfaceLonger: Int
         val surfaceShorter: Int
@@ -922,8 +924,8 @@ internal open class Camera2(
         }
 
         val candidates = when (template) {
-            Template.Preview -> previewSizes.sizes(config.aspectRatio.value)
-            Template.Record -> supportedVideoSizes.sizes(config.aspectRatio.value)
+            Template.Preview -> previewSizes.sizes(aspectRatio)
+            Template.Record -> videoSizes.sizes(aspectRatio)
         }
 
         // Pick the smallest of those big enough
@@ -1124,15 +1126,7 @@ internal open class Camera2(
          * If a videoSize is set then use that size IF it is an available size.
          * Otherwise default to choosing an optimal size.
          */
-        val videoSize = when (config.videoSize) {
-            null -> chooseOptimalSize(Template.Record)
-            else -> {
-                if (supportedVideoSizes.sizes(this.config.aspectRatio.value).contains(config.videoSize)) {
-                    config.videoSize
-                }
-                chooseOptimalSize(Template.Record)
-            }
-        }
+        val videoSize = getVideoSize(config.videoSize)
 
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
             runCatching { setOrientationHint(outputOrientation) }
@@ -1296,6 +1290,30 @@ internal open class Camera2(
             defaultCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW)
         } catch (e: Exception) {
             listener.onCameraError(CameraViewException("Failed to restart camera preview.", e))
+        }
+    }
+
+    /**
+     * Get the video size from popular [VideoSize] choices. If the [VideoSize]
+     * is not supported then an optimal size sill be chosen.
+     */
+    private fun getVideoSize(configSize: Size) : Size {
+        return when (configSize) {
+            VideoSize.SizeMax16x9 -> chooseOptimalSize(AspectRatio.Aspect16x9, Template.Record)
+            VideoSize.SizeMax4x3 -> chooseOptimalSize(AspectRatio.Aspect4x3, Template.Record)
+            VideoSize.Size1080p -> {
+                when (videoSizes.sizes(AspectRatio.Aspect16x9).contains(VideoSize.Size1080p)) {
+                    false -> chooseOptimalSize(Template.Record)
+                    true -> VideoSize.Size1080p
+                }
+            }
+            VideoSize.Size720p -> {
+                when (videoSizes.sizes(AspectRatio.Aspect16x9).contains(VideoSize.Size720p)) {
+                    false -> chooseOptimalSize(Template.Record)
+                    true -> VideoSize.Size720p
+                }
+            }
+            else -> chooseOptimalSize(Template.Record)
         }
     }
 
