@@ -1147,6 +1147,14 @@ internal open class Camera2(
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
 
+            setOnInfoListener { _, what, _ ->
+                when (what) {
+                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> {
+                        stopVideoRecording()
+                    }
+                }
+            }
+
             // Let's not have videos less than one second
             when {
                 config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION -> setMaxDuration(config.maxDuration)
