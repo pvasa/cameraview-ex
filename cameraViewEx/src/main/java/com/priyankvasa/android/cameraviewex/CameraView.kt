@@ -58,6 +58,8 @@ class CameraView @JvmOverloads constructor(
     private var previewFrameListener: ((image: Image) -> Unit)? = null
     private val cameraErrorListeners = HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>()
     private val cameraClosedListeners = HashSet<() -> Unit>()
+    private val videoRecordStartedListeners = HashSet<() -> Unit>()
+    private val videoRecordStoppedListeners = HashSet<() -> Unit>()
 
     private val listener = object : CameraInterface.Listener {
 
@@ -81,6 +83,8 @@ class CameraView @JvmOverloads constructor(
             pictureTakenListeners.clear()
             cameraErrorListeners.clear()
             cameraClosedListeners.clear()
+            videoRecordStartedListeners.clear()
+            videoRecordStoppedListeners.clear()
         }
 
         override suspend fun onCameraOpened() {
@@ -108,6 +112,14 @@ class CameraView @JvmOverloads constructor(
 
         override suspend fun onCameraClosed() {
             cameraClosedListeners.forEach { it.invoke() }
+        }
+
+        override fun onVideoRecordStarted() {
+            videoRecordStartedListeners.forEach { it.invoke() }
+        }
+
+        override fun onVideoRecordStopped() {
+            videoRecordStoppedListeners.forEach { it.invoke() }
         }
     }
 
@@ -546,6 +558,46 @@ class CameraView @JvmOverloads constructor(
      */
     fun removeCameraClosedListener(listener: () -> Unit): CameraView {
         cameraClosedListeners.remove(listener)
+        return this
+    }
+
+    /**
+     * Add a new video record started [listener].
+     * @param listener lambda
+     * @return instance of [CameraView] it was called on
+     */
+    fun addVideoRecordStartedListener(listener: () -> Unit): CameraView {
+        videoRecordStartedListeners.add(listener)
+        return this
+    }
+
+    /**
+     * Remove video record started [listener].
+     * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeVideoRecordStartedListener(listener: () -> Unit): CameraView {
+        videoRecordStartedListeners.remove(listener)
+        return this
+    }
+
+    /**
+     * Add a new video record stopped [listener].
+     * @param listener lambda
+     * @return instance of [CameraView] it was called on
+     */
+    fun addVideoRecordStoppedListener(listener: () -> Unit): CameraView {
+        videoRecordStoppedListeners.add(listener)
+        return this
+    }
+
+    /**
+     * Remove video record stopped [listener].
+     * @param listener that was previously added.
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeVideoRecordStoppedListener(listener: () -> Unit): CameraView {
+        videoRecordStoppedListeners.remove(listener)
         return this
     }
 

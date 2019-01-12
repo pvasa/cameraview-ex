@@ -184,9 +184,12 @@ internal open class Camera2(
 
             GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
                     .invokeOnCompletion { t ->
-                        if (t != null) {
-                            listener.onCameraError(CameraViewException("Camera device is already in use", t))
-                            isVideoRecording = false
+                        when (t) {
+                            null -> listener.onVideoRecordStarted()
+                            else -> {
+                                listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                                isVideoRecording = false
+                            }
                         }
                     }
         }
@@ -1259,6 +1262,7 @@ internal open class Camera2(
 
     override fun stopVideoRecording(): Boolean = runCatching {
         mediaRecorder?.stop()
+        listener.onVideoRecordStopped()
         mediaRecorder?.reset()
         captureSession?.close()
         startPreviewCaptureSession()
