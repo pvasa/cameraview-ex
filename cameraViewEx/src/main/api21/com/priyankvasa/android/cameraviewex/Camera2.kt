@@ -901,16 +901,16 @@ internal open class Camera2(
     }
 
     /**
-     * Chooses the optimal size for [template] based on respective supported sizes and the surface size.
+     * Chooses the optimal size for [template] and [aspectRatio] based on respective supported sizes and the surface size.
      *
      * @param template one of the templates from [CameraDevice]
+     * @param aspectRatio required aspect ratio for video recording
      * @return The picked optimal size.
      */
-    private fun chooseOptimalSize(template: Template): Size {
-        return chooseOptimalSize(config.aspectRatio.value, template)
-    }
-
-    private fun chooseOptimalSize(aspectRatio: AspectRatio, template: Template): Size {
+    private fun chooseOptimalSize(
+            template: Template,
+            aspectRatio: AspectRatio = config.aspectRatio.value
+    ): Size {
 
         val surfaceLonger: Int
         val surfaceShorter: Int
@@ -1129,7 +1129,7 @@ internal open class Camera2(
          * If a videoSize is set then use that size IF it is an available size.
          * Otherwise default to choosing an optimal size.
          */
-        val videoSize = getVideoSize(config.videoSize)
+        val videoSize = parseVideoSize(config.videoSize)
 
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
             runCatching { setOrientationHint(outputOrientation) }
@@ -1306,27 +1306,26 @@ internal open class Camera2(
     }
 
     /**
-     * Get the video size from popular [VideoSize] choices. If the [VideoSize]
+     * Parse the video size from popular [VideoSize] choices. If the [VideoSize]
      * is not supported then an optimal size sill be chosen.
      */
-    private fun getVideoSize(configSize: Size) : Size {
-        return when (configSize) {
-            VideoSize.SizeMax16x9 -> chooseOptimalSize(AspectRatio.Aspect16x9, Template.Record)
-            VideoSize.SizeMax4x3 -> chooseOptimalSize(AspectRatio.Aspect4x3, Template.Record)
-            VideoSize.Size1080p -> {
-                when (videoSizes.sizes(AspectRatio.Aspect16x9).contains(VideoSize.Size1080p)) {
-                    false -> chooseOptimalSize(Template.Record)
-                    true -> VideoSize.Size1080p
-                }
-            }
-            VideoSize.Size720p -> {
-                when (videoSizes.sizes(AspectRatio.Aspect16x9).contains(VideoSize.Size720p)) {
-                    false -> chooseOptimalSize(Template.Record)
-                    true -> VideoSize.Size720p
-                }
-            }
-            else -> chooseOptimalSize(Template.Record)
+    private fun parseVideoSize(size: VideoSize): Size = when (size) {
+
+        VideoSize.Max16x9 -> chooseOptimalSize(Template.Record, AspectRatio.Ratio16x9)
+
+        VideoSize.Max4x3 -> chooseOptimalSize(Template.Record, AspectRatio.Ratio4x3)
+
+        VideoSize.P1080 -> when (videoSizes.sizes(AspectRatio.Ratio16x9).contains(Size.P1080)) {
+            false -> chooseOptimalSize(Template.Record)
+            true -> Size.P1080
         }
+
+        VideoSize.P720 -> when (videoSizes.sizes(AspectRatio.Ratio16x9).contains(Size.P720)) {
+            false -> chooseOptimalSize(Template.Record)
+            true -> Size.P720
+        }
+
+        else -> chooseOptimalSize(Template.Record)
     }
 
     private sealed class Template {

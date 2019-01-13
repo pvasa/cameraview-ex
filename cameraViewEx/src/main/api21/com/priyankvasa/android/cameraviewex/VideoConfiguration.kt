@@ -57,8 +57,8 @@ class VideoConfiguration {
     /** Max length a video can be */
     var maxDuration: Int = DEFAULT_MAX_DURATION
 
-    /** Optional video size to record in */
-    var videoSize: Size = DEFAULT_VIDEO_SIZE
+    /** Optional video size to record in. Valid values are [VideoSize] */
+    var videoSize: VideoSize = DEFAULT_VIDEO_SIZE
 
     companion object {
         val DEFAULT_AUDIO_SOURCE: AudioSource = AudioSource.Camcorder
@@ -67,7 +67,7 @@ class VideoConfiguration {
         val DEFAULT_AUDIO_ENCODER: AudioEncoder = AudioEncoder.Aac
         val DEFAULT_VIDEO_ENCODER: VideoEncoder = VideoEncoder.H264
         const val DEFAULT_VIDEO_STABILIZATION = true
-        val DEFAULT_VIDEO_SIZE = VideoSize.SizeMax
+        val DEFAULT_VIDEO_SIZE = VideoSize.Max
 
         const val BIT_RATE_1080P = 16000000
         const val BIT_RATE_MIN = 64000
@@ -212,4 +212,13 @@ inline class VideoEncoder(val value: Int) {
         @RequiresApi(Build.VERSION_CODES.N)
         val Hevc = VideoEncoder(MediaRecorder.VideoEncoder.HEVC)
     }
+}
+
+/** Class for common video resolutions */
+sealed class VideoSize {
+    object Max : VideoSize()
+    object Max16x9 : VideoSize()
+    object Max4x3 : VideoSize()
+    object P1080 : VideoSize()
+    object P720 : VideoSize()
 }
