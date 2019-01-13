@@ -45,4 +45,9 @@ class Size
             height xor (width shl Integer.SIZE / 2 or width.ushr(Integer.SIZE / 2))
 
     override fun compareTo(other: Size): Int = width * height - other.width * other.height
+
+    companion object {
+        val P1080 = Size(1920, 1080)
+        val P720 = Size(1280, 720)
+    }
 }
