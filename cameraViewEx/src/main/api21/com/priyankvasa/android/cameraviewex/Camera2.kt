@@ -184,9 +184,12 @@ internal open class Camera2(
 
             GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
                     .invokeOnCompletion { t ->
-                        if (t != null) {
-                            listener.onCameraError(CameraViewException("Camera device is already in use", t))
-                            isVideoRecording = false
+                        when (t) {
+                            null -> listener.onVideoRecordStarted()
+                            else -> {
+                                listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                                isVideoRecording = false
+                            }
                         }
                     }
         }
@@ -1152,6 +1155,14 @@ internal open class Camera2(
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
 
+            setOnInfoListener { _, what, _ ->
+                when (what) {
+                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> {
+                        stopVideoRecording()
+                    }
+                }
+            }
+
             // Let's not have videos less than one second
             when {
                 config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION -> setMaxDuration(config.maxDuration)
@@ -1259,6 +1270,7 @@ internal open class Camera2(
 
     override fun stopVideoRecording(): Boolean = runCatching {
         mediaRecorder?.stop()
+        listener.onVideoRecordStopped()
         mediaRecorder?.reset()
         captureSession?.close()
         startPreviewCaptureSession()
