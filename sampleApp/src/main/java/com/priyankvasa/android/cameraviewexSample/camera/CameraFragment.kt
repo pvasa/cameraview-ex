@@ -19,6 +19,7 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.Modes
+import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewexSample.R
 import com.priyankvasa.android.cameraviewexSample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
@@ -64,6 +65,7 @@ open class CameraFragment : Fragment() {
                     audioEncoder = AudioEncoder.Aac
                     videoFrameRate = 60
                     videoStabilization = true
+                    videoSize = VideoSize.Max
                 }
             }
             ivPlayPause.visibility = View.VISIBLE

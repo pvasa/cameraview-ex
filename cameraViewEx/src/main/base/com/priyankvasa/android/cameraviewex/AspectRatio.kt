@@ -60,6 +60,9 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
 
     companion object {
 
+        val Ratio16x9 = AspectRatio(16, 9)
+        val Ratio4x3 = AspectRatio(4, 3)
+
         private val cache = SparseArrayCompat<SparseArrayCompat<AspectRatio>>(16)
 
         /**
