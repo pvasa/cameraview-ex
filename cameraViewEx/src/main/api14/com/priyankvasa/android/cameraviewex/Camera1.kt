@@ -115,6 +115,22 @@ internal class Camera1(
             return previewSizes.ratios()
         }
 
+    /**
+     * Populate the [CameraMap] with all of the cameraIds based on facing [Modes.Facing]
+     */
+    override val cameraMap: CameraMap = CameraMap().apply {
+        val info = android.hardware.Camera.CameraInfo()
+        for (i in 0..(Camera.getNumberOfCameras()-1)) {
+            Camera.getCameraInfo(i, info)
+            when (info.facing) {
+                Camera.CameraInfo.CAMERA_FACING_BACK ->
+                    add(Modes.Facing.FACING_BACK, cameraId, null)
+                Camera.CameraInfo.CAMERA_FACING_FRONT ->
+                    add(Modes.Facing.FACING_FRONT, cameraId, null)
+            }
+        }
+    }
+
     private var autoFocus: Boolean = false
         get() {
             if (!isCameraOpened) return field
@@ -179,7 +195,24 @@ internal class Camera1(
     }
 
     override fun start(): Boolean {
-        chooseCamera()
+        chooseCameraById(facing)
+        openCamera()
+        if (preview.isReady) setUpPreview()
+        showingPreview = true
+        return try {
+            camera?.startPreview()
+            true
+        } catch (e: RuntimeException) {
+            listener.onCameraError(e)
+            false
+        }
+    }
+
+    /**
+     * Can be used to open the camera to a specified cameraId
+     */
+    override fun start(cameraId: Int): Boolean {
+        chooseCameraById(cameraId)
         openCamera()
         if (preview.isReady) setUpPreview()
         showingPreview = true
@@ -279,17 +312,27 @@ internal class Camera1(
      * This rewrites [.cameraId] and [.cameraInfo].
      */
     private fun chooseCamera() {
-        var i = 0
-        val count = Camera.getNumberOfCameras()
-        while (i < count) {
+        for (i in 0..(Camera.getNumberOfCameras()-1)) {
             Camera.getCameraInfo(i, cameraInfo)
             if (cameraInfo.facing == facing) {
                 cameraId = i
                 return
             }
-            i++
         }
         cameraId = INVALID_CAMERA_ID
+    }
+
+    /**
+     * This will choose a camera based on a passed in cameraId
+     * Called from [start(cameraId)]
+     */
+    private fun chooseCameraById(cameraId: Int): Boolean {
+        if (cameraId >= 0 && cameraId < Camera.getNumberOfCameras()) {
+            Camera.getCameraInfo(cameraId, cameraInfo)
+            this.cameraId = cameraId
+            return true
+        }
+        return false
     }
 
     private fun openCamera() {

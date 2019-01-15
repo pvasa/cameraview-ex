@@ -40,6 +40,8 @@ internal interface CameraInterface : LifecycleOwner {
 
     var displayOrientation: Int
 
+    val cameraMap: CameraMap
+
     @Modes.JpegQuality
     var jpegQuality: Int
 
@@ -49,6 +51,11 @@ internal interface CameraInterface : LifecycleOwner {
      * @return `true` if the implementation was able to start the camera session.
      */
     fun start(): Boolean
+
+    /**
+     * @return `true` if the implementation was able to start the passed in cameraId
+     */
+    fun start(cameraId: Int): Boolean
 
     fun stop()
 

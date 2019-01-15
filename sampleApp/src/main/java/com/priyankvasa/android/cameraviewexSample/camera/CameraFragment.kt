@@ -204,10 +204,34 @@ open class CameraFragment : Fragment() {
         }
 
         ivCameraSwitch.setOnClickListener {
+
+            /*
+             * This block will switch between the default front and back
+             * camera. If there are more than two cameras it will only switch between 2.
+             */
+            /*
             camera.facing = when (camera.facing) {
                 Modes.Facing.FACING_BACK -> Modes.Facing.FACING_FRONT
                 else -> Modes.Facing.FACING_BACK
             }
+            */
+
+            /*
+             * This will switch to the next camera, looping through all back and front cameras
+             */
+            camera.nextCamera()
+
+            /*
+             * This will switch to any camera by cameraId
+             * In this example it is picking the last read facing camera and also getting the
+             * CameraCharacteristics.
+             */
+            /*
+            val cameraMap = camera.cameraMap()
+            camera.facing = cameraMap.camerasByFacing(Modes.Facing.FACING_BACK).last()
+            val characteristics = cameraMap.characteristics(camera.facing)
+            */
+
             updateViewState()
         }
 

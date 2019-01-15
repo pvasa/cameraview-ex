@@ -442,6 +442,29 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
+     * Open a camera device to a specified camera and start showing camera preview.
+     * This is typically called from [Activity.onResume].
+     */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun start(id: Int) {
+        if (!camera.start(id)) {
+            // Store the state and restore this state after falling back to Camera1
+            val state = onSaveInstanceState()
+            // Device uses legacy hardware layer; fall back to Camera1
+            camera = Camera1(listener, preview, config)
+            onRestoreInstanceState(state)
+            camera.start(id)
+        }
+    }
+
+    /**
+     * This will switch to the next camera, looping through all back and front cameras
+     */
+    fun nextCamera() {
+        facing = camera.cameraMap.nextCamera(facing)
+    }
+
+    /**
      * Stop camera preview and close the device. This is typically called from
      * [Activity.onPause].
      * @param removeAllListeners if `true`, removes all listeners previously set. See [CameraView.removeAllListeners]
@@ -655,6 +678,14 @@ class CameraView @JvmOverloads constructor(
      * @return true if video was stopped and saved to given outputFile, false otherwise
      */
     fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
+
+    /**
+     * Gets the camera map which contains all of the front and back camera information
+     * @return the [CameraMap]
+     */
+    fun cameraMap(): CameraMap {
+        return camera.cameraMap
+    }
 
     @Parcelize
     internal data class SavedState(
