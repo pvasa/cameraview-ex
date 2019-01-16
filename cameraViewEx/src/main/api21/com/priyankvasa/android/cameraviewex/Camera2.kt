@@ -292,11 +292,7 @@ internal open class Camera2(
 
     protected val internalOutputFormat: Int get() = internalOutputFormats[config.outputFormat.value]
 
-    override var displayOrientation: Int = 0
-        set(value) {
-            field = value
-            preview.setDisplayOrientation(value)
-        }
+    override var deviceRotation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 
@@ -1059,11 +1055,11 @@ internal open class Camera2(
     // Calculate output orientation based on device sensor orientation.
     private val outputOrientation: Int
         get() {
-            val sensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+            val cameraSensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
                     ?: throw CameraViewException("Camera characteristics not available")
 
-            return (sensorOrientation
-                    + (displayOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+            return (cameraSensorOrientation
+                    + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
                     + 360) % 360
         }
 

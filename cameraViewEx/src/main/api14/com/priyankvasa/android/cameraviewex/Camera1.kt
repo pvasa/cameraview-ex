@@ -78,15 +78,15 @@ internal class Camera1(
             }
         }
 
-    override var displayOrientation: Int = 0
+    override var deviceRotation: Int = 0
         set(value) {
             if (field == value) return
             field = value
             if (isCameraOpened) {
                 try {
-                    cameraParameters?.setRotation(calcCameraRotation(value))
+                    val rotation = calcCameraRotation(value)
+                    cameraParameters?.setRotation(rotation)
                     camera?.parameters = cameraParameters
-                    camera?.setDisplayOrientation(calcDisplayOrientation(value))
                 } catch (e: Exception) {
                     listener.onCameraError(e)
                 }
@@ -293,7 +293,7 @@ internal class Camera1(
                 pictureSizes.add(Size(size.width, size.height))
             }
             adjustCameraParameters()
-            camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
+            camera?.setDisplayOrientation(calcDisplayOrientation(deviceRotation))
             listener.onCameraOpened()
         } catch (e: RuntimeException) {
             listener.onCameraError(e)
@@ -326,7 +326,7 @@ internal class Camera1(
         cameraParameters?.apply {
             setPreviewSize(size.width, size.height)
             setPictureSize(pictureSize.width, pictureSize.height)
-            setRotation(calcCameraRotation(displayOrientation))
+            setRotation(calcCameraRotation(deviceRotation))
         }?.also { camera?.parameters = it }
         setAutoFocusInternal(autoFocus)
         setFlashInternal(flash)
@@ -346,7 +346,7 @@ internal class Camera1(
         val desiredHeight: Int
         val surfaceWidth = preview.width
         val surfaceHeight = preview.height
-        if (isLandscape(displayOrientation)) {
+        if (isLandscape(deviceRotation)) {
             desiredWidth = surfaceHeight
             desiredHeight = surfaceWidth
         } else {
@@ -368,30 +368,25 @@ internal class Camera1(
      * Calculate display orientation
      * https://developer.android.com/reference/android/hardware/Camera.html#setDisplayOrientation(int)
      *
-     *
      * This calculation is used for orienting the preview
-     *
      *
      * Note: This is not the same calculation as the camera rotation
      *
-     * @param screenOrientationDegrees Screen orientation in degrees
+     * @param rotationDegrees Screen orientation in degrees
      * @return Number of degrees required to rotate preview
      */
-    private fun calcDisplayOrientation(screenOrientationDegrees: Int): Int {
-        return if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            (360 - (cameraInfo.orientation + screenOrientationDegrees) % 360) % 360
-        } else {  // back-facing
-            (cameraInfo.orientation - screenOrientationDegrees + 360) % 360
-        }
-    }
+    private fun calcDisplayOrientation(rotationDegrees: Int): Int =
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                (360 - ((cameraInfo.orientation + rotationDegrees) % 360)) % 360
+            } else { // back-facing
+                (cameraInfo.orientation - rotationDegrees + 360) % 360
+            }
 
     /**
      * Calculate camera rotation
      *
-     *
      * This calculation is applied to the output JPEG either via Exif Orientation tag
      * or by actually transforming the bitmap. (Determined by vendor camera API implementation)
-     *
      *
      * Note: This is not the same calculation as the display orientation
      *

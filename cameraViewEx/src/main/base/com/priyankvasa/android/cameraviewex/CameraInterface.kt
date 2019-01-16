@@ -44,7 +44,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     val supportedAspectRatios: Set<AspectRatio>
 
-    var displayOrientation: Int
+    var deviceRotation: Int
 
     @Modes.JpegQuality
     var jpegQuality: Int

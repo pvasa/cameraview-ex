@@ -132,16 +132,27 @@ class CameraView @JvmOverloads constructor(
     }
 
     /** Display orientation detector */
-    private val displayOrientationDetector: DisplayOrientationDetector =
-            object : DisplayOrientationDetector(context) {
-                override fun onDisplayOrientationChanged(displayOrientation: Int) {
-                    camera.displayOrientation = displayOrientation
-                }
+    private val orientationDetector: OrientationDetector = object : OrientationDetector(context) {
+
+        override fun onDisplayOrientationChanged(displayOrientation: Int) {
+            preview.setDisplayOrientation(displayOrientation)
+            camera.deviceRotation = displayOrientation
+        }
+
+        override fun onSensorOrientationChanged(sensorOrientation: Int) {
+            val orientation = Orientation.parse(sensorOrientation)
+            camera.deviceRotation = when (orientation) {
+                Orientation.Portrait, Orientation.PortraitInverted -> orientation.value
+                Orientation.Landscape -> Orientation.LandscapeInverted.value
+                Orientation.LandscapeInverted -> Orientation.Landscape.value
+                Orientation.Unknown -> return
             }
+        }
+    }
 
     private val config: CameraConfiguration = if (isInEditMode) {
         listener.disable()
-        displayOrientationDetector.disable()
+        orientationDetector.disable()
         CameraConfiguration()
     } else {
 
@@ -314,11 +325,11 @@ class CameraView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (!isInEditMode) ViewCompat.getDisplay(this)?.let { displayOrientationDetector.enable(it) }
+        if (!isInEditMode) ViewCompat.getDisplay(this)?.let { orientationDetector.enable(it) }
     }
 
     override fun onDetachedFromWindow() {
-        if (!isInEditMode) displayOrientationDetector.disable()
+        if (!isInEditMode) orientationDetector.disable()
         super.onDetachedFromWindow()
     }
 
@@ -369,7 +380,7 @@ class CameraView @JvmOverloads constructor(
         val height = measuredHeight
         var ratio = aspectRatio
 
-        if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
+        if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
         if (height < width * ratio.y / ratio.x) preview.view.measure(
                 View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
