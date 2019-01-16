@@ -120,7 +120,7 @@ dependencies {
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)
-    implementation(Config.Libs.ktxCore)
+//    implementation(Config.Libs.ktxCore)
 
     // Android support
     implementation(Config.Libs.supportAnnotations)

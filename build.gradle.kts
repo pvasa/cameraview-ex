@@ -25,7 +25,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:3.2.1")
+        classpath("com.android.tools.build:gradle:3.3.0")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${Config.Versions.kotlin}")
         classpath("com.google.gms:google-services:${Config.Versions.googleServices}") // google-services plugin
         classpath("com.github.dcendents:android-maven-gradle-plugin:${Config.Versions.mavenGradlePlugin}")

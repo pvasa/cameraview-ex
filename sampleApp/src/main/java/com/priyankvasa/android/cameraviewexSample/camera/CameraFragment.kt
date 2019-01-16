@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.media.Image
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.view.LayoutInflater
@@ -71,8 +72,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
                     videoSize = VideoSize.Max
                 }
             }
-            ivPlayPause.visibility = View.VISIBLE
-            ivPlayPause.isActivated = true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                ivPlayPause.visibility = View.VISIBLE
+                ivPlayPause.isActivated = true
+            }
             ivCaptureButton.isActivated = true
         }
         isVideoRecording = !isVideoRecording
@@ -200,15 +203,17 @@ open class CameraFragment : Fragment(), CoroutineScope {
             updateViewState()
         }
 
-        ivPlayPause.setOnClickListener {
-            if (isVideoRecording) {
-                camera.pauseVideoRecording()
-                ivPlayPause.isActivated = false
-            } else {
-                camera.resumeVideoRecording()
-                ivPlayPause.isActivated = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ivPlayPause.setOnClickListener {
+                if (isVideoRecording) {
+                    camera.pauseVideoRecording()
+                    ivPlayPause.isActivated = false
+                } else {
+                    camera.resumeVideoRecording()
+                    ivPlayPause.isActivated = true
+                }
+                isVideoRecording = !isVideoRecording
             }
-            isVideoRecording = !isVideoRecording
         }
 
         ivCameraSwitch.setOnClickListener {
