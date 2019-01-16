@@ -25,7 +25,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.6.1"
+    implementation "com.priyankvasa.android:cameraview-ex:2.7.0"
 }
 ```
 
@@ -65,7 +65,8 @@ dependencies {
 ```kotlin
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
-    
+
+    // Callbacks on UI thread
     camera.addCameraOpenedListener { /* Camera opened. */ }
         .addCameraErrorListener { t: Throwable, errorLevel: ErrorLevel -> /* Camera error! */ }
         .addCameraClosedListener { /* Camera closed. */ }
@@ -91,6 +92,7 @@ override fun onDestroyView() {
 ```kotlin
 camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
 // Output format is whatever set for [app:outputFormat] parameter
+// Callback on UI thread
 camera.addPictureTakenListener { imageData: ByteArray -> /* Picture taken. */ }
 camera.capture()
 ```
@@ -99,12 +101,23 @@ camera.capture()
 ```kotlin
 camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
 // Output format is always ImageFormat.YUV_420_888
+// Callback on background thread
 camera.setPreviewFrameListener { image: Image -> /* Preview frame available. */ }
 ```
 
 #### Record video
 ```kotlin
 camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+
+// Callback on UI thread
+camera.addVideoRecordStartedListener { // Video recording started }
+
+// Callback on UI thread
+camera.addVideoRecordStoppedListener { isSuccess ->
+    // Video recording stopped
+    // isSuccess is true if video was recorded and saved successfully
+}
+
 camera.startVideoRecording(outputFile) {
     // Configure video (MediaRecorder) parameters
     audioEncoder = AudioEncoder.Aac

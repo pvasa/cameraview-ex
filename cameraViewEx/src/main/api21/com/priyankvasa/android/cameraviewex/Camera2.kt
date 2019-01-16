@@ -50,9 +50,6 @@ import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
 import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
 import com.priyankvasa.android.cameraviewex.extension.isOisSupported
 import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -61,7 +58,7 @@ import java.util.concurrent.TimeUnit
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal open class Camera2(
-        final override val listener: CameraInterface.Listener,
+        override val listener: CameraInterface.Listener,
         final override val preview: PreviewImpl,
         final override val config: CameraConfiguration,
         context: Context
@@ -113,13 +110,13 @@ internal open class Camera2(
         override fun onOpened(camera: CameraDevice) {
             this@Camera2.camera = camera
             cameraOpenCloseLock.release()
-            GlobalScope.launch(Dispatchers.Main) { listener.onCameraOpened() }
+            listener.onCameraOpened()
             if (preview.isReady) startPreviewCaptureSession()
         }
 
         override fun onClosed(camera: CameraDevice) {
             cameraOpenCloseLock.release()
-            GlobalScope.launch(Dispatchers.Main) { listener.onCameraClosed() }
+            listener.onCameraClosed()
         }
 
         override fun onDisconnected(camera: CameraDevice) {
@@ -182,11 +179,14 @@ internal open class Camera2(
                 return
             }
 
-            GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
+            launch { mediaRecorder?.start() }
                     .invokeOnCompletion { t ->
-                        if (t != null) {
-                            listener.onCameraError(CameraViewException("Camera device is already in use", t))
-                            isVideoRecording = false
+                        when (t) {
+                            null -> listener.onVideoRecordStarted()
+                            else -> {
+                                listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                                isVideoRecording = false
+                            }
                         }
                     }
         }
@@ -232,7 +232,7 @@ internal open class Camera2(
                 timestamp: Long,
                 frameNumber: Long
         ) {
-            GlobalScope.launch(Dispatchers.Main) { preview.shutterView.show() }
+            launch { preview.shutterView.show() }
         }
 
         override fun onCaptureCompleted(
@@ -250,23 +250,20 @@ internal open class Camera2(
 
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
 
-        GlobalScope.launch {
-
-            val image = reader.runCatching { acquireLatestImage() }
-                    .getOrElse { t ->
-                        listener.onCameraError(CameraViewException("Failed to capture image.", t))
-                        return@launch
-                    }
-
-            image.runCatching {
-                if (format == internalOutputFormat && planes.isNotEmpty()) {
-                    val imageData = decode(config.outputFormat.value, rs)
-                    GlobalScope.launch(Dispatchers.Main) { listener.onPictureTaken(imageData) }
+        val image = reader.runCatching { acquireLatestImage() }
+                .getOrElse { t ->
+                    listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                    return@OnImageAvailableListener
                 }
-            }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to capture image.", t)) }
 
-            image.close()
-        }
+        image.runCatching {
+            if (format == internalOutputFormat && planes.isNotEmpty()) {
+                val imageData: ByteArray = runBlocking { decode(config.outputFormat.value, rs) }
+                listener.onPictureTaken(imageData)
+            }
+        }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to capture image.", t)) }
+
+        image.close()
     }
 
     private lateinit var cameraId: String
@@ -291,17 +288,11 @@ internal open class Camera2(
 
     private val videoSizes = SizeMap()
 
-    private val startPreviewJob: Job = Job()
-
     override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
 
     protected val internalOutputFormat: Int get() = internalOutputFormats[config.outputFormat.value]
 
-    override var displayOrientation: Int = 0
-        set(value) {
-            field = value
-            preview.setDisplayOrientation(value)
-        }
+    override var deviceRotation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 
@@ -400,7 +391,7 @@ internal open class Camera2(
 
                 manualFocusEngaged = false
 
-                GlobalScope.launch(Dispatchers.Main) { preview.removeOverlay() }
+                launch { preview.removeOverlay() }
             }
         }
 
@@ -627,17 +618,21 @@ internal open class Camera2(
     override fun start(): Boolean {
         cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
         if (!chooseCameraIdByFacing()) return false
-        if (backgroundThread == null && backgroundHandler == null) startBackgroundThread()
+        if (backgroundThread == null || backgroundHandler == null) {
+            stopBackgroundThread()
+            startBackgroundThread()
+        }
         collectCameraInfo()
         prepareImageReader()
         startOpeningCamera()
         return true
     }
 
-    override fun stop() {
+    override fun stop(internal: Boolean) {
+        super.stop(internal)
         try {
             cameraOpenCloseLock.acquire()
-            startPreviewJob.cancel()
+            if (!internal) stopBackgroundThread()
             captureSession?.close()
             captureSession = null
             camera?.close()
@@ -646,7 +641,6 @@ internal open class Camera2(
             imageReader = null
             mediaRecorder?.release()
             mediaRecorder = null
-            stopBackgroundThread()
         } catch (e: InterruptedException) {
             listener.onCameraError(CameraViewException("Interrupted while trying to lock camera closing.", e))
         } finally {
@@ -898,12 +892,16 @@ internal open class Camera2(
     }
 
     /**
-     * Chooses the optimal size for [template] based on respective supported sizes and the surface size.
+     * Chooses the optimal size for [template] and [aspectRatio] based on respective supported sizes and the surface size.
      *
      * @param template one of the templates from [CameraDevice]
+     * @param aspectRatio required aspect ratio for video recording
      * @return The picked optimal size.
      */
-    private fun chooseOptimalSize(template: Template): Size {
+    private fun chooseOptimalSize(
+            template: Template,
+            aspectRatio: AspectRatio = config.aspectRatio.value
+    ): Size {
 
         val surfaceLonger: Int
         val surfaceShorter: Int
@@ -920,8 +918,8 @@ internal open class Camera2(
         }
 
         val candidates = when (template) {
-            Template.Preview -> previewSizes.sizes(config.aspectRatio.value)
-            Template.Record -> videoSizes.sizes(config.aspectRatio.value)
+            Template.Preview -> previewSizes.sizes(aspectRatio)
+            Template.Record -> videoSizes.sizes(aspectRatio)
         }
 
         // Pick the smallest of those big enough
@@ -1027,15 +1025,13 @@ internal open class Camera2(
         }
     }
 
-    private fun updateModes() = runBlocking {
-        GlobalScope.launch(Dispatchers.Main) {
-            updateScalerCropRegion()
-            updateAf()
-            updateFlash()
-            updateAwb()
-            updateOis()
-            updateNoiseReduction()
-        }
+    private fun updateModes() = runBlocking(coroutineContext) {
+        updateScalerCropRegion()
+        updateAf()
+        updateFlash()
+        updateAwb()
+        updateOis()
+        updateNoiseReduction()
     }
 
     /** Locks the focus as the first step for a still image capture. */
@@ -1059,11 +1055,11 @@ internal open class Camera2(
     // Calculate output orientation based on device sensor orientation.
     private val outputOrientation: Int
         get() {
-            val sensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+            val cameraSensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
                     ?: throw CameraViewException("Camera characteristics not available")
 
-            return (sensorOrientation
-                    + (displayOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+            return (cameraSensorOrientation
+                    + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
                     + 360) % 360
         }
 
@@ -1118,7 +1114,11 @@ internal open class Camera2(
 
         isVideoRecording = true
 
-        val videoSize = chooseOptimalSize(Template.Record)
+        /**
+         * If a videoSize is set then use that size IF it is an available size.
+         * Otherwise default to choosing an optimal size.
+         */
+        val videoSize = parseVideoSize(config.videoSize)
 
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
             runCatching { setOrientationHint(outputOrientation) }
@@ -1143,6 +1143,24 @@ internal open class Camera2(
             setVideoSize(videoSize.width, videoSize.height)
             setVideoEncoder(config.videoEncoder.value)
             setAudioEncoder(config.audioEncoder.value)
+
+            setOnInfoListener { _, what, _ ->
+                when (what) {
+                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> {
+                        stopVideoRecording()
+                    }
+                }
+            }
+
+            // Let's not have videos less than one second
+            when {
+                config.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION -> setMaxDuration(config.maxDuration)
+                else -> {
+                    listener.onCameraError(CameraViewException("${config.maxDuration} is not a valid max duration value for video recording. Using minimum default ${VideoConfiguration.DEFAULT_MIN_DURATION}."))
+                    setMaxDuration(VideoConfiguration.DEFAULT_MIN_DURATION)
+                }
+            }
+
             runCatching { prepare() }.onFailure { t ->
                 listener.onCameraError(t as Exception)
                 isVideoRecording = false
@@ -1242,13 +1260,16 @@ internal open class Camera2(
     override fun stopVideoRecording(): Boolean = runCatching {
         mediaRecorder?.stop()
         mediaRecorder?.reset()
-        captureSession?.close()
-        startPreviewCaptureSession()
+        isVideoRecording = false
         true
     }.getOrElse { t ->
         listener.onCameraError(t as Exception)
         false
-    }.also { isVideoRecording = false }
+    }.also {
+        listener.onVideoRecordStopped(it)
+        captureSession?.close()
+        startPreviewCaptureSession()
+    }
 
     /**
      * Unlocks the auto-focus and restart camera preview. This is supposed to be called after
@@ -1273,6 +1294,29 @@ internal open class Camera2(
         } catch (e: Exception) {
             listener.onCameraError(CameraViewException("Failed to restart camera preview.", e))
         }
+    }
+
+    /**
+     * Parse the video size from popular [VideoSize] choices. If the [VideoSize]
+     * is not supported then an optimal size sill be chosen.
+     */
+    private fun parseVideoSize(size: VideoSize): Size = when (size) {
+
+        VideoSize.Max16x9 -> chooseOptimalSize(Template.Record, AspectRatio.Ratio16x9)
+
+        VideoSize.Max4x3 -> chooseOptimalSize(Template.Record, AspectRatio.Ratio4x3)
+
+        VideoSize.P1080 -> when (videoSizes.sizes(AspectRatio.Ratio16x9).contains(Size.P1080)) {
+            false -> chooseOptimalSize(Template.Record)
+            true -> Size.P1080
+        }
+
+        VideoSize.P720 -> when (videoSizes.sizes(AspectRatio.Ratio16x9).contains(Size.P720)) {
+            false -> chooseOptimalSize(Template.Record)
+            true -> Size.P720
+        }
+
+        else -> chooseOptimalSize(Template.Record)
     }
 
     private sealed class Template {

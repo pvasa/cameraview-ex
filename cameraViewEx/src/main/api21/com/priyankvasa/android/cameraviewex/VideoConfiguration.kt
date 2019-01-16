@@ -22,9 +22,7 @@ import android.media.MediaRecorder
 import android.os.Build
 import androidx.annotation.RequiresApi
 
-/**
- * Configuration that abstracts [MediaRecorder] parameters for video recording
- */
+/** Configuration that abstracts [MediaRecorder] parameters for video recording */
 class VideoConfiguration {
 
     /**
@@ -54,6 +52,12 @@ class VideoConfiguration {
      */
     var videoStabilization: Boolean = DEFAULT_VIDEO_STABILIZATION
 
+    /** Max length a video can be */
+    var maxDuration: Int = DEFAULT_MAX_DURATION
+
+    /** Optional video size to record in. Valid values are [VideoSize] */
+    var videoSize: VideoSize = DEFAULT_VIDEO_SIZE
+
     companion object {
         val DEFAULT_AUDIO_SOURCE: AudioSource = AudioSource.Camcorder
         val DEFAULT_OUTPUT_FORMAT: VideoOutputFormat = VideoOutputFormat.Mpeg4
@@ -61,10 +65,14 @@ class VideoConfiguration {
         val DEFAULT_AUDIO_ENCODER: AudioEncoder = AudioEncoder.Aac
         val DEFAULT_VIDEO_ENCODER: VideoEncoder = VideoEncoder.H264
         const val DEFAULT_VIDEO_STABILIZATION = true
+        val DEFAULT_VIDEO_SIZE = VideoSize.Max
 
         const val BIT_RATE_1080P = 16000000
         const val BIT_RATE_MIN = 64000
         const val BIT_RATE_MAX = 40000000
+
+        const val DEFAULT_MAX_DURATION = 3600000
+        const val DEFAULT_MIN_DURATION = 1000
     }
 }
 
@@ -202,4 +210,13 @@ inline class VideoEncoder(val value: Int) {
         @RequiresApi(Build.VERSION_CODES.N)
         val Hevc = VideoEncoder(MediaRecorder.VideoEncoder.HEVC)
     }
+}
+
+/** Class for common video resolutions */
+sealed class VideoSize {
+    object Max : VideoSize()
+    object Max16x9 : VideoSize()
+    object Max4x3 : VideoSize()
+    object P1080 : VideoSize()
+    object P720 : VideoSize()
 }

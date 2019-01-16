@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.media.Image
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.view.LayoutInflater
@@ -19,18 +20,23 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.Modes
+import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewexSample.R
 import com.priyankvasa.android.cameraviewexSample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.BufferedOutputStream
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.CoroutineContext
 
-open class CameraFragment : Fragment() {
+open class CameraFragment : Fragment(), CoroutineScope {
+
+    override val coroutineContext: CoroutineContext get() = Dispatchers.Main
 
     private var isVideoRecording = false
 
@@ -53,8 +59,7 @@ open class CameraFragment : Fragment() {
     @SuppressLint("MissingPermission")
     private val videoCaptureListener = View.OnClickListener {
         if (isVideoRecording) {
-            if (camera.stopVideoRecording()) context?.toast("Video saved to ${videoFile?.absolutePath}")
-            else context?.toast("Failed to save video!")
+            camera.stopVideoRecording()
             ivPlayPause.visibility = View.GONE
             ivPlayPause.isActivated = false
             ivCaptureButton.isActivated = false
@@ -64,10 +69,13 @@ open class CameraFragment : Fragment() {
                     audioEncoder = AudioEncoder.Aac
                     videoFrameRate = 60
                     videoStabilization = true
+                    videoSize = VideoSize.Max
                 }
             }
-            ivPlayPause.visibility = View.VISIBLE
-            ivPlayPause.isActivated = true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                ivPlayPause.visibility = View.VISIBLE
+                ivPlayPause.isActivated = true
+            }
             ivCaptureButton.isActivated = true
         }
         isVideoRecording = !isVideoRecording
@@ -125,7 +133,7 @@ open class CameraFragment : Fragment() {
             }
 
             addPictureTakenListener { imageData: ByteArray ->
-                GlobalScope.launch(Dispatchers.IO) { saveDataToFile(imageData) }
+                launch(Dispatchers.IO) { saveDataToFile(imageData) }
             }
 
             addCameraErrorListener { t, errorLevel ->
@@ -133,6 +141,11 @@ open class CameraFragment : Fragment() {
                     ErrorLevel.Error -> Timber.e(t)
                     ErrorLevel.Warning -> Timber.w(t)
                 }
+            }
+
+            addVideoRecordStoppedListener { isSuccess ->
+                if (isSuccess) context?.toast("Video saved to ${videoFile?.absolutePath}")
+                else context?.toast("Failed to save video!")
             }
 
             addCameraClosedListener { Timber.i("Camera closed.") }
@@ -190,15 +203,17 @@ open class CameraFragment : Fragment() {
             updateViewState()
         }
 
-        ivPlayPause.setOnClickListener {
-            if (isVideoRecording) {
-                camera.pauseVideoRecording()
-                ivPlayPause.isActivated = false
-            } else {
-                camera.resumeVideoRecording()
-                ivPlayPause.isActivated = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ivPlayPause.setOnClickListener {
+                if (isVideoRecording) {
+                    camera.pauseVideoRecording()
+                    ivPlayPause.isActivated = false
+                } else {
+                    camera.resumeVideoRecording()
+                    ivPlayPause.isActivated = true
+                }
+                isVideoRecording = !isVideoRecording
             }
-            isVideoRecording = !isVideoRecording
         }
 
         ivCameraSwitch.setOnClickListener {
@@ -269,6 +284,7 @@ open class CameraFragment : Fragment() {
 
     override fun onDestroyView() {
         camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+        coroutineContext.cancel()
         super.onDestroyView()
     }
 }

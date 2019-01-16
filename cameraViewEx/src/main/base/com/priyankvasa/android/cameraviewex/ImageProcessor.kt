@@ -16,7 +16,6 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.annotation.TargetApi
 import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.media.Image
@@ -27,6 +26,8 @@ import android.renderscript.RenderScript
 import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
+import androidx.annotation.RequiresApi
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 
 /**
@@ -37,8 +38,10 @@ import java.io.ByteArrayOutputStream
  * @return [ByteArray] image data
  */
 @Throws(IllegalStateException::class, IllegalArgumentException::class)
-@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
+
+    Timber.d("Thread: decode -> ${Thread.currentThread().name}")
 
     val image = this@decode
 
@@ -59,10 +62,10 @@ internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArra
     }
 }
 
-@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 internal object ImageProcessor {
 
-    suspend fun yuvImageData(image: Image): ByteArray {
+    fun yuvImageData(image: Image): ByteArray {
 
         val imageWidth = image.width
         val imageHeight = image.height
@@ -128,7 +131,7 @@ internal object ImageProcessor {
         return@async imageData*/
     }
 
-    suspend fun yuvToN21(image: Image): ByteArray {
+    fun yuvToN21(image: Image): ByteArray {
 
         val width = image.width
         val ySize = width * image.height
@@ -177,7 +180,7 @@ internal object ImageProcessor {
         return nv21
     }
 
-    suspend fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
+    fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
 
         val width = image.width
         val height = image.height
@@ -249,7 +252,7 @@ internal object ImageProcessor {
         return rgbData
     }
 
-    suspend fun yuvToRgb(image: Image, rs: RenderScript): ByteArray {
+    fun yuvToRgb(image: Image, rs: RenderScript): ByteArray {
 
         val imageWidth = image.width
         val imageHeight = image.height

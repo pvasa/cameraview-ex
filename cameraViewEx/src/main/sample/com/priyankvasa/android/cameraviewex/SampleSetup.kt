@@ -16,16 +16,20 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.annotation.TargetApi
 import android.content.Context
 import android.media.Image
+import android.os.Build
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * This is a sample setup method to demonstrate appropriate and safe usage of [CameraView.setPreviewFrameListener]
  */
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 @ExperimentalCoroutinesApi
 @Suppress("unused", "UNUSED_ANONYMOUS_PARAMETER", "UNUSED_VARIABLE")
 internal fun setupCameraSample(context: Context) {
@@ -40,7 +44,7 @@ internal fun setupCameraSample(context: Context) {
 
             if (processing.compareAndSet(false, true)) {
 
-                val result = GlobalScope.async { /* Some background image processing task */ }
+                val result = CoroutineScope(Dispatchers.Default).async { /* Some background image processing task */ }
 
                 result.invokeOnCompletion { t ->
                     val output = result.getCompleted()

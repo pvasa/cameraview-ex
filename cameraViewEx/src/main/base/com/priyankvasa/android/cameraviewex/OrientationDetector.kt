@@ -23,34 +23,32 @@ import android.util.SparseIntArray
 import android.view.Display
 import android.view.OrientationEventListener
 import android.view.Surface
+import androidx.core.util.getOrElse
+import java.util.concurrent.atomic.AtomicInteger
 
-/**
- * Monitors the value returned from [Display.getRotation].
- */
-internal abstract class DisplayOrientationDetector(context: Context) {
-
-    private val orientationEventListener: OrientationEventListener
+/** Monitors the value returned from [Display.getRotation] and device's sensor orientation. */
+internal abstract class OrientationDetector(context: Context) {
 
     var display: Display? = null
 
     var lastKnownDisplayOrientation = 0
         private set
 
-    init {
-        orientationEventListener = object : OrientationEventListener(context) {
+    private val orientationEventListener: OrientationEventListener = object : OrientationEventListener(context) {
 
-            /** This is either Surface.Rotation_0, _90, _180, _270, or -1 (invalid).  */
-            private var lastKnownRotation = -1
+        /** This is either Surface.Rotation_0, _90, _180, _270, or -1 (invalid). */
+        private val lastKnownRotation = AtomicInteger(-1)
 
-            override fun onOrientationChanged(orientation: Int) {
-                if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN || display == null) {
-                    return
-                }
-                val rotation = display?.rotation ?: lastKnownRotation
-                if (lastKnownRotation != rotation) {
-                    lastKnownRotation = rotation
-                    dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(rotation))
-                }
+        override fun onOrientationChanged(orientation: Int) {
+
+            if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN) return
+
+            onSensorOrientationChanged(orientation)
+
+            val rotation = display?.rotation ?: return
+
+            if (lastKnownRotation.getAndSet(rotation) != rotation) {
+                dispatchOnDisplayOrientationChanged(rotation)
             }
         }
     }
@@ -59,7 +57,7 @@ internal abstract class DisplayOrientationDetector(context: Context) {
         this.display = display
         orientationEventListener.enable()
         // Immediately dispatch the first callback
-        dispatchOnDisplayOrientationChanged(DISPLAY_ORIENTATIONS.get(display.rotation))
+        dispatchOnDisplayOrientationChanged(display.rotation)
     }
 
     fun disable() {
@@ -67,21 +65,19 @@ internal abstract class DisplayOrientationDetector(context: Context) {
         display = null
     }
 
-    fun dispatchOnDisplayOrientationChanged(displayOrientation: Int) {
+    private fun dispatchOnDisplayOrientationChanged(rotation: Int) {
+        val displayOrientation = DISPLAY_ORIENTATIONS.getOrElse(rotation) { return }
         lastKnownDisplayOrientation = displayOrientation
         onDisplayOrientationChanged(displayOrientation)
     }
 
-    /**
-     * Called when display orientation is changed.
-     *
-     * @param displayOrientation One of 0, 90, 180, and 270.
-     */
     abstract fun onDisplayOrientationChanged(displayOrientation: Int)
+
+    abstract fun onSensorOrientationChanged(sensorOrientation: Int)
 
     companion object {
 
-        /** Mapping from Surface.Rotation_n to degrees.  */
+        /** Mapping from Surface.Rotation_n to degrees. */
         val DISPLAY_ORIENTATIONS = SparseIntArray()
 
         init {
