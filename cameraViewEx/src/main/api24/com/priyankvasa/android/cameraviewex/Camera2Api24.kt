@@ -22,7 +22,7 @@ import android.os.Build
 
 @TargetApi(Build.VERSION_CODES.N)
 internal open class Camera2Api24(
-        listener: CameraInterface.Listener,
+        override val listener: CameraInterface.Listener,
         preview: PreviewImpl,
         config: CameraConfiguration,
         context: Context

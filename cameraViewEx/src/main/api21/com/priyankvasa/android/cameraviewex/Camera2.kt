@@ -50,9 +50,6 @@ import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
 import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
 import com.priyankvasa.android.cameraviewex.extension.isOisSupported
 import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -61,7 +58,7 @@ import java.util.concurrent.TimeUnit
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal open class Camera2(
-        final override val listener: CameraInterface.Listener,
+        override val listener: CameraInterface.Listener,
         final override val preview: PreviewImpl,
         final override val config: CameraConfiguration,
         context: Context
@@ -113,13 +110,13 @@ internal open class Camera2(
         override fun onOpened(camera: CameraDevice) {
             this@Camera2.camera = camera
             cameraOpenCloseLock.release()
-            GlobalScope.launch(Dispatchers.Main) { listener.onCameraOpened() }
+            listener.onCameraOpened()
             if (preview.isReady) startPreviewCaptureSession()
         }
 
         override fun onClosed(camera: CameraDevice) {
             cameraOpenCloseLock.release()
-            GlobalScope.launch(Dispatchers.Main) { listener.onCameraClosed() }
+            listener.onCameraClosed()
         }
 
         override fun onDisconnected(camera: CameraDevice) {
@@ -182,7 +179,7 @@ internal open class Camera2(
                 return
             }
 
-            GlobalScope.launch(Dispatchers.Main) { mediaRecorder?.start() }
+            launch { mediaRecorder?.start() }
                     .invokeOnCompletion { t ->
                         when (t) {
                             null -> listener.onVideoRecordStarted()
@@ -235,7 +232,7 @@ internal open class Camera2(
                 timestamp: Long,
                 frameNumber: Long
         ) {
-            GlobalScope.launch(Dispatchers.Main) { preview.shutterView.show() }
+            launch { preview.shutterView.show() }
         }
 
         override fun onCaptureCompleted(
@@ -253,23 +250,20 @@ internal open class Camera2(
 
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
 
-        GlobalScope.launch {
-
-            val image = reader.runCatching { acquireLatestImage() }
-                    .getOrElse { t ->
-                        listener.onCameraError(CameraViewException("Failed to capture image.", t))
-                        return@launch
-                    }
-
-            image.runCatching {
-                if (format == internalOutputFormat && planes.isNotEmpty()) {
-                    val imageData = decode(config.outputFormat.value, rs)
-                    GlobalScope.launch(Dispatchers.Main) { listener.onPictureTaken(imageData) }
+        val image = reader.runCatching { acquireLatestImage() }
+                .getOrElse { t ->
+                    listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                    return@OnImageAvailableListener
                 }
-            }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to capture image.", t)) }
 
-            image.close()
-        }
+        image.runCatching {
+            if (format == internalOutputFormat && planes.isNotEmpty()) {
+                val imageData: ByteArray = runBlocking { decode(config.outputFormat.value, rs) }
+                listener.onPictureTaken(imageData)
+            }
+        }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to capture image.", t)) }
+
+        image.close()
     }
 
     private lateinit var cameraId: String
@@ -294,17 +288,11 @@ internal open class Camera2(
 
     private val videoSizes = SizeMap()
 
-    private val startPreviewJob: Job = Job()
-
     override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
 
     protected val internalOutputFormat: Int get() = internalOutputFormats[config.outputFormat.value]
 
-    override var displayOrientation: Int = 0
-        set(value) {
-            field = value
-            preview.setDisplayOrientation(value)
-        }
+    override var deviceRotation: Int = 0
 
     override val isCameraOpened: Boolean get() = camera != null
 
@@ -403,7 +391,7 @@ internal open class Camera2(
 
                 manualFocusEngaged = false
 
-                GlobalScope.launch(Dispatchers.Main) { preview.removeOverlay() }
+                launch { preview.removeOverlay() }
             }
         }
 
@@ -630,17 +618,21 @@ internal open class Camera2(
     override fun start(): Boolean {
         cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
         if (!chooseCameraIdByFacing()) return false
-        if (backgroundThread == null && backgroundHandler == null) startBackgroundThread()
+        if (backgroundThread == null || backgroundHandler == null) {
+            stopBackgroundThread()
+            startBackgroundThread()
+        }
         collectCameraInfo()
         prepareImageReader()
         startOpeningCamera()
         return true
     }
 
-    override fun stop() {
+    override fun stop(internal: Boolean) {
+        super.stop(internal)
         try {
             cameraOpenCloseLock.acquire()
-            startPreviewJob.cancel()
+            if (!internal) stopBackgroundThread()
             captureSession?.close()
             captureSession = null
             camera?.close()
@@ -649,7 +641,6 @@ internal open class Camera2(
             imageReader = null
             mediaRecorder?.release()
             mediaRecorder = null
-            stopBackgroundThread()
         } catch (e: InterruptedException) {
             listener.onCameraError(CameraViewException("Interrupted while trying to lock camera closing.", e))
         } finally {
@@ -1034,15 +1025,13 @@ internal open class Camera2(
         }
     }
 
-    private fun updateModes() = runBlocking {
-        GlobalScope.launch(Dispatchers.Main) {
-            updateScalerCropRegion()
-            updateAf()
-            updateFlash()
-            updateAwb()
-            updateOis()
-            updateNoiseReduction()
-        }
+    private fun updateModes() = runBlocking(coroutineContext) {
+        updateScalerCropRegion()
+        updateAf()
+        updateFlash()
+        updateAwb()
+        updateOis()
+        updateNoiseReduction()
     }
 
     /** Locks the focus as the first step for a still image capture. */
@@ -1066,11 +1055,11 @@ internal open class Camera2(
     // Calculate output orientation based on device sensor orientation.
     private val outputOrientation: Int
         get() {
-            val sensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+            val cameraSensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
                     ?: throw CameraViewException("Camera characteristics not available")
 
-            return (sensorOrientation
-                    + (displayOrientation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+            return (cameraSensorOrientation
+                    + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
                     + 360) % 360
         }
 
@@ -1125,7 +1114,7 @@ internal open class Camera2(
 
         isVideoRecording = true
 
-        /*
+        /**
          * If a videoSize is set then use that size IF it is an available size.
          * Otherwise default to choosing an optimal size.
          */
@@ -1270,15 +1259,17 @@ internal open class Camera2(
 
     override fun stopVideoRecording(): Boolean = runCatching {
         mediaRecorder?.stop()
-        listener.onVideoRecordStopped()
         mediaRecorder?.reset()
-        captureSession?.close()
-        startPreviewCaptureSession()
+        isVideoRecording = false
         true
     }.getOrElse { t ->
         listener.onCameraError(t as Exception)
         false
-    }.also { isVideoRecording = false }
+    }.also {
+        listener.onVideoRecordStopped(it)
+        captureSession?.close()
+        startPreviewCaptureSession()
+    }
 
     /**
      * Unlocks the auto-focus and restart camera preview. This is supposed to be called after

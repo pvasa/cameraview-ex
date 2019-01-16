@@ -16,15 +16,15 @@
 
 package com.priyankvasa.android.cameraviewex
 
-sealed class Orientation {
+sealed class Orientation(val value: Int) {
 
-    object Portrait : Orientation()
-    object PortraitInverted : Orientation()
+    object Portrait : Orientation(0)
+    object PortraitInverted : Orientation(180)
 
-    object Landscape : Orientation()
-    object LandscapeInverted : Orientation()
+    object Landscape : Orientation(270)
+    object LandscapeInverted : Orientation(90)
 
-    object Unknown : Orientation()
+    object Unknown : Orientation(-1)
 
     companion object {
 
