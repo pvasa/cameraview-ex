@@ -42,19 +42,18 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
-import kotlin.coroutines.CoroutineContext
 
 class CameraView @JvmOverloads constructor(
         context: Context,
         attrs: AttributeSet? = null,
         defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr), CoroutineScope {
+) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
 
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val preview = createPreview(context)
 
@@ -94,7 +93,7 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onCameraOpened() {
-            launch {
+            coroutineScope.launch {
                 if (requestLayoutOnOpen) {
                     requestLayoutOnOpen = false
                     requestLayout()
@@ -109,25 +108,25 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onPictureTaken(imageData: ByteArray) {
-            launch { pictureTakenListeners.forEach { it(imageData) } }
+            coroutineScope.launch { pictureTakenListeners.forEach { it(imageData) } }
         }
 
         override fun onCameraError(e: Exception, errorLevel: ErrorLevel, isCritical: Boolean) {
             if (isCritical && cameraErrorListeners.isEmpty()) throw e
             if (errorLevel == ErrorLevel.Debug) Timber.d(e)
-            else launch { cameraErrorListeners.forEach { it(e, errorLevel) } }
+            else coroutineScope.launch { cameraErrorListeners.forEach { it(e, errorLevel) } }
         }
 
         override fun onCameraClosed() {
-            launch { cameraClosedListeners.forEach { it.invoke() } }
+            coroutineScope.launch { cameraClosedListeners.forEach { it.invoke() } }
         }
 
         override fun onVideoRecordStarted() {
-            launch { videoRecordStartedListeners.forEach { it.invoke() } }
+            coroutineScope.launch { videoRecordStartedListeners.forEach { it.invoke() } }
         }
 
         override fun onVideoRecordStopped(isSuccess: Boolean) {
-            launch { videoRecordStoppedListeners.forEach { it.invoke(isSuccess) } }
+            coroutineScope.launch { videoRecordStoppedListeners.forEach { it.invoke(isSuccess) } }
         }
     }
 
@@ -469,7 +468,7 @@ class CameraView @JvmOverloads constructor(
     fun stop(removeAllListeners: Boolean = false) {
         if (removeAllListeners) listener.clear()
         camera.stop(internal = false)
-        coroutineContext.cancel()
+        coroutineScope.coroutineContext.cancel()
     }
 
     /**
