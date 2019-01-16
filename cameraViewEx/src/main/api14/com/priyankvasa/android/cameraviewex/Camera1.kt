@@ -23,14 +23,10 @@ package com.priyankvasa.android.cameraviewex
 import android.annotation.SuppressLint
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
-import android.os.Build
 import android.view.SurfaceHolder
 import androidx.collection.SparseArrayCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import java.io.File
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -43,8 +39,6 @@ internal class Camera1(
 
     private val lifecycleRegistry: LifecycleRegistry =
             LifecycleRegistry(this).also { it.markState(Lifecycle.State.CREATED) }
-
-    override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
     private var cameraId: Int = Modes.Facing.FACING_BACK
 
@@ -84,18 +78,15 @@ internal class Camera1(
             }
         }
 
-    override var displayOrientation: Int = 0
+    override var deviceRotation: Int = 0
         set(value) {
             if (field == value) return
             field = value
             if (isCameraOpened) {
                 try {
-                    cameraParameters?.setRotation(calcCameraRotation(value))
+                    val rotation = calcCameraRotation(value)
+                    cameraParameters?.setRotation(rotation)
                     camera?.parameters = cameraParameters
-                    val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
-                    if (needsToStopPreview) camera?.stopPreview()
-                    camera?.setDisplayOrientation(calcDisplayOrientation(value))
-                    if (needsToStopPreview) camera?.startPreview()
                 } catch (e: Exception) {
                     listener.onCameraError(e)
                 }
@@ -169,6 +160,8 @@ internal class Camera1(
         addObservers()
     }
 
+    override fun getLifecycle(): Lifecycle = lifecycleRegistry
+
     private fun addObservers() {
         config.run {
             facing.observe(this@Camera1) { this@Camera1.facing = it }
@@ -192,7 +185,8 @@ internal class Camera1(
         }
     }
 
-    override fun stop() {
+    override fun stop(internal: Boolean) {
+        super.stop(internal)
         runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it as Exception) }
         showingPreview = false
         releaseCamera()
@@ -203,14 +197,7 @@ internal class Camera1(
     fun setUpPreview() {
         try {
             if (preview.outputClass === SurfaceHolder::class.java) {
-                val needsToStopPreview = showingPreview && Build.VERSION.SDK_INT < 14
-                if (needsToStopPreview) {
-                    camera?.stopPreview()
-                }
                 camera?.setPreviewDisplay(preview.surfaceHolder)
-                if (needsToStopPreview) {
-                    camera?.startPreview()
-                }
             } else {
                 camera?.setPreviewTexture(preview.surfaceTexture as SurfaceTexture)
             }
@@ -266,8 +253,8 @@ internal class Camera1(
         }
     }
 
-    override fun startVideoRecording(outputFile: File, config: VideoConfiguration) {
-    }
+    override fun startVideoRecording(outputFile: File, config: VideoConfiguration) =
+            listener.onCameraError(UnsupportedOperationException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
 
     override fun pauseVideoRecording(): Boolean = false
 
@@ -275,9 +262,7 @@ internal class Camera1(
 
     override fun stopVideoRecording(): Boolean = false
 
-    /**
-     * This rewrites [.cameraId] and [.cameraInfo].
-     */
+    /** This rewrites [.cameraId] and [.cameraInfo]. */
     private fun chooseCamera() {
         var i = 0
         val count = Camera.getNumberOfCameras()
@@ -308,8 +293,8 @@ internal class Camera1(
                 pictureSizes.add(Size(size.width, size.height))
             }
             adjustCameraParameters()
-            camera?.setDisplayOrientation(calcDisplayOrientation(displayOrientation))
-            GlobalScope.launch(Dispatchers.Main) { listener.onCameraOpened() }
+            camera?.setDisplayOrientation(calcDisplayOrientation(deviceRotation))
+            listener.onCameraOpened()
         } catch (e: RuntimeException) {
             listener.onCameraError(e)
         }
@@ -341,7 +326,7 @@ internal class Camera1(
         cameraParameters?.apply {
             setPreviewSize(size.width, size.height)
             setPictureSize(pictureSize.width, pictureSize.height)
-            setRotation(calcCameraRotation(displayOrientation))
+            setRotation(calcCameraRotation(deviceRotation))
         }?.also { camera?.parameters = it }
         setAutoFocusInternal(autoFocus)
         setFlashInternal(flash)
@@ -361,7 +346,7 @@ internal class Camera1(
         val desiredHeight: Int
         val surfaceWidth = preview.width
         val surfaceHeight = preview.height
-        if (isLandscape(displayOrientation)) {
+        if (isLandscape(deviceRotation)) {
             desiredWidth = surfaceHeight
             desiredHeight = surfaceWidth
         } else {
@@ -376,37 +361,32 @@ internal class Camera1(
     private fun releaseCamera() {
         camera?.release()
         camera = null
-        GlobalScope.launch(Dispatchers.Main) { listener.onCameraClosed() }
+        listener.onCameraClosed()
     }
 
     /**
      * Calculate display orientation
      * https://developer.android.com/reference/android/hardware/Camera.html#setDisplayOrientation(int)
      *
-     *
      * This calculation is used for orienting the preview
-     *
      *
      * Note: This is not the same calculation as the camera rotation
      *
-     * @param screenOrientationDegrees Screen orientation in degrees
+     * @param rotationDegrees Screen orientation in degrees
      * @return Number of degrees required to rotate preview
      */
-    private fun calcDisplayOrientation(screenOrientationDegrees: Int): Int {
-        return if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            (360 - (cameraInfo.orientation + screenOrientationDegrees) % 360) % 360
-        } else {  // back-facing
-            (cameraInfo.orientation - screenOrientationDegrees + 360) % 360
-        }
-    }
+    private fun calcDisplayOrientation(rotationDegrees: Int): Int =
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                (360 - ((cameraInfo.orientation + rotationDegrees) % 360)) % 360
+            } else { // back-facing
+                (cameraInfo.orientation - rotationDegrees + 360) % 360
+            }
 
     /**
      * Calculate camera rotation
      *
-     *
      * This calculation is applied to the output JPEG either via Exif Orientation tag
      * or by actually transforming the bitmap. (Determined by vendor camera API implementation)
-     *
      *
      * Note: This is not the same calculation as the display orientation
      *

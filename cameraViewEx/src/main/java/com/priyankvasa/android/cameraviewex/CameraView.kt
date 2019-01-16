@@ -19,7 +19,6 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.Manifest
-import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
 import android.media.Image
@@ -30,12 +29,17 @@ import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.core.view.ViewCompat
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 
@@ -46,9 +50,10 @@ class CameraView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
-        @Suppress("ConstantConditionIf")
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val preview = createPreview(context)
 
@@ -59,7 +64,7 @@ class CameraView @JvmOverloads constructor(
     private val cameraErrorListeners = HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>()
     private val cameraClosedListeners = HashSet<() -> Unit>()
     private val videoRecordStartedListeners = HashSet<() -> Unit>()
-    private val videoRecordStoppedListeners = HashSet<() -> Unit>()
+    private val videoRecordStoppedListeners = HashSet<(isSuccess: Boolean) -> Unit>()
 
     private val listener = object : CameraInterface.Listener {
 
@@ -87,53 +92,66 @@ class CameraView @JvmOverloads constructor(
             videoRecordStoppedListeners.clear()
         }
 
-        override suspend fun onCameraOpened() {
-            if (requestLayoutOnOpen) {
-                requestLayoutOnOpen = false
-                requestLayout()
+        override fun onCameraOpened() {
+            coroutineScope.launch {
+                if (requestLayoutOnOpen) {
+                    requestLayoutOnOpen = false
+                    requestLayout()
+                }
+                cameraOpenedListeners.forEach { it() }
             }
-            cameraOpenedListeners.forEach { it() }
         }
 
-        @TargetApi(Build.VERSION_CODES.KITKAT)
+        @RequiresApi(Build.VERSION_CODES.KITKAT)
         override fun onPreviewFrame(reader: ImageReader) {
             previewFrameListener?.run { reader.acquireNextImage().use { invoke(it) } }
         }
 
         override fun onPictureTaken(imageData: ByteArray) {
-            pictureTakenListeners.forEach { it(imageData) }
+            coroutineScope.launch { pictureTakenListeners.forEach { it(imageData) } }
         }
 
         override fun onCameraError(e: Exception, errorLevel: ErrorLevel, isCritical: Boolean) {
             if (isCritical && cameraErrorListeners.isEmpty()) throw e
             if (errorLevel == ErrorLevel.Debug) Timber.d(e)
-            else cameraErrorListeners.forEach { it(e, errorLevel) }
+            else coroutineScope.launch { cameraErrorListeners.forEach { it(e, errorLevel) } }
         }
 
-        override suspend fun onCameraClosed() {
-            cameraClosedListeners.forEach { it.invoke() }
+        override fun onCameraClosed() {
+            coroutineScope.launch { cameraClosedListeners.forEach { it.invoke() } }
         }
 
         override fun onVideoRecordStarted() {
-            videoRecordStartedListeners.forEach { it.invoke() }
+            coroutineScope.launch { videoRecordStartedListeners.forEach { it.invoke() } }
         }
 
-        override fun onVideoRecordStopped() {
-            videoRecordStoppedListeners.forEach { it.invoke() }
+        override fun onVideoRecordStopped(isSuccess: Boolean) {
+            coroutineScope.launch { videoRecordStoppedListeners.forEach { it.invoke(isSuccess) } }
         }
     }
 
     /** Display orientation detector */
-    private val displayOrientationDetector: DisplayOrientationDetector =
-            object : DisplayOrientationDetector(context) {
-                override fun onDisplayOrientationChanged(displayOrientation: Int) {
-                    camera.displayOrientation = displayOrientation
-                }
+    private val orientationDetector: OrientationDetector = object : OrientationDetector(context) {
+
+        override fun onDisplayOrientationChanged(displayOrientation: Int) {
+            preview.setDisplayOrientation(displayOrientation)
+            camera.deviceRotation = displayOrientation
+        }
+
+        override fun onSensorOrientationChanged(sensorOrientation: Int) {
+            val orientation = Orientation.parse(sensorOrientation)
+            camera.deviceRotation = when (orientation) {
+                Orientation.Portrait, Orientation.PortraitInverted -> orientation.value
+                Orientation.Landscape -> Orientation.LandscapeInverted.value
+                Orientation.LandscapeInverted -> Orientation.Landscape.value
+                Orientation.Unknown -> return
             }
+        }
+    }
 
     private val config: CameraConfiguration = if (isInEditMode) {
         listener.disable()
-        displayOrientationDetector.disable()
+        orientationDetector.disable()
         CameraConfiguration()
     } else {
 
@@ -186,6 +204,7 @@ class CameraView @JvmOverloads constructor(
 
     init {
         config.aspectRatio.observeForever { if (camera.setAspectRatio(it)) requestLayout() }
+        config.shutter.observeForever { preview.shutterView.shutterTime = it }
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
@@ -293,7 +312,7 @@ class CameraView @JvmOverloads constructor(
     /** Current shutter time in milliseconds. Supported values are [Modes.Shutter]. */
     @get:Modes.Shutter
     @setparam:Modes.Shutter
-    var shutter: Int by preview.shutterView::shutterTime
+    var shutter: Int by config.shutter::value
 
     /**
      * Set zero shutter lag mode capture.
@@ -305,11 +324,11 @@ class CameraView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        if (!isInEditMode) ViewCompat.getDisplay(this)?.let { displayOrientationDetector.enable(it) }
+        if (!isInEditMode) ViewCompat.getDisplay(this)?.let { orientationDetector.enable(it) }
     }
 
     override fun onDetachedFromWindow() {
-        if (!isInEditMode) displayOrientationDetector.disable()
+        if (!isInEditMode) orientationDetector.disable()
         super.onDetachedFromWindow()
     }
 
@@ -360,7 +379,7 @@ class CameraView @JvmOverloads constructor(
         val height = measuredHeight
         var ratio = aspectRatio
 
-        if (displayOrientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
+        if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
         if (height < width * ratio.y / ratio.x) preview.view.measure(
                 View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -396,7 +415,7 @@ class CameraView @JvmOverloads constructor(
                     flash,
                     opticalStabilization,
                     noiseReduction,
-                    shutter,
+                    config.shutter.value,
                     zsl
             )
 
@@ -418,7 +437,7 @@ class CameraView @JvmOverloads constructor(
                 flash = state.flash
                 opticalStabilization = state.opticalStabilization
                 noiseReduction = state.noiseReduction
-                shutter = state.shutter
+                config.shutter.value = state.shutter
                 zsl = state.zsl
             }
             else -> super.onRestoreInstanceState(state)
@@ -448,7 +467,8 @@ class CameraView @JvmOverloads constructor(
      */
     fun stop(removeAllListeners: Boolean = false) {
         if (removeAllListeners) listener.clear()
-        camera.stop()
+        camera.stop(internal = false)
+        coroutineScope.coroutineContext.cancel()
     }
 
     /**
@@ -483,7 +503,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      * @sample setupCameraSample
      */
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
         if (this.listener.isEnabled) previewFrameListener = listener
         return this
@@ -586,7 +606,7 @@ class CameraView @JvmOverloads constructor(
      * @param listener lambda
      * @return instance of [CameraView] it was called on
      */
-    fun addVideoRecordStoppedListener(listener: () -> Unit): CameraView {
+    fun addVideoRecordStoppedListener(listener: (isSuccess: Boolean) -> Unit): CameraView {
         videoRecordStoppedListeners.add(listener)
         return this
     }
@@ -596,7 +616,7 @@ class CameraView @JvmOverloads constructor(
      * @param listener that was previously added.
      * @return instance of [CameraView] it is called on
      */
-    fun removeVideoRecordStoppedListener(listener: () -> Unit): CameraView {
+    fun removeVideoRecordStoppedListener(listener: (isSuccess: Boolean) -> Unit): CameraView {
         videoRecordStoppedListeners.remove(listener)
         return this
     }
@@ -618,7 +638,6 @@ class CameraView @JvmOverloads constructor(
      * Start capturing video.
      * @param outputFile where video will be saved
      * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
-     *
      */
     @RequiresPermission(allOf = [
         Manifest.permission.CAMERA,
@@ -640,14 +659,14 @@ class CameraView @JvmOverloads constructor(
      * Pause video recording
      * @return true if the video was paused false otherwise
      */
-    @TargetApi(Build.VERSION_CODES.N)
+    @RequiresApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
 
     /**
      * Resume video recording
      * @return true if the video was resumed false otherwise
      */
-    @TargetApi(Build.VERSION_CODES.N)
+    @RequiresApi(Build.VERSION_CODES.N)
     fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
 
     /**

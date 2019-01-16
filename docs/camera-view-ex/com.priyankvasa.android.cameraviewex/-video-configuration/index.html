@@ -9,7 +9,6 @@
 <br/>
 <h1>VideoConfiguration</h1>
 <code><span class="keyword">class </span><span class="identifier">VideoConfiguration</span></code>
-<p><strong>Platform and version requirements:</strong> JVM</p>
 <p>Configuration that abstracts <a href="#">MediaRecorder</a> parameters for video recording</p>
 <h3>Constructors</h3>
 <table>
@@ -49,6 +48,15 @@ configuration.</p>
 </tr>
 <tr>
 <td>
+<p><a href="max-duration.html">maxDuration</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">maxDuration</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
+<p>Max length a video can be</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="output-format.html">outputFormat</a></p>
 </td>
 <td>
@@ -81,6 +89,15 @@ configuration.</p>
 <td>
 <code><span class="keyword">var </span><span class="identifier">videoFrameRate</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
 <p>Number of frames recorded per second.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="video-size.html">videoSize</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">videoSize</span><span class="symbol">: </span><a href="../-video-size/index.html"><span class="identifier">VideoSize</span></a></code>
+<p>Optional video size to record in. Valid values are <a href="../-video-size/index.html">VideoSize</a></p>
 </td>
 </tr>
 <tr>
@@ -135,6 +152,20 @@ Refer <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZ
 </tr>
 <tr>
 <td>
+<p><a href="-d-e-f-a-u-l-t_-m-a-x_-d-u-r-a-t-i-o-n.html">DEFAULT_MAX_DURATION</a></p>
+</td>
+<td>
+<code><span class="keyword">const</span> <span class="keyword">val </span><span class="identifier">DEFAULT_MAX_DURATION</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="-d-e-f-a-u-l-t_-m-i-n_-d-u-r-a-t-i-o-n.html">DEFAULT_MIN_DURATION</a></p>
+</td>
+<td>
+<code><span class="keyword">const</span> <span class="keyword">val </span><span class="identifier">DEFAULT_MIN_DURATION</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code></td>
+</tr>
+<tr>
+<td>
 <p><a href="-d-e-f-a-u-l-t_-o-u-t-p-u-t_-f-o-r-m-a-t.html">DEFAULT_OUTPUT_FORMAT</a></p>
 </td>
 <td>
@@ -153,6 +184,13 @@ Refer <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZ
 </td>
 <td>
 <code><span class="keyword">const</span> <span class="keyword">val </span><span class="identifier">DEFAULT_VIDEO_FRAME_RATE</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="-d-e-f-a-u-l-t_-v-i-d-e-o_-s-i-z-e.html">DEFAULT_VIDEO_SIZE</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">DEFAULT_VIDEO_SIZE</span><span class="symbol">: </span><a href="../-video-size/-max.html"><span class="identifier">Max</span></a></code></td>
 </tr>
 <tr>
 <td>
