@@ -26,7 +26,6 @@ import timber.log.Timber;
 public class CameraFragment extends Fragment {
 
     private CameraView camera;
-    private ImageView ivCapture;
     private ImageView ivFlashSwitch;
     private ImageView ivPhoto;
 
@@ -41,7 +40,7 @@ public class CameraFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         camera = view.findViewById(R.id.camera);
-        ivCapture = view.findViewById(R.id.ivCaptureButton);
+        ImageView ivCapture = view.findViewById(R.id.ivCaptureButton);
         ivFlashSwitch = view.findViewById(R.id.ivFlashSwitch);
         ivPhoto = view.findViewById(R.id.ivPhoto);
 

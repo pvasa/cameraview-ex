@@ -156,7 +156,7 @@ tasks.getByName("dokka") {
 
     moduleName = "cameraViewEx"
     outputFormat = "html"
-    outputDirectory = "docs"
+    outputDirectory = "../docs"
 
     // These tasks will be used to determine source directories and classpath
 
@@ -204,9 +204,9 @@ tasks.getByName("dokka") {
     // Repeat for multiple sourceRoots
     sourceRoot(delegateClosureOf<SourceRoot> {
         // Path to source root
-        path = "cameraViewEx/src"
+        path = "src"
         // See platforms section of documentation
-        platforms = listOf("JVM")
+        platforms = listOf("JVM", "Android")
     })
 
     // Specifies the location of the project source code on the Web.
