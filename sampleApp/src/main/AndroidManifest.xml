@@ -20,8 +20,9 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".camera.CameraActivity"
-            android:theme="@style/AppTheme.FullScreen">
+            android:name=".camera.MainActivity"
+            android:theme="@style/AppTheme"
+            android:screenOrientation="userPortrait">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -30,6 +31,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+        </activity>
+        <activity
+            android:name=".camera.CameraActivity"
+            android:screenOrientation="userPortrait"
+            android:theme="@style/AppTheme.FullScreen">
         </activity>
 
     </application>
