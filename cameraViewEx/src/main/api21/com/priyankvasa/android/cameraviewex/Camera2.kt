@@ -647,13 +647,7 @@ internal open class Camera2(
     }
 
     override fun start(): Boolean {
-        cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
-        if (!chooseCameraIdByFacing()) return false
-        if (backgroundThread == null && backgroundHandler == null) startBackgroundThread()
-        collectCameraInfo()
-        prepareImageReader()
-        startOpeningCamera()
-        return true
+        return start(config.facing.value)
     }
 
     /**
