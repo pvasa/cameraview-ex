@@ -3,7 +3,7 @@ branches:
   - master
   - development
 
-if: (branch = master) OR (branch = development AND type != push)
+if: (branch = master) OR (branch = development AND type = pull_request)
 
 language: android
 
@@ -42,18 +42,12 @@ stages:
 
 jobs:
   include:
-  - stage: clean
-    script: "./gradlew cleanBuildCache clean"
-  - stage: build
-    script: "./gradlew build"
   - stage: test
-    name: "Unit Tests"
-    script: "./gradlew testDebugUnitTest"
-  - script: "exit 0"
-    name: "UI Tests"
-  - stage: deploy
+    if: branch = deployment AND type = pull_request
+    script: "./gradlew cleanBuildCache clean build testDebugUnitTest"
+  - stage: "Test and Deploy"
     if: branch = master
-    script: "./gradlew install bintrayUpload"
+    script: "./gradlew cleanBuildCache clean build testDebugUnitTest install bintrayUpload"
 
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
