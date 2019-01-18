@@ -38,15 +38,13 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
     override val coroutineContext: CoroutineContext get() = Dispatchers.Main
 
-    private var isVideoRecording = false
+    private val imageOutputDirectory by lazy {
+        "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
+    }
 
-    private val imageCaptureListener = View.OnClickListener { camera.capture() }
-
-    private val imageOutputDirectory =
-            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
-
-    private val videoOutputDirectory =
-            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
+    private val videoOutputDirectory by lazy {
+        "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
+    }
 
     private var videoFile: File? = null
 
@@ -55,6 +53,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
     private val nextVideoFile: File
         get() = File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4")
+
+    private val imageCaptureListener = View.OnClickListener { camera.capture() }
+
+    private var isVideoRecording = false
 
     @SuppressLint("MissingPermission")
     private val videoCaptureListener = View.OnClickListener {
@@ -97,6 +99,48 @@ open class CameraFragment : Fragment(), CoroutineScope {
         super.onViewCreated(view, savedInstanceState)
         setupCamera()
         setupView()
+    }
+
+    @SuppressLint("MissingPermission")
+    override fun onResume() {
+        super.onResume()
+        updateViewState()
+        if (requestPermissions()) camera.start()
+    }
+
+    private fun requestPermissions(): Boolean {
+
+        val context = context ?: return true
+
+        permissions.filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+                .toTypedArray()
+                .also {
+                    if (it.isNotEmpty()) {
+                        requestPermissions(it, 1)
+                        return false
+                    }
+                }
+        return true
+    }
+
+    @SuppressLint("MissingPermission")
+    override fun onRequestPermissionsResult(
+            requestCode: Int,
+            permissions: Array<out String>,
+            grantResults: IntArray
+    ) {
+        if (requestPermissions()) camera.start()
+    }
+
+    override fun onPause() {
+        camera.run { if (isCameraOpened) stop(removeAllListeners = false) }
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+        coroutineContext.cancel()
+        super.onDestroyView()
     }
 
     @SuppressLint("SetTextI18n")
@@ -257,34 +301,15 @@ open class CameraFragment : Fragment(), CoroutineScope {
         ivCameraSwitch.isActivated = camera.facing != Modes.Facing.FACING_BACK
     }
 
-    override fun onResume() {
-        super.onResume()
-        updateViewState()
-        if (!camera.isCameraOpened
-                && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.RECORD_AUDIO
-                ) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED) {
-            camera.start()
-        }
-    }
+    companion object {
 
-    override fun onPause() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = false) }
-        super.onPause()
-    }
+        private val permissions: Array<String> = arrayOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
 
-    override fun onDestroyView() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
-        coroutineContext.cancel()
-        super.onDestroyView()
+        val newInstance: CameraFragment get() = CameraFragment()
     }
 }

@@ -27,7 +27,7 @@ before_install:
 env:
   global:
   - ADB_INSTALL_TIMEOUT=8
-before_script: 
+before_script:
 script:
 - "./gradlew clean build testDebugUnitTest"
 before_cache:
