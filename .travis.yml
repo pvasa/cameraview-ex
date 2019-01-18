@@ -43,7 +43,7 @@ stages:
 jobs:
   include:
   - stage: test
-    script: "./gradlew cleanBuildCache clean build testDebugUnitTest"
+    script: "./gradlew cleanBuildCache clean buildDebug testDebugUnitTest"
   - stage: deploy
     script: "./gradlew cleanBuildCache clean build testDebugUnitTest install bintrayUpload"
 
