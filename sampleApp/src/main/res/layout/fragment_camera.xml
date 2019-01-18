@@ -62,7 +62,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="continuous_picture"
         app:awb="auto"
-        app:cameraMode="single_capture"
+        app:cameraMode="video_capture"
         app:facing="back"
         app:flash="auto"
         app:jpegQuality="high"
