@@ -34,12 +34,6 @@ env:
   global:
   - ADB_INSTALL_TIMEOUT=8
 
-stages:
-- clean
-- build
-- test
-- deploy
-
 jobs:
   include:
   - stage: test
