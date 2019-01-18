@@ -37,11 +37,11 @@ env:
 jobs:
   include:
   - stage: test
-    if: branch = deployment AND type = pull_request
     script: "./gradlew cleanBuildCache clean build testDebugUnitTest"
+    if: branch = deployment AND type != push
   - stage: "Test and Deploy"
-    if: branch = master
     script: "./gradlew cleanBuildCache clean build testDebugUnitTest install bintrayUpload"
+    if: branch = master
 
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
