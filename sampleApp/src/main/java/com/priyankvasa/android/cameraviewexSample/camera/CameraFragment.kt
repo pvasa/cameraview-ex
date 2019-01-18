@@ -105,31 +105,16 @@ open class CameraFragment : Fragment(), CoroutineScope {
     override fun onResume() {
         super.onResume()
         updateViewState()
-        if (requestPermissions()) camera.start()
+        checkPermissions().let { if (it.isEmpty()) camera.start() else requestPermissions(it, 1) }
     }
 
-    private fun requestPermissions(): Boolean {
+    private fun checkPermissions(): Array<String> {
 
-        val context = context ?: return true
+        val context = context ?: return permissions
 
-        permissions.filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+        return permissions
+                .filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
                 .toTypedArray()
-                .also {
-                    if (it.isNotEmpty()) {
-                        requestPermissions(it, 1)
-                        return false
-                    }
-                }
-        return true
-    }
-
-    @SuppressLint("MissingPermission")
-    override fun onRequestPermissionsResult(
-            requestCode: Int,
-            permissions: Array<out String>,
-            grantResults: IntArray
-    ) {
-        if (requestPermissions()) camera.start()
     }
 
     override fun onPause() {
@@ -152,18 +137,19 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
-            val decodeSuccessListener = listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
-                if (barcodes.isEmpty()) {
-                    tvBarcodes.text = "Barcodes"
-                    return@listener
-                }
-                val barcodesStr = "Barcodes\n${barcodes.joinToString(
-                        "\n",
-                        transform = { it.rawValue as? CharSequence ?: "" }
-                )}"
-                Timber.i("Barcodes: $barcodesStr")
-                tvBarcodes.text = barcodesStr
-            }
+            val decodeSuccessListener =
+                    listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
+                        if (barcodes.isEmpty()) {
+                            tvBarcodes.text = "Barcodes"
+                            return@listener
+                        }
+                        val barcodesStr = "Barcodes\n${barcodes.joinToString(
+                                "\n",
+                                transform = { it.rawValue as? CharSequence ?: "" }
+                        )}"
+                        Timber.i("Barcodes: $barcodesStr")
+                        tvBarcodes.text = barcodesStr
+                    }
 
             setPreviewFrameListener { image: Image ->
                 if (!decoding.get()) {
