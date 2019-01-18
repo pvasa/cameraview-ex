@@ -3,7 +3,7 @@ branches:
   - master
   - development
 
-if: (branch = master) OR (branch = development AND type != push)
+if: branch = master OR (branch = development AND type = pull_request)
 
 language: android
 
@@ -34,14 +34,17 @@ env:
   global:
   - ADB_INSTALL_TIMEOUT=8
 
+stages:
+- name: test
+  if: branch = deployment AND type = pull_request
+- name: deploy
+  if: branch = master
+
 jobs:
   include:
   - stage: test
-    if: branch = deployment AND type != push
     script: "./gradlew cleanBuildCache clean build testDebugUnitTest"
-  - stage: test
-    if: branch = master
-    name: "Test and Deploy"
+  - stage: deploy
     script: "./gradlew cleanBuildCache clean build testDebugUnitTest install bintrayUpload"
 
 before_cache:
