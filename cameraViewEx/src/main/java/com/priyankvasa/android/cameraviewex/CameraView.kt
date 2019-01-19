@@ -34,7 +34,7 @@ import androidx.annotation.RequiresPermission
 import androidx.core.view.ViewCompat
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
-import com.priyankvasa.android.cameraviewex.extension.setValue
+import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -218,7 +218,12 @@ class CameraView @JvmOverloads constructor(
     /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
     @get:Modes.CameraMode
     @setparam:Modes.CameraMode
-    var cameraMode: Int by config.cameraMode::value
+    var cameraMode: Int
+        get() = config.cameraMode.value
+        set(value) {
+            if (!isUiThread()) return
+            config.cameraMode.value = value
+        }
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
@@ -226,7 +231,7 @@ class CameraView @JvmOverloads constructor(
      */
     var adjustViewBounds: Boolean = false
         set(value) {
-            if (value == field) return
+            if (value == field || !isUiThread()) return
             field = value
             requestLayout()
         }
@@ -237,7 +242,12 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
-    var outputFormat: Int by config.outputFormat::value
+    var outputFormat: Int
+        get() = config.outputFormat.value
+        set(value) {
+            if (!isUiThread()) return
+            config.outputFormat.value = value
+        }
 
     /**
      * Set image quality of the output image.
@@ -246,18 +256,33 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.JpegQuality
     @setparam:Modes.JpegQuality
-    var jpegQuality: Int by config.jpegQuality::value
+    var jpegQuality: Int
+        get() = config.jpegQuality.value
+        set(value) {
+            if (!isUiThread()) return
+            config.jpegQuality.value = value
+        }
 
     /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
     @setparam:Modes.Facing
-    var facing: Int by config.facing::value
+    var facing: Int
+        get() = config.facing.value
+        set(value) {
+            if (!isUiThread()) return
+            config.facing.value = value
+        }
 
     /** Gets all the aspect ratios supported by the current camera. */
     val supportedAspectRatios: Set<AspectRatio> by camera::supportedAspectRatios
 
     /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio by config.aspectRatio::value
+    var aspectRatio: AspectRatio
+        get() = config.aspectRatio.value
+        set(value) {
+            if (!isUiThread()) return
+            config.aspectRatio.value = value
+        }
 
     /**
      * Set auto focus mode for selected camera. Supported modes are [Modes.AutoFocus].
@@ -265,19 +290,39 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.AutoFocus
     @setparam:Modes.AutoFocus
-    var autoFocus: Int by config.autoFocus::value
+    var autoFocus: Int
+        get() = config.autoFocus.value
+        set(value) {
+            if (!isUiThread()) return
+            config.autoFocus.value = value
+        }
 
     /** Allow manual focus on an area by tapping on camera view. True is on and false is off. */
-    var touchToFocus: Boolean by config.touchToFocus::value
+    var touchToFocus: Boolean
+        get() = config.touchToFocus.value
+        set(value) {
+            if (!isUiThread()) return
+            config.touchToFocus.value = value
+        }
 
     /** Allow pinch gesture on camera view for digital zooming. True is on and false is off. */
-    var pinchToZoom: Boolean by config.pinchToZoom::value
+    var pinchToZoom: Boolean
+        get() = config.pinchToZoom.value
+        set(value) {
+            if (!isUiThread()) return
+            config.pinchToZoom.value = value
+        }
 
     /** Maximum digital zoom supported by selected camera device. */
     val maxDigitalZoom: Float by camera::maxDigitalZoom
 
     /** Set digital zoom value. Must be between 1.0f and [maxDigitalZoom] inclusive. */
-    var currentDigitalZoom: Float by config.currentDigitalZoom::value
+    var currentDigitalZoom: Float
+        get() = config.currentDigitalZoom.value
+        set(value) {
+            if (!isUiThread()) return
+            config.currentDigitalZoom.value = value
+        }
 
     /**
      * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
@@ -285,7 +330,12 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.AutoWhiteBalance
     @setparam:Modes.AutoWhiteBalance
-    var awb: Int by config.awb::value
+    var awb: Int
+        get() = config.awb.value
+        set(value) {
+            if (!isUiThread()) return
+            config.awb.value = value
+        }
 
     /**
      * Set flash mode. Supported values are [Modes.Flash].
@@ -293,13 +343,23 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.Flash
     @setparam:Modes.Flash
-    var flash: Int by config.flash::value
+    var flash: Int
+        get() = config.flash.value
+        set(value) {
+            if (!isUiThread()) return
+            config.flash.value = value
+        }
 
     /**
      * Turn on or off optical stabilization for preview and still captures.
      * See [android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
      */
-    var opticalStabilization: Boolean by config.opticalStabilization::value
+    var opticalStabilization: Boolean
+        get() = config.opticalStabilization.value
+        set(value) {
+            if (!isUiThread()) return
+            config.opticalStabilization.value = value
+        }
 
     /**
      * Set noise reduction mode. Supported values are [Modes.NoiseReduction].
@@ -307,18 +367,33 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.NoiseReduction
     @setparam:Modes.NoiseReduction
-    var noiseReduction: Int by config.noiseReduction::value
+    var noiseReduction: Int
+        get() = config.noiseReduction.value
+        set(value) {
+            if (!isUiThread()) return
+            config.noiseReduction.value = value
+        }
 
     /** Current shutter time in milliseconds. Supported values are [Modes.Shutter]. */
     @get:Modes.Shutter
     @setparam:Modes.Shutter
-    var shutter: Int by config.shutter::value
+    var shutter: Int
+        get() = config.shutter.value
+        set(value) {
+            if (!isUiThread()) return
+            config.shutter.value = value
+        }
 
     /**
      * Set zero shutter lag mode capture.
      * See [android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG]
      */
-    var zsl: Boolean by config.zsl::value
+    var zsl: Boolean
+        get() = config.zsl.value
+        set(value) {
+            if (!isUiThread()) return
+            config.zsl.value = value
+        }
 
     private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)
 
@@ -674,6 +749,14 @@ class CameraView @JvmOverloads constructor(
      * @return true if video was stopped and saved to given outputFile, false otherwise
      */
     fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
+
+    private fun isUiThread(): Boolean = Thread.currentThread().isUiThread
+            .also {
+                if (!it) listener.onCameraError(
+                        CameraViewException("CameraView configuration must only be updated from UI thread."),
+                        isCritical = true
+                )
+            }
 
     @Parcelize
     internal data class SavedState(

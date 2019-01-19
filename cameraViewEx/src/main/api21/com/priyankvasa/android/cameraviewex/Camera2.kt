@@ -951,7 +951,7 @@ internal open class Camera2(
                     CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.autoFocus.value = Modes.AutoFocus.AF_OFF
+            launch { config.autoFocus.value = Modes.AutoFocus.AF_OFF }
         }
     }
 
@@ -991,7 +991,7 @@ internal open class Camera2(
                     CameraViewException("Awb mode ${config.awb.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.awb.value = Modes.AutoWhiteBalance.AWB_OFF
+            launch { config.awb.value = Modes.AutoWhiteBalance.AWB_OFF }
         }
     }
 
@@ -1005,7 +1005,7 @@ internal open class Camera2(
                         CameraViewException("Optical image stabilization is not supported by selected camera $cameraId. Setting it to off."),
                         ErrorLevel.Warning
                 )
-                config.opticalStabilization.value = false
+                launch { config.opticalStabilization.value = false }
             }
         } else previewRequestBuilder.set(
                 CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
@@ -1021,11 +1021,11 @@ internal open class Camera2(
                     CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF
+            launch { config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF }
         }
     }
 
-    private fun updateModes() = runBlocking(coroutineContext) {
+    private fun updateModes() {
         updateScalerCropRegion()
         updateAf()
         updateFlash()

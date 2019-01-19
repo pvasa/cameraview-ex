@@ -2,10 +2,14 @@ branches:
   only:
   - master
   - development
-  - "/^release-.*$/"
+
+if: (branch = development AND type = pull_request) OR branch = master
+
 language: android
+
 jdk:
 - oraclejdk8
+
 android:
   components:
   - tools
@@ -16,6 +20,7 @@ android:
   - extra-google-m2repository
   - extra-android-m2repository
   - addon-google_apis-google-28
+
 before_install:
 - openssl aes-256-cbc -K $encrypted_9498d2163fe1_key -iv $encrypted_9498d2163fe1_iv
   -in ./keystore.jks.enc -out ./keystore.jks -d
@@ -24,24 +29,32 @@ before_install:
 - openssl aes-256-cbc -K $encrypted_22c643d0471b_key -iv $encrypted_22c643d0471b_iv
   -in ./sampleAppJava/google-services.json.enc -out ./sampleAppJava/google-services.json -d
 - yes | sdkmanager "platforms;android-28"
+
 env:
   global:
   - ADB_INSTALL_TIMEOUT=8
-before_script: 
-script:
-- "./gradlew clean build testDebugUnitTest"
+
+stages:
+- name: test
+  if: branch = development AND type = pull_request
+- name: deploy
+  if: branch = master
+
+jobs:
+  include:
+  - stage: test
+    script: "./gradlew cleanBuildCache clean buildDebug testDebugUnitTest"
+  - stage: deploy
+    script: "./gradlew cleanBuildCache clean build testDebugUnitTest install bintrayUpload"
+
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
 cache:
   directories:
   - "$HOME/.gradle/caches/"
   - "$HOME/.gradle/wrapper/"
   - "$HOME/.android/build-cache"
-deploy:
-  skip_cleanup: true
-  provider: script
-  script: "./gradlew clean install bintrayUpload"
-  on:
-    branch: master
+
 after_failure: cat $TRAVIS_BUILD_DIR/app/build/reports/lint-results.xml

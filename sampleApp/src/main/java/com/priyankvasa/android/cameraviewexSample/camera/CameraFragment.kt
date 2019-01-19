@@ -38,15 +38,13 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
     override val coroutineContext: CoroutineContext get() = Dispatchers.Main
 
-    private var isVideoRecording = false
+    private val imageOutputDirectory by lazy {
+        "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
+    }
 
-    private val imageCaptureListener = View.OnClickListener { camera.capture() }
-
-    private val imageOutputDirectory =
-            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
-
-    private val videoOutputDirectory =
-            "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
+    private val videoOutputDirectory by lazy {
+        "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
+    }
 
     private var videoFile: File? = null
 
@@ -55,6 +53,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
     private val nextVideoFile: File
         get() = File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4")
+
+    private val imageCaptureListener = View.OnClickListener { camera.capture() }
+
+    private var isVideoRecording = false
 
     @SuppressLint("MissingPermission")
     private val videoCaptureListener = View.OnClickListener {
@@ -99,6 +101,33 @@ open class CameraFragment : Fragment(), CoroutineScope {
         setupView()
     }
 
+    @SuppressLint("MissingPermission")
+    override fun onResume() {
+        super.onResume()
+        updateViewState()
+        checkPermissions().let { if (it.isEmpty()) camera.start() else requestPermissions(it, 1) }
+    }
+
+    private fun checkPermissions(): Array<String> {
+
+        val context = context ?: return permissions
+
+        return permissions
+                .filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+                .toTypedArray()
+    }
+
+    override fun onPause() {
+        camera.run { if (isCameraOpened) stop(removeAllListeners = false) }
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+        coroutineContext.cancel()
+        super.onDestroyView()
+    }
+
     @SuppressLint("SetTextI18n")
     private fun setupCamera() {
 
@@ -108,18 +137,19 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
-            val decodeSuccessListener = listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
-                if (barcodes.isEmpty()) {
-                    tvBarcodes.text = "Barcodes"
-                    return@listener
-                }
-                val barcodesStr = "Barcodes\n${barcodes.joinToString(
-                        "\n",
-                        transform = { it.rawValue as? CharSequence ?: "" }
-                )}"
-                Timber.i("Barcodes: $barcodesStr")
-                tvBarcodes.text = barcodesStr
-            }
+            val decodeSuccessListener =
+                    listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
+                        if (barcodes.isEmpty()) {
+                            tvBarcodes.text = "Barcodes"
+                            return@listener
+                        }
+                        val barcodesStr = "Barcodes\n${barcodes.joinToString(
+                                "\n",
+                                transform = { it.rawValue as? CharSequence ?: "" }
+                        )}"
+                        Timber.i("Barcodes: $barcodesStr")
+                        tvBarcodes.text = barcodesStr
+                    }
 
             setPreviewFrameListener { image: Image ->
                 if (!decoding.get()) {
@@ -257,34 +287,15 @@ open class CameraFragment : Fragment(), CoroutineScope {
         ivCameraSwitch.isActivated = camera.facing != Modes.Facing.FACING_BACK
     }
 
-    override fun onResume() {
-        super.onResume()
-        updateViewState()
-        if (!camera.isCameraOpened
-                && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.CAMERA
-                ) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.RECORD_AUDIO
-                ) == PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED) {
-            camera.start()
-        }
-    }
+    companion object {
 
-    override fun onPause() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = false) }
-        super.onPause()
-    }
+        private val permissions: Array<String> = arrayOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
 
-    override fun onDestroyView() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
-        coroutineContext.cancel()
-        super.onDestroyView()
+        val newInstance: CameraFragment get() = CameraFragment()
     }
 }
