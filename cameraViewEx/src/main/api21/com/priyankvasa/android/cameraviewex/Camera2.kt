@@ -632,7 +632,6 @@ internal open class Camera2(
         super.stop(internal)
         try {
             cameraOpenCloseLock.acquire()
-            if (!internal) stopBackgroundThread()
             captureSession?.close()
             captureSession = null
             camera?.close()
@@ -641,6 +640,7 @@ internal open class Camera2(
             imageReader = null
             mediaRecorder?.release()
             mediaRecorder = null
+            if (!internal) stopBackgroundThread()
         } catch (e: InterruptedException) {
             listener.onCameraError(CameraViewException("Interrupted while trying to lock camera closing.", e))
         } finally {
@@ -882,13 +882,14 @@ internal open class Camera2(
                 return
             }
 
+            lifecycleRegistry.markState(Lifecycle.State.STARTED)
+
             camera?.createCaptureSession(surfaces, previewSessionStateCallback, backgroundHandler)
+
         } catch (e: Exception) {
             listener.onCameraError(CameraViewException("Failed to start camera session", e))
             return
         }
-
-        lifecycleRegistry.markState(Lifecycle.State.STARTED)
     }
 
     /**

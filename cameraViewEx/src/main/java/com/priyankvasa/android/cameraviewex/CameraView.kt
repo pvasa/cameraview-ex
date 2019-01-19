@@ -42,6 +42,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
+import kotlin.coroutines.CoroutineContext
 
 class CameraView @JvmOverloads constructor(
         context: Context,
@@ -53,7 +54,7 @@ class CameraView @JvmOverloads constructor(
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+    private val coroutineScope: CoroutineScope = CoroutineScopeMain()
 
     private val preview = createPreview(context)
 
@@ -778,4 +779,8 @@ class CameraView @JvmOverloads constructor(
             val shutter: Int,
             val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
+
+    internal class CoroutineScopeMain : CoroutineScope {
+        override val coroutineContext: CoroutineContext get() = Dispatchers.Main
+    }
 }
