@@ -462,6 +462,17 @@ internal open class Camera2(
         cameraMode.observe(this@Camera2) {
             config.currentDigitalZoom.value = 1f
             if (isCameraOpened) {
+                /*
+                 * When the activity launches I think the camera is started and then this triggers
+                 * and the camera is stopped and started again. My guess is in video mode this
+                 * happens too fast. This pause gets rid of the problem, not sure this is the
+                 * best approach.
+                 */
+                try {
+                    Thread.sleep(100)
+                } catch (e: Exception) {
+
+                }
                 stop()
                 start()
             }
