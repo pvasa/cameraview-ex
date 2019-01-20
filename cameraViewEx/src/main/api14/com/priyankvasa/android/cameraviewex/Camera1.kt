@@ -27,6 +27,7 @@ import android.view.SurfaceHolder
 import androidx.collection.SparseArrayCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
+import kotlinx.coroutines.Job
 import java.io.File
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
@@ -34,7 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class Camera1(
         override val listener: CameraInterface.Listener,
         override val preview: PreviewImpl,
-        override val config: CameraConfiguration
+        override val config: CameraConfiguration,
+        override val cameraJob: Job
 ) : CameraInterface {
 
     private val lifecycleRegistry: LifecycleRegistry =
@@ -185,8 +187,8 @@ internal class Camera1(
         }
     }
 
-    override fun stop(internal: Boolean) {
-        super.stop(internal)
+    override fun stop() {
+        super.stop()
         runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it as Exception) }
         showingPreview = false
         releaseCamera()

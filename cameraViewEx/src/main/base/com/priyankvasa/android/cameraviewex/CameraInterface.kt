@@ -24,13 +24,15 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main
+    val cameraJob: Job
+
+    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + cameraJob
 
     val preview: PreviewImpl
 
@@ -56,9 +58,13 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
      */
     fun start(): Boolean
 
-    fun stop(internal: Boolean = true) {
-        if (!internal) coroutineContext.cancel()
+    fun stop() {
         if (isVideoRecording) stopVideoRecording()
+    }
+
+    fun destroy() {
+        cameraJob.cancel()
+        stop()
     }
 
     /**

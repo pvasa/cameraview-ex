@@ -9,7 +9,7 @@ _This is an extended version of [Google's cameraview library](https://github.com
 CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
 
 #### Why another camera library?
-Every camera library out there has atleast one issue. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
+Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
 
 CameraViewEx requires minimum API level 14. The library uses Camera1 API on API Level 14-20 and Camera2 on API level 21 and above.
 
@@ -25,7 +25,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.7.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.8.0"
 }
 ```
 
@@ -78,12 +78,12 @@ override fun onResume() {
 }
 
 override fun onPause() {
-    camera.run { if (isCameraOpened) stop() }
+    camera.stop()
     super.onPause()
 }
 
 override fun onDestroyView() {
-    camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+    camera.destroy()
     super.onDestroyView()
 }
 ```

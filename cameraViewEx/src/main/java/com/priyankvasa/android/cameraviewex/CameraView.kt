@@ -38,11 +38,11 @@ import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
-import kotlin.coroutines.CoroutineContext
 
 class CameraView @JvmOverloads constructor(
         context: Context,
@@ -54,7 +54,9 @@ class CameraView @JvmOverloads constructor(
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
 
-    private val coroutineScope: CoroutineScope = CoroutineScopeMain()
+    private val parentJob: Job = SupervisorJob()
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main + parentJob)
 
     private val preview = createPreview(context)
 
@@ -196,11 +198,16 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    private var camera: CameraInterface = when {
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config)
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, context)
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, context)
-        else -> Camera2Api24(listener, preview, config, context)
+    private var camera: CameraInterface = run {
+
+        val cameraJob: Job = SupervisorJob(parentJob)
+
+        when {
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config, cameraJob)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, cameraJob, context)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, cameraJob, context)
+            else -> Camera2Api24(listener, preview, config, cameraJob, context)
+        }
     }
 
     init {
@@ -495,29 +502,27 @@ class CameraView @JvmOverloads constructor(
                     zsl
             )
 
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        when (state) {
-            is SavedState -> {
-                super.onRestoreInstanceState(state.superState)
-                adjustViewBounds = state.adjustViewBounds
-                facing = state.facing
-                cameraMode = state.cameraMode
-                outputFormat = state.outputFormat
-                jpegQuality = state.jpegQuality
-                aspectRatio = state.ratio
-                autoFocus = state.autoFocus
-                touchToFocus = state.touchToFocus
-                pinchToZoom = state.pinchToZoom
-                currentDigitalZoom = state.currentDigitalZoom
-                awb = state.awb
-                flash = state.flash
-                opticalStabilization = state.opticalStabilization
-                noiseReduction = state.noiseReduction
-                config.shutter.value = state.shutter
-                zsl = state.zsl
-            }
-            else -> super.onRestoreInstanceState(state)
+    override fun onRestoreInstanceState(state: Parcelable?) = when (state) {
+        is SavedState -> {
+            super.onRestoreInstanceState(state.superState)
+            adjustViewBounds = state.adjustViewBounds
+            facing = state.facing
+            cameraMode = state.cameraMode
+            outputFormat = state.outputFormat
+            jpegQuality = state.jpegQuality
+            aspectRatio = state.ratio
+            autoFocus = state.autoFocus
+            touchToFocus = state.touchToFocus
+            pinchToZoom = state.pinchToZoom
+            currentDigitalZoom = state.currentDigitalZoom
+            awb = state.awb
+            flash = state.flash
+            opticalStabilization = state.opticalStabilization
+            noiseReduction = state.noiseReduction
+            config.shutter.value = state.shutter
+            zsl = state.zsl
         }
+        else -> super.onRestoreInstanceState(state)
     }
 
     /**
@@ -526,25 +531,85 @@ class CameraView @JvmOverloads constructor(
      */
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
+        if (isCameraOpened) {
+            listener.onCameraError(
+                    CameraViewException("Camera is already open. Call stop() first."),
+                    errorLevel = ErrorLevel.Warning
+            )
+            return
+        }
         if (!camera.start()) {
             // Store the state and restore this state after falling back to Camera1
             val state = onSaveInstanceState()
+            camera.destroy()
             // Device uses legacy hardware layer; fall back to Camera1
-            camera = Camera1(listener, preview, config)
+            camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
             onRestoreInstanceState(state)
             camera.start()
         }
     }
 
     /**
-     * Stop camera preview and close the device. This is typically called from
-     * [Activity.onPause].
-     * @param removeAllListeners if `true`, removes all listeners previously set. See [CameraView.removeAllListeners]
+     * Start capturing video.
+     * @param outputFile where video will be saved
+     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
      */
-    fun stop(removeAllListeners: Boolean = false) {
-        if (removeAllListeners) listener.clear()
-        camera.stop(internal = false)
-        coroutineScope.coroutineContext.cancel()
+    @RequiresPermission(allOf = [
+        Manifest.permission.CAMERA,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.RECORD_AUDIO
+    ])
+    @JvmOverloads
+    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}): Unit = when {
+
+        cameraMode != Modes.CameraMode.VIDEO_CAPTURE -> listener.onCameraError(
+                CameraViewException("Cannot start video recording in camera mode $cameraMode")
+        )
+
+        isVideoRecording -> listener.onCameraError(
+                CameraViewException("Video recording already in progress." +
+                        " Call CameraView.stopVideoRecording() before calling start.")
+        )
+
+        else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
+    }
+
+    /**
+     * Pause video recording
+     * @return true if the video was paused false otherwise
+     */
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
+
+    /**
+     * Resume video recording
+     * @return true if the video was resumed false otherwise
+     */
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
+
+    /**
+     * Stop video recording
+     * @return true if video was stopped and saved to given outputFile, false otherwise
+     */
+    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
+
+    /**
+     * Stop camera preview and close the device.
+     * This is typically called from fragment's onPause callback.
+     */
+    fun stop() {
+        if (isCameraOpened) camera.stop()
+    }
+
+    /**
+     * Clear all listeners, [stop] camera, and kill background threads
+     * This is typically called from fragment's onDestroyView callback.
+     */
+    fun destroy() {
+        removeAllListeners()
+        camera.destroy()
+        parentJob.cancel()
     }
 
     /**
@@ -703,53 +768,12 @@ class CameraView @JvmOverloads constructor(
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
-    fun capture() {
-        if (cameraMode == Modes.CameraMode.SINGLE_CAPTURE) camera.takePicture()
-        else listener.onCameraError(
+    fun capture(): Unit = when {
+        cameraMode != Modes.CameraMode.SINGLE_CAPTURE -> listener.onCameraError(
                 CameraViewException("Cannot capture still picture in camera mode $cameraMode")
         )
+        else -> camera.takePicture()
     }
-
-    /**
-     * Start capturing video.
-     * @param outputFile where video will be saved
-     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
-     */
-    @RequiresPermission(allOf = [
-        Manifest.permission.CAMERA,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.RECORD_AUDIO
-    ])
-    @JvmOverloads
-    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}) {
-        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) {
-            camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
-        } else {
-            listener.onCameraError(
-                    CameraViewException("Cannot start video recording in camera mode $cameraMode")
-            )
-        }
-    }
-
-    /**
-     * Pause video recording
-     * @return true if the video was paused false otherwise
-     */
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
-
-    /**
-     * Resume video recording
-     * @return true if the video was resumed false otherwise
-     */
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
-
-    /**
-     * Stop video recording
-     * @return true if video was stopped and saved to given outputFile, false otherwise
-     */
-    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
     private fun isUiThread(): Boolean = Thread.currentThread().isUiThread
             .also {
@@ -779,8 +803,4 @@ class CameraView @JvmOverloads constructor(
             val shutter: Int,
             val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
-
-    internal class CoroutineScopeMain : CoroutineScope {
-        override val coroutineContext: CoroutineContext get() = Dispatchers.Main
-    }
 }

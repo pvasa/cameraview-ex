@@ -22,11 +22,14 @@ import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewexSample.R
+import com.priyankvasa.android.cameraviewexSample.extensions.hideSystemUI
+import com.priyankvasa.android.cameraviewexSample.extensions.showSystemUI
 import com.priyankvasa.android.cameraviewexSample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.BufferedOutputStream
@@ -36,7 +39,9 @@ import kotlin.coroutines.CoroutineContext
 
 open class CameraFragment : Fragment(), CoroutineScope {
 
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main
+    private val job: Job = SupervisorJob()
+
+    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + job
 
     private val imageOutputDirectory by lazy {
         "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
@@ -104,6 +109,7 @@ open class CameraFragment : Fragment(), CoroutineScope {
     @SuppressLint("MissingPermission")
     override fun onResume() {
         super.onResume()
+        activity?.hideSystemUI()
         updateViewState()
         checkPermissions().let { if (it.isEmpty()) camera.start() else requestPermissions(it, 1) }
     }
@@ -118,13 +124,14 @@ open class CameraFragment : Fragment(), CoroutineScope {
     }
 
     override fun onPause() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = false) }
+        camera.stop()
         super.onPause()
     }
 
     override fun onDestroyView() {
-        camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
-        coroutineContext.cancel()
+        camera.destroy()
+        job.cancel()
+        activity?.showSystemUI()
         super.onDestroyView()
     }
 

@@ -50,6 +50,7 @@ import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
 import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
 import com.priyankvasa.android.cameraviewex.extension.isOisSupported
 import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -61,6 +62,7 @@ internal open class Camera2(
         override val listener: CameraInterface.Listener,
         final override val preview: PreviewImpl,
         final override val config: CameraConfiguration,
+        override val cameraJob: Job,
         context: Context
 ) : CameraInterface {
 
@@ -628,8 +630,8 @@ internal open class Camera2(
         return true
     }
 
-    override fun stop(internal: Boolean) {
-        super.stop(internal)
+    override fun stop() {
+        super.stop()
         try {
             cameraOpenCloseLock.acquire()
             captureSession?.close()
@@ -640,12 +642,16 @@ internal open class Camera2(
             imageReader = null
             mediaRecorder?.release()
             mediaRecorder = null
-            if (!internal) stopBackgroundThread()
         } catch (e: InterruptedException) {
             listener.onCameraError(CameraViewException("Interrupted while trying to lock camera closing.", e))
         } finally {
             cameraOpenCloseLock.release()
         }
+    }
+
+    override fun destroy() {
+        super.destroy()
+        stopBackgroundThread()
     }
 
     override fun setAspectRatio(ratio: AspectRatio): Boolean {
@@ -1108,11 +1114,6 @@ internal open class Camera2(
 
     override fun startVideoRecording(outputFile: File, config: VideoConfiguration) {
 
-        if (isVideoRecording) listener.onCameraError(
-                CameraViewException("Video recording already in progress." +
-                        " Call CameraView.stopVideoRecording() before calling start.")
-        ).also { return }
-
         isVideoRecording = true
 
         /**
@@ -1147,9 +1148,7 @@ internal open class Camera2(
 
             setOnInfoListener { _, what, _ ->
                 when (what) {
-                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> {
-                        stopVideoRecording()
-                    }
+                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> stopVideoRecording()
                 }
             }
 
