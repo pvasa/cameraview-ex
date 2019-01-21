@@ -23,11 +23,11 @@ import kotlinx.coroutines.Job
 
 @TargetApi(Build.VERSION_CODES.N)
 internal open class Camera2Api24(
-        override val listener: CameraInterface.Listener,
-        preview: PreviewImpl,
-        config: CameraConfiguration,
-        job: Job,
-        context: Context
+    override val listener: CameraInterface.Listener,
+    preview: PreviewImpl,
+    config: CameraConfiguration,
+    job: Job,
+    context: Context
 ) : Camera2Api23(listener, preview, config, job, context) {
 
     override fun pauseVideoRecording(): Boolean = runCatching {

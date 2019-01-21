@@ -21,4 +21,4 @@ import android.util.TypedValue
 
 internal fun Context.convertDpToPixel(dp: Float) = convertDpToPixelF(dp).toInt()
 internal fun Context.convertDpToPixelF(dp: Float) =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
+    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)

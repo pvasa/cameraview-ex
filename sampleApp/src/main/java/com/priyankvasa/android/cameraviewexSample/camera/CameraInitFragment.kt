@@ -16,13 +16,13 @@ class CameraInitFragment : Fragment() {
 
     private val navigator: Navigator
         get() = context as? Navigator
-                ?: throw ClassCastException("Either not attached to activity or parent activity" +
-                        " has not implemented ${Navigator::class.java.canonicalName}")
+            ?: throw ClassCastException("Either not attached to activity or parent activity" +
+                " has not implemented ${Navigator::class.java.canonicalName}")
 
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? = inflater.inflate(R.layout.fragment_camera_init, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

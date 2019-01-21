@@ -89,15 +89,15 @@ open class CameraFragment : Fragment(), CoroutineScope {
     }
 
     private val barcodeDetectorOptions = FirebaseVisionBarcodeDetectorOptions.Builder()
-            .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
-            .build()
+        .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
+        .build()
 
     private val barcodeDetector = FirebaseVision.getInstance().getVisionBarcodeDetector(barcodeDetectorOptions)
 
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? = inflater.inflate(R.layout.fragment_camera, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -119,8 +119,8 @@ open class CameraFragment : Fragment(), CoroutineScope {
         val context = context ?: return permissions
 
         return permissions
-                .filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
-                .toTypedArray()
+            .filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+            .toTypedArray()
     }
 
     override fun onPause() {
@@ -145,27 +145,27 @@ open class CameraFragment : Fragment(), CoroutineScope {
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
             val decodeSuccessListener =
-                    listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
-                        if (barcodes.isEmpty()) {
-                            tvBarcodes.text = "Barcodes"
-                            return@listener
-                        }
-                        val barcodesStr = "Barcodes\n${barcodes.joinToString(
-                                "\n",
-                                transform = { it.rawValue as? CharSequence ?: "" }
-                        )}"
-                        Timber.i("Barcodes: $barcodesStr")
-                        tvBarcodes.text = barcodesStr
+                listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
+                    if (barcodes.isEmpty()) {
+                        tvBarcodes.text = "Barcodes"
+                        return@listener
                     }
+                    val barcodesStr = "Barcodes\n${barcodes.joinToString(
+                        "\n",
+                        transform = { it.rawValue as? CharSequence ?: "" }
+                    )}"
+                    Timber.i("Barcodes: $barcodesStr")
+                    tvBarcodes.text = barcodesStr
+                }
 
             setPreviewFrameListener { image: Image ->
                 if (!decoding.get()) {
                     decoding.set(true)
                     val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
                     barcodeDetector.detectInImage(visionImage)
-                            .addOnCompleteListener { decoding.set(false) }
-                            .addOnSuccessListener(decodeSuccessListener)
-                            .addOnFailureListener { e -> Timber.e(e) }
+                        .addOnCompleteListener { decoding.set(false) }
+                        .addOnSuccessListener(decodeSuccessListener)
+                        .addOnFailureListener { e -> Timber.e(e) }
                 }
             }
 
@@ -192,11 +192,11 @@ open class CameraFragment : Fragment(), CoroutineScope {
     private fun saveDataToFile(data: ByteArray): File = nextImageFile.apply {
         createNewFile()
         runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
-                .onFailure {
-                    context?.toast("Unable to save image to file.")
-                    Timber.e(it)
-                }
-                .onSuccess { context?.toast("Saved image to file $absolutePath") }
+            .onFailure {
+                context?.toast("Unable to save image to file.")
+                Timber.e(it)
+            }
+            .onSuccess { context?.toast("Saved image to file $absolutePath") }
     }
 
     private fun setupView() {
@@ -297,10 +297,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
     companion object {
 
         private val permissions: Array<String> = arrayOf(
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
 
         val newInstance: CameraFragment get() = CameraFragment()

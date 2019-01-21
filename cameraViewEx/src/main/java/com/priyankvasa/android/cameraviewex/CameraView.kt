@@ -45,9 +45,9 @@ import timber.log.Timber
 import java.io.File
 
 class CameraView @JvmOverloads constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
@@ -164,10 +164,10 @@ class CameraView @JvmOverloads constructor(
 
         // Attributes
         context.obtainStyledAttributes(
-                attrs,
-                R.styleable.CameraView,
-                defStyleAttr,
-                R.style.Widget_CameraView
+            attrs,
+            R.styleable.CameraView,
+            defStyleAttr,
+            R.style.Widget_CameraView
         ).run {
 
             adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
@@ -176,10 +176,10 @@ class CameraView @JvmOverloads constructor(
 
                 facing.value = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio.value = getString(R.styleable.CameraView_aspectRatio)
-                        .run ar@{
-                            if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
-                            else AspectRatio.parse(this@ar)
-                        }
+                    .run ar@{
+                        if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
+                        else AspectRatio.parse(this@ar)
+                    }
                 autoFocus.value = getInt(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
                 flash.value = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 
@@ -446,8 +446,8 @@ class CameraView @JvmOverloads constructor(
                     height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
                 }
                 super.onMeasure(
-                        widthMeasureSpec,
-                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    widthMeasureSpec,
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
                 )
             } else if (widthMode != View.MeasureSpec.EXACTLY && heightMode == View.MeasureSpec.EXACTLY) {
                 val ratio = aspectRatio
@@ -456,7 +456,7 @@ class CameraView @JvmOverloads constructor(
                     width = Math.min(width, View.MeasureSpec.getSize(widthMeasureSpec))
                 }
                 super.onMeasure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                        heightMeasureSpec)
+                    heightMeasureSpec)
             } else {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             }
@@ -472,42 +472,42 @@ class CameraView @JvmOverloads constructor(
         if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
         if (height < width * ratio.y / ratio.x) preview.view.measure(
-                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(
-                        width * ratio.y / ratio.x,
-                        View.MeasureSpec.EXACTLY
-                )
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(
+                width * ratio.y / ratio.x,
+                View.MeasureSpec.EXACTLY
+            )
         ) else preview.view.measure(
-                View.MeasureSpec.makeMeasureSpec(
-                        height * ratio.x / ratio.y,
-                        View.MeasureSpec.EXACTLY
-                ),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+            View.MeasureSpec.makeMeasureSpec(
+                height * ratio.x / ratio.y,
+                View.MeasureSpec.EXACTLY
+            ),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
         )
 
         preview.shutterView.layoutParams = preview.view.layoutParams
     }
 
     override fun onSaveInstanceState(): Parcelable? =
-            SavedState(
-                    super.onSaveInstanceState() ?: Bundle(),
-                    adjustViewBounds,
-                    cameraMode,
-                    outputFormat,
-                    jpegQuality,
-                    facing,
-                    aspectRatio,
-                    autoFocus,
-                    touchToFocus,
-                    pinchToZoom,
-                    currentDigitalZoom,
-                    awb,
-                    flash,
-                    opticalStabilization,
-                    noiseReduction,
-                    config.shutter.value,
-                    zsl
-            )
+        SavedState(
+            super.onSaveInstanceState() ?: Bundle(),
+            adjustViewBounds,
+            cameraMode,
+            outputFormat,
+            jpegQuality,
+            facing,
+            aspectRatio,
+            autoFocus,
+            touchToFocus,
+            pinchToZoom,
+            currentDigitalZoom,
+            awb,
+            flash,
+            opticalStabilization,
+            noiseReduction,
+            config.shutter.value,
+            zsl
+        )
 
     override fun onRestoreInstanceState(state: Parcelable?) = when (state) {
         is SavedState -> {
@@ -534,15 +534,15 @@ class CameraView @JvmOverloads constructor(
 
     private fun requireActive(): Boolean = isActive.also {
         if (!it) listener.onCameraError(
-                CameraViewException("CameraView instance is destroyed and cannot be used further. Please create a new instance."),
-                isCritical = true
+            CameraViewException("CameraView instance is destroyed and cannot be used further. Please create a new instance."),
+            isCritical = true
         )
     }
 
     private fun requireCameraOpened(): Boolean = isCameraOpened.also {
         if (!it) listener.onCameraError(
-                CameraViewException("Camera is already open. Call stop() first."),
-                errorLevel = ErrorLevel.Warning
+            CameraViewException("Camera is already open. Call stop() first."),
+            errorLevel = ErrorLevel.Warning
         )
     }
 
@@ -574,7 +574,7 @@ class CameraView @JvmOverloads constructor(
         !requireActive() || !requireCameraOpened() -> Unit
 
         cameraMode != Modes.CameraMode.SINGLE_CAPTURE -> listener.onCameraError(
-                CameraViewException("Cannot capture still picture in camera mode $cameraMode")
+            CameraViewException("Cannot capture still picture in camera mode $cameraMode")
         )
 
         else -> camera.takePicture()
@@ -596,12 +596,12 @@ class CameraView @JvmOverloads constructor(
         !requireActive() || !requireCameraOpened() -> Unit
 
         cameraMode != Modes.CameraMode.VIDEO_CAPTURE -> listener.onCameraError(
-                CameraViewException("Cannot start video recording in camera mode $cameraMode")
+            CameraViewException("Cannot start video recording in camera mode $cameraMode")
         )
 
         isVideoRecording -> listener.onCameraError(
-                CameraViewException("Video recording already in progress." +
-                        " Call CameraView.stopVideoRecording() before calling start.")
+            CameraViewException("Video recording already in progress." +
+                " Call CameraView.stopVideoRecording() before calling start.")
         )
 
         else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
@@ -801,31 +801,31 @@ class CameraView @JvmOverloads constructor(
     }
 
     private fun isUiThread(): Boolean = Thread.currentThread().isUiThread
-            .also {
-                if (!it) listener.onCameraError(
-                        CameraViewException("CameraView configuration must only be updated from UI thread."),
-                        isCritical = true
-                )
-            }
+        .also {
+            if (!it) listener.onCameraError(
+                CameraViewException("CameraView configuration must only be updated from UI thread."),
+                isCritical = true
+            )
+        }
 
     @Parcelize
     internal data class SavedState(
-            val parcelable: Parcelable,
-            val adjustViewBounds: Boolean,
-            val cameraMode: Int,
-            val outputFormat: Int,
-            val jpegQuality: Int,
-            val facing: Int,
-            val ratio: AspectRatio,
-            val autoFocus: Int,
-            val touchToFocus: Boolean,
-            val pinchToZoom: Boolean,
-            val currentDigitalZoom: Float,
-            val awb: Int,
-            val flash: Int,
-            val opticalStabilization: Boolean,
-            val noiseReduction: Int,
-            val shutter: Int,
-            val zsl: Boolean
+        val parcelable: Parcelable,
+        val adjustViewBounds: Boolean,
+        val cameraMode: Int,
+        val outputFormat: Int,
+        val jpegQuality: Int,
+        val facing: Int,
+        val ratio: AspectRatio,
+        val autoFocus: Int,
+        val touchToFocus: Boolean,
+        val pinchToZoom: Boolean,
+        val currentDigitalZoom: Float,
+        val awb: Int,
+        val flash: Int,
+        val opticalStabilization: Boolean,
+        val noiseReduction: Int,
+        val shutter: Int,
+        val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }

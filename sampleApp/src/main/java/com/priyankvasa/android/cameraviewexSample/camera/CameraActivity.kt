@@ -14,14 +14,14 @@ class CameraActivity : AppCompatActivity(), CameraInitFragment.Navigator {
 
     private fun openCameraInitFragment() {
         supportFragmentManager.beginTransaction()
-                .replace(R.id.flMainContainer, CameraInitFragment.newInstance)
-                .commit()
+            .replace(R.id.flMainContainer, CameraInitFragment.newInstance)
+            .commit()
     }
 
     override fun openCameraFragment() {
         supportFragmentManager.beginTransaction()
-                .add(R.id.flMainContainer, CameraFragment.newInstance)
-                .addToBackStack(CameraFragment::class.java.canonicalName)
-                .commit()
+            .add(R.id.flMainContainer, CameraFragment.newInstance)
+            .addToBackStack(CameraFragment::class.java.canonicalName)
+            .commit()
     }
 }

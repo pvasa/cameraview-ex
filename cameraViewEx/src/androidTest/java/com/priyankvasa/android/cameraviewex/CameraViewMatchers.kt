@@ -31,6 +31,6 @@ internal object CameraViewMatchers {
         }
 
         override fun matchesSafely(view: View): Boolean =
-                ratio == (view as CameraView).aspectRatio
+            ratio == (view as CameraView).aspectRatio
     }
 }

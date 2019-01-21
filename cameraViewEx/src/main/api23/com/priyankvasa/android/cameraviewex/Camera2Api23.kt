@@ -24,11 +24,11 @@ import kotlinx.coroutines.Job
 
 @TargetApi(Build.VERSION_CODES.M)
 internal open class Camera2Api23(
-        listener: CameraInterface.Listener,
-        preview: PreviewImpl,
-        config: CameraConfiguration,
-        job: Job,
-        context: Context
+    listener: CameraInterface.Listener,
+    preview: PreviewImpl,
+    config: CameraConfiguration,
+    job: Job,
+    context: Context
 ) : Camera2(listener, preview, config, job, context) {
 
     override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
