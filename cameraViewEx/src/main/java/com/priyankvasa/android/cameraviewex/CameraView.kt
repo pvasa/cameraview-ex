@@ -217,6 +217,13 @@ class CameraView @JvmOverloads constructor(
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
 
+    /**
+     * Returns `true` if this [CameraView] instance is active and usable.
+     * It will `return` false after [destroy] is called.
+     * A new instance should be created if [isActive] is false.
+     */
+    val isActive: Boolean get() = camera.isActive && parentJob.isActive
+
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean by camera::isCameraOpened
 
@@ -525,19 +532,30 @@ class CameraView @JvmOverloads constructor(
         else -> super.onRestoreInstanceState(state)
     }
 
+    private fun requireActive(): Boolean = isActive.also {
+        if (!it) listener.onCameraError(
+                CameraViewException("CameraView instance is destroyed and cannot be used further. Please create a new instance."),
+                isCritical = true
+        )
+    }
+
+    private fun requireCameraOpened(): Boolean = isCameraOpened.also {
+        if (!it) listener.onCameraError(
+                CameraViewException("Camera is already open. Call stop() first."),
+                errorLevel = ErrorLevel.Warning
+        )
+    }
+
     /**
      * Open a camera device and start showing camera preview. This is typically called from
      * [Activity.onResume].
+     * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
      */
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
-        if (isCameraOpened) {
-            listener.onCameraError(
-                    CameraViewException("Camera is already open. Call stop() first."),
-                    errorLevel = ErrorLevel.Warning
-            )
-            return
-        }
+
+        if (!requireActive() || requireCameraOpened()) return
+
         if (!camera.start()) {
             // Store the state and restore this state after falling back to Camera1
             val state = onSaveInstanceState()
@@ -547,6 +565,19 @@ class CameraView @JvmOverloads constructor(
             onRestoreInstanceState(state)
             camera.start()
         }
+    }
+
+    /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun capture(): Unit = when {
+
+        !requireActive() || !requireCameraOpened() -> Unit
+
+        cameraMode != Modes.CameraMode.SINGLE_CAPTURE -> listener.onCameraError(
+                CameraViewException("Cannot capture still picture in camera mode $cameraMode")
+        )
+
+        else -> camera.takePicture()
     }
 
     /**
@@ -561,6 +592,8 @@ class CameraView @JvmOverloads constructor(
     ])
     @JvmOverloads
     fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}): Unit = when {
+
+        !requireActive() || !requireCameraOpened() -> Unit
 
         cameraMode != Modes.CameraMode.VIDEO_CAPTURE -> listener.onCameraError(
                 CameraViewException("Cannot start video recording in camera mode $cameraMode")
@@ -598,12 +631,12 @@ class CameraView @JvmOverloads constructor(
      * Stop camera preview and close the device.
      * This is typically called from fragment's onPause callback.
      */
-    fun stop() {
-        if (isCameraOpened) camera.stop()
-    }
+    fun stop() = camera.stop()
 
     /**
-     * Clear all listeners, [stop] camera, and kill background threads
+     * Clear all listeners, [stop] camera, and kill background threads.
+     * Once [destroy] is called, camera cannot be started.
+     * A new [CameraView] instance must be created to use camera again.
      * This is typically called from fragment's onDestroyView callback.
      */
     fun destroy() {
@@ -765,14 +798,6 @@ class CameraView @JvmOverloads constructor(
     /** Remove all listeners previously set. */
     fun removeAllListeners() {
         listener.clear()
-    }
-
-    /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
-    fun capture(): Unit = when {
-        cameraMode != Modes.CameraMode.SINGLE_CAPTURE -> listener.onCameraError(
-                CameraViewException("Cannot capture still picture in camera mode $cameraMode")
-        )
-        else -> camera.takePicture()
     }
 
     private fun isUiThread(): Boolean = Thread.currentThread().isUiThread

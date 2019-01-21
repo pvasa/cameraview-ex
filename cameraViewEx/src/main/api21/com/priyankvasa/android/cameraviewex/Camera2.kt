@@ -296,6 +296,10 @@ internal open class Camera2(
 
     override var deviceRotation: Int = 0
 
+    override val isActive: Boolean
+        get() = cameraJob.isActive &&
+                backgroundHandler?.looper?.thread?.isAlive == true
+
     override val isCameraOpened: Boolean get() = camera != null
 
     override var isVideoRecording: Boolean = false
@@ -634,7 +638,11 @@ internal open class Camera2(
         super.stop()
         try {
             cameraOpenCloseLock.acquire()
-            captureSession?.close()
+            captureSession?.run {
+                stopRepeating()
+                abortCaptures()
+                close()
+            }
             captureSession = null
             camera?.close()
             camera = null
@@ -958,7 +966,7 @@ internal open class Camera2(
                     CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            launch { config.autoFocus.value = Modes.AutoFocus.AF_OFF }
+            config.autoFocus.value = Modes.AutoFocus.AF_OFF
         }
     }
 
@@ -998,7 +1006,7 @@ internal open class Camera2(
                     CameraViewException("Awb mode ${config.awb.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            launch { config.awb.value = Modes.AutoWhiteBalance.AWB_OFF }
+            config.awb.value = Modes.AutoWhiteBalance.AWB_OFF
         }
     }
 
@@ -1012,7 +1020,7 @@ internal open class Camera2(
                         CameraViewException("Optical image stabilization is not supported by selected camera $cameraId. Setting it to off."),
                         ErrorLevel.Warning
                 )
-                launch { config.opticalStabilization.value = false }
+                config.opticalStabilization.value = false
             }
         } else previewRequestBuilder.set(
                 CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
@@ -1028,7 +1036,7 @@ internal open class Camera2(
                     CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera. Setting it to off."),
                     ErrorLevel.Warning
             )
-            launch { config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF }
+            config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF
         }
     }
 

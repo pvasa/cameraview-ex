@@ -95,6 +95,8 @@ internal class Camera1(
             }
         }
 
+    override val isActive: Boolean get() = cameraJob.isActive
+
     override val isCameraOpened: Boolean get() = camera != null
 
     override var isVideoRecording: Boolean = false

@@ -40,6 +40,8 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     val listener: Listener
 
+    val isActive: Boolean
+
     val isCameraOpened: Boolean
 
     var isVideoRecording: Boolean
