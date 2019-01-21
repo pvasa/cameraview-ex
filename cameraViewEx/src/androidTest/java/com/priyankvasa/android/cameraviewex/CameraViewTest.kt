@@ -373,7 +373,7 @@ class CameraViewTest : GrantPermissionsRule() {
                         }
                     }
                     .addCameraClosedListener { isIdleNow = false }
-            isIdleNow = cameraView.isCameraOpened
+            isIdleNow = cameraView.isActive && cameraView.isCameraOpened
         }
 
         override fun close() {
