@@ -31,9 +31,9 @@ import timber.log.Timber
  * A shutter effect. It can be used when user captures a picture to give them some kind of capture feedback.
  */
 internal class ShutterView @JvmOverloads constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyle: Int = 0
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyle: Int = 0
 ) : View(context, attrs, defStyle) {
 
     private val defaultShutterColor = ActivityCompat.getColor(context, android.R.color.black)

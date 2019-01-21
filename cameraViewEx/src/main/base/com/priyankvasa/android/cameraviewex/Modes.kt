@@ -26,9 +26,9 @@ object Modes {
     const val LANDSCAPE_270 = 270
 
     @IntDef(CameraMode.SINGLE_CAPTURE,
-            CameraMode.BURST_CAPTURE,
-            CameraMode.CONTINUOUS_FRAME,
-            CameraMode.VIDEO_CAPTURE)
+        CameraMode.BURST_CAPTURE,
+        CameraMode.CONTINUOUS_FRAME,
+        CameraMode.VIDEO_CAPTURE)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class CameraMode {
@@ -79,11 +79,11 @@ object Modes {
 
     /** The mode for the camera device's auto focus control */
     @IntDef(AutoFocus.AF_OFF,
-            AutoFocus.AF_AUTO,
-            AutoFocus.AF_MACRO,
-            AutoFocus.AF_CONTINUOUS_VIDEO,
-            AutoFocus.AF_CONTINUOUS_PICTURE,
-            AutoFocus.AF_EDOF)
+        AutoFocus.AF_AUTO,
+        AutoFocus.AF_MACRO,
+        AutoFocus.AF_CONTINUOUS_VIDEO,
+        AutoFocus.AF_CONTINUOUS_PICTURE,
+        AutoFocus.AF_EDOF)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class AutoFocus {
@@ -99,10 +99,10 @@ object Modes {
 
     /** The mode for the camera device's flash control */
     @IntDef(Flash.FLASH_OFF,
-            Flash.FLASH_ON,
-            Flash.FLASH_TORCH,
-            Flash.FLASH_AUTO,
-            Flash.FLASH_RED_EYE)
+        Flash.FLASH_ON,
+        Flash.FLASH_TORCH,
+        Flash.FLASH_AUTO,
+        Flash.FLASH_RED_EYE)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Flash {
@@ -117,10 +117,10 @@ object Modes {
 
     /** The mode for the camera device's noise reduction control */
     @IntDef(NoiseReduction.NOISE_REDUCTION_OFF,
-            NoiseReduction.NOISE_REDUCTION_FAST,
-            NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY,
-            NoiseReduction.NOISE_REDUCTION_MINIMAL,
-            NoiseReduction.NOISE_REDUCTION_ZERO_SHUTTER_LAG)
+        NoiseReduction.NOISE_REDUCTION_FAST,
+        NoiseReduction.NOISE_REDUCTION_HIGH_QUALITY,
+        NoiseReduction.NOISE_REDUCTION_MINIMAL,
+        NoiseReduction.NOISE_REDUCTION_ZERO_SHUTTER_LAG)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class NoiseReduction {
@@ -137,14 +137,14 @@ object Modes {
 
     /** The mode for the camera device's auto white balance control */
     @IntDef(AutoWhiteBalance.AWB_OFF,
-            AutoWhiteBalance.AWB_AUTO,
-            AutoWhiteBalance.AWB_INCANDESCENT,
-            AutoWhiteBalance.AWB_FLUORESCENT,
-            AutoWhiteBalance.AWB_WARM_FLUORESCENT,
-            AutoWhiteBalance.AWB_DAYLIGHT,
-            AutoWhiteBalance.AWB_CLOUDY_DAYLIGHT,
-            AutoWhiteBalance.AWB_TWILIGHT,
-            AutoWhiteBalance.AWB_SHADE)
+        AutoWhiteBalance.AWB_AUTO,
+        AutoWhiteBalance.AWB_INCANDESCENT,
+        AutoWhiteBalance.AWB_FLUORESCENT,
+        AutoWhiteBalance.AWB_WARM_FLUORESCENT,
+        AutoWhiteBalance.AWB_DAYLIGHT,
+        AutoWhiteBalance.AWB_CLOUDY_DAYLIGHT,
+        AutoWhiteBalance.AWB_TWILIGHT,
+        AutoWhiteBalance.AWB_SHADE)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class AutoWhiteBalance {
@@ -163,8 +163,8 @@ object Modes {
 
     /** Shutter time in milliseconds */
     @IntDef(Shutter.SHUTTER_OFF,
-            Shutter.SHUTTER_SHORT,
-            Shutter.SHUTTER_LONG)
+        Shutter.SHUTTER_SHORT,
+        Shutter.SHUTTER_LONG)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Shutter {

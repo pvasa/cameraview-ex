@@ -29,21 +29,21 @@ import android.view.View
  * @param pinchAction action to be performed when a pinch gesture is detected
  */
 internal class SurfaceTouchListener(
-        context: Context,
-        private val tapAction: (x: Float, y: Float) -> Boolean,
-        private val pinchAction: (scaleFactor: Float) -> Boolean
+    context: Context,
+    private val tapAction: (x: Float, y: Float) -> Boolean,
+    private val pinchAction: (scaleFactor: Float) -> Boolean
 ) : View.OnTouchListener {
 
     private val scaleGestureListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
         override fun onScale(detector: ScaleGestureDetector): Boolean =
-                if (detector.scaleFactor != 1f) pinchAction(detector.scaleFactor) else false
+            if (detector.scaleFactor != 1f) pinchAction(detector.scaleFactor) else false
     }
 
     private val tapGestureListener = object : GestureDetector.SimpleOnGestureListener() {
 
         override fun onSingleTapConfirmed(e: MotionEvent?): Boolean =
-                e?.let { tapAction(it.x, it.y) } ?: false
+            e?.let { tapAction(it.x, it.y) } ?: false
     }
 
     private val simpleGestureDetector = GestureDetector(context, tapGestureListener)
@@ -51,8 +51,8 @@ internal class SurfaceTouchListener(
     private val scaleGestureDetector = ScaleGestureDetector(context, scaleGestureListener)
 
     override fun onTouch(v: View?, event: MotionEvent?): Boolean =
-            simpleGestureDetector.onTouchEvent(event) ||
-                    scaleGestureDetector.onTouchEvent(event) ||
-                    event?.actionMasked != MotionEvent.ACTION_UP ||
-                    v?.performClick() ?: false
+        simpleGestureDetector.onTouchEvent(event) ||
+            scaleGestureDetector.onTouchEvent(event) ||
+            event?.actionMasked != MotionEvent.ACTION_UP ||
+            v?.performClick() ?: false
 }

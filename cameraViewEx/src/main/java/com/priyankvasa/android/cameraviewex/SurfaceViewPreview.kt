@@ -60,9 +60,9 @@ internal class SurfaceViewPreview(context: Context, parent: ViewGroup) : Preview
         })
 
         surfaceView.setOnTouchListener(SurfaceTouchListener(
-                context,
-                { x, y -> surfaceTapListener?.invoke(x, y) ?: false },
-                { scaleFactor -> surfacePinchListener?.invoke(scaleFactor) ?: false }
+            context,
+            { x, y -> surfaceTapListener?.invoke(x, y) ?: false },
+            { scaleFactor -> surfacePinchListener?.invoke(scaleFactor) ?: false }
         ))
     }
 

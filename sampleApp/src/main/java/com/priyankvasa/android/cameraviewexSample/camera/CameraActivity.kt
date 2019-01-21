@@ -3,22 +3,25 @@ package com.priyankvasa.android.cameraviewexSample.camera
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.priyankvasa.android.cameraviewexSample.R
-import com.priyankvasa.android.cameraviewexSample.extensions.hideSystemUI
 
-class CameraActivity : AppCompatActivity() {
+class CameraActivity : AppCompatActivity(), CameraInitFragment.Navigator {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
-        launchCameraFragment()
+        openCameraInitFragment()
     }
 
-    private fun launchCameraFragment() {
-        supportFragmentManager.beginTransaction().replace(R.id.mainContainer, CameraFragment.newInstance).commit()
+    private fun openCameraInitFragment() {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.flMainContainer, CameraInitFragment.newInstance)
+            .commit()
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        hideSystemUI()
+    override fun openCameraFragment() {
+        supportFragmentManager.beginTransaction()
+            .add(R.id.flMainContainer, CameraFragment.newInstance)
+            .addToBackStack(CameraFragment::class.java.canonicalName)
+            .commit()
     }
 }

@@ -50,6 +50,7 @@ import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
 import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
 import com.priyankvasa.android.cameraviewex.extension.isOisSupported
 import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -58,10 +59,11 @@ import java.util.concurrent.TimeUnit
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal open class Camera2(
-        override val listener: CameraInterface.Listener,
-        final override val preview: PreviewImpl,
-        final override val config: CameraConfiguration,
-        context: Context
+    override val listener: CameraInterface.Listener,
+    final override val preview: PreviewImpl,
+    final override val config: CameraConfiguration,
+    override val cameraJob: Job,
+    context: Context
 ) : CameraInterface {
 
     private val lifecycleRegistry: LifecycleRegistry by lazy {
@@ -97,13 +99,13 @@ internal open class Camera2(
 
     /** An additional thread for running tasks that shouldn't block the UI. */
     private var backgroundThread: HandlerThread? =
-            HandlerThread("CameraViewExBackground").also { it.start() }
+        HandlerThread("CameraViewExBackground").also { it.start() }
 
     /** A [Handler] for running tasks in the background. */
     private var backgroundHandler: Handler? = Handler(backgroundThread?.looper)
 
     private val cameraManager: CameraManager =
-            context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
     private val cameraDeviceCallback = object : CameraDevice.StateCallback() {
 
@@ -143,9 +145,9 @@ internal open class Camera2(
 
             try {
                 captureSession?.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 listener.onCameraError(CameraViewException("Failed to start camera preview.", e))
@@ -169,9 +171,9 @@ internal open class Camera2(
                 captureSession?.close()
                 captureSession = session
                 captureSession?.setRepeatingRequest(
-                        videoRequestBuilder.build(),
-                        null,
-                        backgroundHandler
+                    videoRequestBuilder.build(),
+                    null,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 listener.onCameraError(CameraViewException("Failed to start camera preview.", e))
@@ -180,15 +182,15 @@ internal open class Camera2(
             }
 
             launch { mediaRecorder?.start() }
-                    .invokeOnCompletion { t ->
-                        when (t) {
-                            null -> listener.onVideoRecordStarted()
-                            else -> {
-                                listener.onCameraError(CameraViewException("Camera device is already in use", t))
-                                isVideoRecording = false
-                            }
+                .invokeOnCompletion { t ->
+                    when (t) {
+                        null -> listener.onVideoRecordStarted()
+                        else -> {
+                            listener.onCameraError(CameraViewException("Camera device is already in use", t))
+                            isVideoRecording = false
                         }
                     }
+                }
         }
 
         override fun onConfigureFailed(session: CameraCaptureSession) {
@@ -201,22 +203,22 @@ internal open class Camera2(
 
         override fun onPreCaptureRequired() {
             previewRequestBuilder.set(
-                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START
+                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START
             )
             setState(STATE_PRE_CAPTURE)
             try {
                 captureSession?.capture(
-                        previewRequestBuilder.build(),
-                        this,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    this,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 listener.onCameraError(CameraViewException("Failed to run precapture sequence.", e))
             } finally {
                 previewRequestBuilder.set(
-                        CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                        CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE
+                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE
                 )
             }
         }
@@ -227,18 +229,18 @@ internal open class Camera2(
     private val stillCaptureCallback = object : CameraCaptureSession.CaptureCallback() {
 
         override fun onCaptureStarted(
-                session: CameraCaptureSession,
-                request: CaptureRequest,
-                timestamp: Long,
-                frameNumber: Long
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            timestamp: Long,
+            frameNumber: Long
         ) {
             launch { preview.shutterView.show() }
         }
 
         override fun onCaptureCompleted(
-                session: CameraCaptureSession,
-                request: CaptureRequest,
-                result: TotalCaptureResult
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
         ) {
             unlockFocus()
         }
@@ -251,10 +253,10 @@ internal open class Camera2(
     private val onCaptureImageAvailableListener = ImageReader.OnImageAvailableListener { reader ->
 
         val image = reader.runCatching { acquireLatestImage() }
-                .getOrElse { t ->
-                    listener.onCameraError(CameraViewException("Failed to capture image.", t))
-                    return@OnImageAvailableListener
-                }
+            .getOrElse { t ->
+                listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                return@OnImageAvailableListener
+            }
 
         image.runCatching {
             if (format == internalOutputFormat && planes.isNotEmpty()) {
@@ -294,6 +296,10 @@ internal open class Camera2(
 
     override var deviceRotation: Int = 0
 
+    override val isActive: Boolean
+        get() = cameraJob.isActive &&
+            backgroundHandler?.looper?.thread?.isAlive == true
+
     override val isCameraOpened: Boolean get() = camera != null
 
     override var isVideoRecording: Boolean = false
@@ -320,19 +326,19 @@ internal open class Camera2(
     private val previewSurfaceTappedListener: (x: Float, y: Float) -> Boolean = listener@{ x, y ->
 
         val requestBuilder: CaptureRequest.Builder =
-                if (isVideoRecording) videoRequestBuilder else previewRequestBuilder
+            if (isVideoRecording) videoRequestBuilder else previewRequestBuilder
 
         if (!isMeteringAreaAFSupported || manualFocusEngaged) return@listener false
 
         val sensorRect: Rect = cameraCharacteristics
-                .get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
-                ?: return@listener false
+            .get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+            ?: return@listener false
 
         val tapRect = preview.calculateTouchAreaRect(
-                sensorRect.width() - 1,
-                sensorRect.height() - 1,
-                centerX = x,
-                centerY = y
+            sensorRect.width() - 1,
+            sensorRect.height() - 1,
+            centerX = x,
+            centerY = y
         )
 
         preview.markTouchAreas(arrayOf(tapRect))
@@ -344,48 +350,48 @@ internal open class Camera2(
         val captureCallback = object : CameraCaptureSession.CaptureCallback() {
 
             override fun onCaptureCompleted(
-                    session: CameraCaptureSession,
-                    request: CaptureRequest,
-                    result: TotalCaptureResult
+                session: CameraCaptureSession,
+                request: CaptureRequest,
+                result: TotalCaptureResult
             ) {
                 val afState = result.get(CaptureResult.CONTROL_AF_STATE)
                 val aeState = result.get(CaptureResult.CONTROL_AE_STATE)
                 val awbState = result.get(CaptureResult.CONTROL_AWB_STATE)
 
                 if (afState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED &&
-                        afState != CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED &&
-                        aeState != CaptureResult.CONTROL_AE_STATE_CONVERGED &&
-                        aeState != CaptureResult.CONTROL_AE_STATE_LOCKED &&
-                        awbState != CaptureResult.CONTROL_AWB_STATE_CONVERGED &&
-                        awbState != CaptureResult.CONTROL_AWB_STATE_LOCKED) return
+                    afState != CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED &&
+                    aeState != CaptureResult.CONTROL_AE_STATE_CONVERGED &&
+                    aeState != CaptureResult.CONTROL_AE_STATE_LOCKED &&
+                    awbState != CaptureResult.CONTROL_AWB_STATE_CONVERGED &&
+                    awbState != CaptureResult.CONTROL_AWB_STATE_LOCKED) return
 
                 runCatching {
 
                     requestBuilder.set(
-                            CaptureRequest.CONTROL_AF_TRIGGER,
-                            CameraMetadata.CONTROL_AF_TRIGGER_CANCEL
+                        CaptureRequest.CONTROL_AF_TRIGGER,
+                        CameraMetadata.CONTROL_AF_TRIGGER_CANCEL
                     )
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) requestBuilder.set(
-                            CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL
+                        CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                        CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL
                     )
 
                     captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
 
                     requestBuilder.set(
-                            CaptureRequest.CONTROL_AF_TRIGGER,
-                            CaptureRequest.CONTROL_AF_TRIGGER_IDLE
+                        CaptureRequest.CONTROL_AF_TRIGGER,
+                        CaptureRequest.CONTROL_AF_TRIGGER_IDLE
                     )
                     requestBuilder.set(
-                            CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE
+                        CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                        CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE
                     )
 
                     captureSession?.setRepeatingRequest(
-                            requestBuilder.build(),
-                            defaultCaptureCallback,
-                            backgroundHandler
+                        requestBuilder.build(),
+                        defaultCaptureCallback,
+                        backgroundHandler
                     )
                 }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to restart camera preview.", t)) }
 
@@ -401,8 +407,8 @@ internal open class Camera2(
             requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) requestBuilder.set(
-                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                    CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL
+                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL
             )
 
             captureSession?.capture(requestBuilder.build(), null, backgroundHandler)
@@ -410,35 +416,35 @@ internal open class Camera2(
             // Add a new AE trigger with focus region
             if (isMeteringAreaAESupported) {
                 requestBuilder.set(
-                        CaptureRequest.CONTROL_AE_REGIONS,
-                        arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
+                    CaptureRequest.CONTROL_AE_REGIONS,
+                    arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
                 )
             }
 
             // Add a new AWB trigger with focus region
             if (isMeteringAreaAWBSupported) {
                 requestBuilder.set(
-                        CaptureRequest.CONTROL_AWB_REGIONS,
-                        arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
+                    CaptureRequest.CONTROL_AWB_REGIONS,
+                    arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
                 )
             }
 
             // Now add a new AF trigger with focus region
             requestBuilder.set(
-                    CaptureRequest.CONTROL_AF_REGIONS,
-                    arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
+                CaptureRequest.CONTROL_AF_REGIONS,
+                arrayOf(focusAreaMeteringRect, sensorAreaMeteringRect)
             )
             requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
             requestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START)
 
             requestBuilder.set(
-                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                    CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START
+                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+                CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START
             )
 
             captureSession
-                    ?.setRepeatingRequest(requestBuilder.build(), captureCallback, backgroundHandler)
-                    ?: return@listener false
+                ?.setRepeatingRequest(requestBuilder.build(), captureCallback, backgroundHandler)
+                ?: return@listener false
 
             manualFocusEngaged = true
 
@@ -451,10 +457,10 @@ internal open class Camera2(
     }
 
     private val previewSurfacePinchedListener: (scaleFactor: Float) -> Boolean =
-            { scaleFactor: Float ->
-                config.currentDigitalZoom.value = digitalZoom.getZoomForScaleFactor(scaleFactor)
-                true
-            }
+        { scaleFactor: Float ->
+            config.currentDigitalZoom.value = digitalZoom.getZoomForScaleFactor(scaleFactor)
+            true
+        }
 
     override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
@@ -485,15 +491,15 @@ internal open class Camera2(
             updateAf()
             try {
                 captureSession?.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 autoFocus.revert()
                 listener.onCameraError(
-                        CameraViewException("Failed to set autoFocus to $it. Value reverted to ${autoFocus.value}.", e),
-                        ErrorLevel.Warning
+                    CameraViewException("Failed to set autoFocus to $it. Value reverted to ${autoFocus.value}.", e),
+                    ErrorLevel.Warning
                 )
             }
         }
@@ -516,9 +522,9 @@ internal open class Camera2(
             }
             updateScalerCropRegion() && runCatching {
                 captureSession?.setRepeatingRequest(
-                        (if (isVideoRecording) videoRequestBuilder else previewRequestBuilder).build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    (if (isVideoRecording) videoRequestBuilder else previewRequestBuilder).build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 ) != null
             }.getOrElse { false }
         }
@@ -526,15 +532,15 @@ internal open class Camera2(
             updateAwb()
             try {
                 captureSession?.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 awb.revert()
                 listener.onCameraError(
-                        CameraViewException("Failed to set awb to $it. Value reverted to ${awb.value}.", e),
-                        ErrorLevel.Warning
+                    CameraViewException("Failed to set awb to $it. Value reverted to ${awb.value}.", e),
+                    ErrorLevel.Warning
                 )
             }
         }
@@ -542,15 +548,15 @@ internal open class Camera2(
             updateFlash()
             try {
                 captureSession?.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 flash.revert()
                 listener.onCameraError(
-                        CameraViewException("Failed to set flash to $it. Value reverted to ${flash.value}.", e),
-                        ErrorLevel.Warning
+                    CameraViewException("Failed to set flash to $it. Value reverted to ${flash.value}.", e),
+                    ErrorLevel.Warning
                 )
             }
         }
@@ -558,15 +564,15 @@ internal open class Camera2(
             updateNoiseReduction()
             try {
                 captureSession?.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 noiseReduction.revert()
                 listener.onCameraError(
-                        CameraViewException("Failed to set noiseReduction to $it. Value reverted to ${noiseReduction.value}.", e),
-                        ErrorLevel.Warning
+                    CameraViewException("Failed to set noiseReduction to $it. Value reverted to ${noiseReduction.value}.", e),
+                    ErrorLevel.Warning
                 )
             }
         }
@@ -574,15 +580,15 @@ internal open class Camera2(
             updateOis()
             try {
                 captureSession?.setRepeatingRequest(
-                        previewRequestBuilder.build(),
-                        defaultCaptureCallback,
-                        backgroundHandler
+                    previewRequestBuilder.build(),
+                    defaultCaptureCallback,
+                    backgroundHandler
                 )
             } catch (e: Exception) {
                 opticalStabilization.revert()
                 listener.onCameraError(
-                        CameraViewException("Failed to set opticalStabilization to $it. Value reverted to ${!it}.", e),
-                        ErrorLevel.Warning
+                    CameraViewException("Failed to set opticalStabilization to $it. Value reverted to ${!it}.", e),
+                    ErrorLevel.Warning
                 )
             }
         }
@@ -628,11 +634,15 @@ internal open class Camera2(
         return true
     }
 
-    override fun stop(internal: Boolean) {
-        super.stop(internal)
+    override fun stop() {
+        super.stop()
         try {
             cameraOpenCloseLock.acquire()
-            captureSession?.close()
+            captureSession?.run {
+                stopRepeating()
+                abortCaptures()
+                close()
+            }
             captureSession = null
             camera?.close()
             camera = null
@@ -640,12 +650,16 @@ internal open class Camera2(
             imageReader = null
             mediaRecorder?.release()
             mediaRecorder = null
-            if (!internal) stopBackgroundThread()
         } catch (e: InterruptedException) {
             listener.onCameraError(CameraViewException("Interrupted while trying to lock camera closing.", e))
         } finally {
             cameraOpenCloseLock.release()
         }
+    }
+
+    override fun destroy() {
+        super.destroy()
+        stopBackgroundThread()
     }
 
     override fun setAspectRatio(ratio: AspectRatio): Boolean {
@@ -680,8 +694,8 @@ internal open class Camera2(
 
         if (!isRatioValid) {
             val e = IllegalArgumentException(
-                    "Aspect ratio $this is not supported by this device." +
-                            " Valid ratios are $sbRatios. Refer CameraView.supportedAspectRatios"
+                "Aspect ratio $this is not supported by this device." +
+                    " Valid ratios are $sbRatios. Refer CameraView.supportedAspectRatios"
             )
             listener.onCameraError(e, isCritical = true)
         }
@@ -707,11 +721,11 @@ internal open class Camera2(
                 forEach { id ->
                     val characteristics = cameraManager.getCameraCharacteristics(id)
                     val level = characteristics.get(
-                            CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+                        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
                     if (level == null ||
-                            level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) return@forEach
+                        level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) return@forEach
                     val internal = characteristics.get(CameraCharacteristics.LENS_FACING)
-                            ?: throw NullPointerException("Unexpected state: LENS_FACING null")
+                        ?: throw NullPointerException("Unexpected state: LENS_FACING null")
                     if (internal == internalFacing) {
                         cameraId = id
                         cameraCharacteristics = characteristics
@@ -729,7 +743,7 @@ internal open class Camera2(
             if (level == null || level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) return false
 
             val internal = cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)
-                    ?: throw NullPointerException("Unexpected state: LENS_FACING null")
+                ?: throw NullPointerException("Unexpected state: LENS_FACING null")
 
             for (i in 0 until internalFacings.size()) {
                 if (internalFacings.valueAt(i) == internal) {
@@ -757,10 +771,10 @@ internal open class Camera2(
     private fun collectCameraInfo() {
 
         val map = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-                ?: run {
-                    listener.onCameraError(IllegalStateException("Failed to get configuration map for camera id $cameraId"))
-                    return
-                }
+            ?: run {
+                listener.onCameraError(IllegalStateException("Failed to get configuration map for camera id $cameraId"))
+                return
+            }
 
         previewSizes.clear()
 
@@ -798,10 +812,10 @@ internal open class Camera2(
             Modes.CameraMode.SINGLE_CAPTURE -> {
                 val largestPicture = pictureSizes.sizes(config.aspectRatio.value).last()
                 ImageReader.newInstance(
-                        largestPicture.width,
-                        largestPicture.height,
-                        internalOutputFormat,
-                        2 // maxImages
+                    largestPicture.width,
+                    largestPicture.height,
+                    internalOutputFormat,
+                    2 // maxImages
                 ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
             }
 
@@ -810,10 +824,10 @@ internal open class Camera2(
             Modes.CameraMode.CONTINUOUS_FRAME -> {
                 val largestPreview = previewSizes.sizes(config.aspectRatio.value).last()
                 ImageReader.newInstance(
-                        largestPreview.width,
-                        largestPreview.height,
-                        ImageFormat.YUV_420_888,
-                        3 // maxImages
+                    largestPreview.width,
+                    largestPreview.height,
+                    ImageFormat.YUV_420_888,
+                    3 // maxImages
                 ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
             }
 
@@ -843,41 +857,41 @@ internal open class Camera2(
     private fun startPreviewCaptureSession() {
 
         if (!isCameraOpened || !preview.isReady) listener.onCameraError(
-                CameraViewException("Camera not started or already stopped")
+            CameraViewException("Camera not started or already stopped")
         ).also { return }
 
         chooseOptimalSize(Template.Preview).run { preview.setBufferSize(width, height) }
 
         val previewSurface = preview.surface
-                ?: run {
-                    listener.onCameraError(CameraViewException("Preview surface not available"))
-                    return
-                }
+            ?: run {
+                listener.onCameraError(CameraViewException("Preview surface not available"))
+                return
+            }
 
         val surfaces = mutableListOf(previewSurface)
 
         if (config.cameraMode.value != Modes.CameraMode.VIDEO_CAPTURE) {
             val readerSurface: Surface = imageReader?.surface
-                    ?: run {
-                        listener.onCameraError(CameraViewException("Image reader surface not available"))
-                        return
-                    }
+                ?: run {
+                    listener.onCameraError(CameraViewException("Image reader surface not available"))
+                    return
+                }
             surfaces.add(readerSurface)
         }
 
         val template =
-                if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
-                else CameraDevice.TEMPLATE_PREVIEW
+            if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
+            else CameraDevice.TEMPLATE_PREVIEW
 
         try {
             previewRequestBuilder = camera?.createCaptureRequest(template)
-                    ?.apply {
-                        when (config.cameraMode.value) {
-                            Modes.CameraMode.CONTINUOUS_FRAME -> surfaces.forEach(::addTarget)
-                            else -> addTarget(previewSurface)
-                        }
+                ?.apply {
+                    when (config.cameraMode.value) {
+                        Modes.CameraMode.CONTINUOUS_FRAME -> surfaces.forEach(::addTarget)
+                        else -> addTarget(previewSurface)
                     }
-                    ?: run {
+                }
+                ?: run {
                 listener.onCameraError(CameraViewException("Camera not started or already stopped"))
                 return
             }
@@ -900,8 +914,8 @@ internal open class Camera2(
      * @return The picked optimal size.
      */
     private fun chooseOptimalSize(
-            template: Template,
-            aspectRatio: AspectRatio = config.aspectRatio.value
+        template: Template,
+        aspectRatio: AspectRatio = config.aspectRatio.value
     ): Size {
 
         val surfaceLonger: Int
@@ -925,7 +939,7 @@ internal open class Camera2(
 
         // Pick the smallest of those big enough
         candidates.firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
-                ?.also { return it }
+            ?.also { return it }
 
         // If no size is big enough, pick the largest one.
         return candidates.last()
@@ -937,8 +951,8 @@ internal open class Camera2(
      */
     private fun updateScalerCropRegion(): Boolean {
         (if (isVideoRecording) videoRequestBuilder else previewRequestBuilder).set(
-                CaptureRequest.SCALER_CROP_REGION,
-                digitalZoom.getCropRegionForZoom(config.currentDigitalZoom.value) ?: return false
+            CaptureRequest.SCALER_CROP_REGION,
+            digitalZoom.getCropRegionForZoom(config.currentDigitalZoom.value) ?: return false
         )
         return true
     }
@@ -949,10 +963,10 @@ internal open class Camera2(
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, config.autoFocus.value)
         } else {
             listener.onCameraError(
-                    CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
-                    ErrorLevel.Warning
+                CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
+                ErrorLevel.Warning
             )
-            launch { config.autoFocus.value = Modes.AutoFocus.AF_OFF }
+            config.autoFocus.value = Modes.AutoFocus.AF_OFF
         }
     }
 
@@ -989,28 +1003,28 @@ internal open class Camera2(
             previewRequestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, config.awb.value)
         } else {
             listener.onCameraError(
-                    CameraViewException("Awb mode ${config.awb.value} not supported by selected camera. Setting it to off."),
-                    ErrorLevel.Warning
+                CameraViewException("Awb mode ${config.awb.value} not supported by selected camera. Setting it to off."),
+                ErrorLevel.Warning
             )
-            launch { config.awb.value = Modes.AutoWhiteBalance.AWB_OFF }
+            config.awb.value = Modes.AutoWhiteBalance.AWB_OFF
         }
     }
 
     private fun updateOis() {
         if (config.opticalStabilization.value) {
             if (cameraCharacteristics.isOisSupported()) previewRequestBuilder.set(
-                    CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-                    CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON
+                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON
             ) else {
                 listener.onCameraError(
-                        CameraViewException("Optical image stabilization is not supported by selected camera $cameraId. Setting it to off."),
-                        ErrorLevel.Warning
+                    CameraViewException("Optical image stabilization is not supported by selected camera $cameraId. Setting it to off."),
+                    ErrorLevel.Warning
                 )
-                launch { config.opticalStabilization.value = false }
+                config.opticalStabilization.value = false
             }
         } else previewRequestBuilder.set(
-                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
+            CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+            CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
         )
     }
 
@@ -1019,10 +1033,10 @@ internal open class Camera2(
             previewRequestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, config.noiseReduction.value)
         } else {
             listener.onCameraError(
-                    CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera. Setting it to off."),
-                    ErrorLevel.Warning
+                CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera. Setting it to off."),
+                ErrorLevel.Warning
             )
-            launch { config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF }
+            config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF
         }
     }
 
@@ -1038,15 +1052,15 @@ internal open class Camera2(
     /** Locks the focus as the first step for a still image capture. */
     private fun lockFocus() {
         previewRequestBuilder.set(
-                CaptureRequest.CONTROL_AF_TRIGGER,
-                CaptureRequest.CONTROL_AF_TRIGGER_START
+            CaptureRequest.CONTROL_AF_TRIGGER,
+            CaptureRequest.CONTROL_AF_TRIGGER_START
         )
         try {
             defaultCaptureCallback.setState(PictureCaptureCallback.STATE_LOCKING)
             captureSession?.capture(
-                    previewRequestBuilder.build(),
-                    defaultCaptureCallback,
-                    backgroundHandler
+                previewRequestBuilder.build(),
+                defaultCaptureCallback,
+                backgroundHandler
             )
         } catch (e: Exception) {
             listener.onCameraError(CameraViewException("Failed to lock focus.", e))
@@ -1057,11 +1071,11 @@ internal open class Camera2(
     private val outputOrientation: Int
         get() {
             val cameraSensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
-                    ?: throw CameraViewException("Camera characteristics not available")
+                ?: throw CameraViewException("Camera characteristics not available")
 
             return (cameraSensorOrientation
-                    + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
-                    + 360) % 360
+                + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+                + 360) % 360
         }
 
     /** Captures a still picture. */
@@ -1069,14 +1083,14 @@ internal open class Camera2(
 
         try {
             val surface = imageReader?.surface
-                    ?: throw CameraViewException("Image reader surface not available")
+                ?: throw CameraViewException("Image reader surface not available")
 
             val template =
-                    if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
-                    else CameraDevice.TEMPLATE_STILL_CAPTURE
+                if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
+                else CameraDevice.TEMPLATE_STILL_CAPTURE
 
             val captureRequestBuilder = (camera?.createCaptureRequest(template)
-                    ?: throw CameraViewException("Camera not started or already stopped")).apply {
+                ?: throw CameraViewException("Camera not started or already stopped")).apply {
 
                 addTarget(surface)
 
@@ -1084,8 +1098,8 @@ internal open class Camera2(
                 set(CaptureRequest.CONTROL_AF_MODE, previewRequestBuilder[CaptureRequest.CONTROL_AF_MODE])
                 set(CaptureRequest.CONTROL_AWB_MODE, previewRequestBuilder[CaptureRequest.CONTROL_AWB_MODE])
                 set(
-                        CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-                        previewRequestBuilder[CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
+                    CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                    previewRequestBuilder[CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
                 )
                 set(CaptureRequest.NOISE_REDUCTION_MODE, previewRequestBuilder[CaptureRequest.NOISE_REDUCTION_MODE])
                 set(CaptureRequest.CONTROL_AE_MODE, previewRequestBuilder[CaptureRequest.CONTROL_AE_MODE])
@@ -1108,11 +1122,6 @@ internal open class Camera2(
 
     override fun startVideoRecording(outputFile: File, config: VideoConfiguration) {
 
-        if (isVideoRecording) listener.onCameraError(
-                CameraViewException("Video recording already in progress." +
-                        " Call CameraView.stopVideoRecording() before calling start.")
-        ).also { return }
-
         isVideoRecording = true
 
         /**
@@ -1123,21 +1132,21 @@ internal open class Camera2(
 
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
             runCatching { setOrientationHint(outputOrientation) }
-                    .onFailure { t ->
-                        // Angle outputOrientation is not supported
-                        listener.onCameraError(t as Exception)
-                        isVideoRecording = false
-                        return
-                    }
+                .onFailure { t ->
+                    // Angle outputOrientation is not supported
+                    listener.onCameraError(t as Exception)
+                    isVideoRecording = false
+                    return
+                }
             setAudioSource(config.audioSource.value)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setOutputFormat(config.outputFormat.value)
             setOutputFile(outputFile.absolutePath)
 
             val bitRate =
-                    if (config.videoEncodingBitRate != VideoConfiguration.BIT_RATE_1080P) {
-                        config.videoEncodingBitRate
-                    } else videoSize.calculateVideoBitRate()
+                if (config.videoEncodingBitRate != VideoConfiguration.BIT_RATE_1080P) {
+                    config.videoEncodingBitRate
+                } else videoSize.calculateVideoBitRate()
 
             setVideoEncodingBitRate(bitRate)
             setVideoFrameRate(config.videoFrameRate)
@@ -1147,9 +1156,7 @@ internal open class Camera2(
 
             setOnInfoListener { _, what, _ ->
                 when (what) {
-                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> {
-                        stopVideoRecording()
-                    }
+                    MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED -> stopVideoRecording()
                 }
             }
 
@@ -1178,11 +1185,11 @@ internal open class Camera2(
         with(chooseOptimalSize(Template.Preview)) { preview.setBufferSize(width, height) }
 
         val previewSurface = preview.surface
-                ?: run {
-                    listener.onCameraError(IllegalStateException("Preview surface not available"))
-                    isVideoRecording = false
-                    return
-                }
+            ?: run {
+                listener.onCameraError(IllegalStateException("Preview surface not available"))
+                isVideoRecording = false
+                return
+            }
 
         val recorderSurface = try {
             mediaRecorder?.surface
@@ -1195,51 +1202,51 @@ internal open class Camera2(
         val surfaces = listOf(previewSurface, recorderSurface)
 
         videoRequestBuilder = camera?.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
-                ?.apply {
-                    surfaces.forEach(::addTarget)
+            ?.apply {
+                surfaces.forEach(::addTarget)
 
-                    set(
-                            CaptureRequest.SCALER_CROP_REGION,
-                            previewRequestBuilder[CaptureRequest.SCALER_CROP_REGION]
-                    )
+                set(
+                    CaptureRequest.SCALER_CROP_REGION,
+                    previewRequestBuilder[CaptureRequest.SCALER_CROP_REGION]
+                )
 
-                    val afMode = when (previewRequestBuilder[CaptureRequest.CONTROL_AF_MODE]) {
-                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE ->
-                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
-                        else -> previewRequestBuilder[CaptureRequest.CONTROL_AF_MODE]
-                    }
-
-                    set(CaptureRequest.CONTROL_AF_MODE, afMode)
-                    set(CaptureRequest.CONTROL_AWB_MODE, previewRequestBuilder[CaptureRequest.CONTROL_AWB_MODE])
-
-                    if (this@Camera2.config.opticalStabilization.value) {
-                        set(
-                                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-                                previewRequestBuilder[CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
-                        )
-                    } else if (config.videoStabilization) {
-                        if (cameraCharacteristics.isVideoStabilizationSupported()) {
-                            set(
-                                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
-                                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
-                            )
-                        } else listener.onCameraError(CameraViewException("Video stabilization not supported by selected camera $cameraId."))
-                    }
-
-                    set(
-                            CaptureRequest.NOISE_REDUCTION_MODE,
-                            previewRequestBuilder[CaptureRequest.NOISE_REDUCTION_MODE]
-                    )
-                    set(
-                            CaptureRequest.CONTROL_AE_MODE,
-                            previewRequestBuilder[CaptureRequest.CONTROL_AE_MODE]
-                    )
-                    set(
-                            CaptureRequest.FLASH_MODE,
-                            previewRequestBuilder[CaptureRequest.FLASH_MODE]
-                    )
+                val afMode = when (previewRequestBuilder[CaptureRequest.CONTROL_AF_MODE]) {
+                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE ->
+                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
+                    else -> previewRequestBuilder[CaptureRequest.CONTROL_AF_MODE]
                 }
-                ?: run {
+
+                set(CaptureRequest.CONTROL_AF_MODE, afMode)
+                set(CaptureRequest.CONTROL_AWB_MODE, previewRequestBuilder[CaptureRequest.CONTROL_AWB_MODE])
+
+                if (this@Camera2.config.opticalStabilization.value) {
+                    set(
+                        CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                        previewRequestBuilder[CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
+                    )
+                } else if (config.videoStabilization) {
+                    if (cameraCharacteristics.isVideoStabilizationSupported()) {
+                        set(
+                            CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                            CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
+                        )
+                    } else listener.onCameraError(CameraViewException("Video stabilization not supported by selected camera $cameraId."))
+                }
+
+                set(
+                    CaptureRequest.NOISE_REDUCTION_MODE,
+                    previewRequestBuilder[CaptureRequest.NOISE_REDUCTION_MODE]
+                )
+                set(
+                    CaptureRequest.CONTROL_AE_MODE,
+                    previewRequestBuilder[CaptureRequest.CONTROL_AE_MODE]
+                )
+                set(
+                    CaptureRequest.FLASH_MODE,
+                    previewRequestBuilder[CaptureRequest.FLASH_MODE]
+                )
+            }
+            ?: run {
             listener.onCameraError(CameraViewException("Camera not initialized or already stopped"))
             isVideoRecording = false
             return
@@ -1280,16 +1287,16 @@ internal open class Camera2(
         previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
         try {
             captureSession?.capture(
-                    previewRequestBuilder.build(),
-                    defaultCaptureCallback,
-                    backgroundHandler
+                previewRequestBuilder.build(),
+                defaultCaptureCallback,
+                backgroundHandler
             )
             updateModes()
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
             captureSession?.setRepeatingRequest(
-                    previewRequestBuilder.build(),
-                    defaultCaptureCallback,
-                    backgroundHandler
+                previewRequestBuilder.build(),
+                defaultCaptureCallback,
+                backgroundHandler
             )
             defaultCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW)
         } catch (e: Exception) {

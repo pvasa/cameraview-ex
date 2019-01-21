@@ -1,4 +1,3 @@
-
 package com.priyankvasa.android.cameraviewexSample.camera;
 
 import android.Manifest;
