@@ -74,7 +74,7 @@ override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 
 override fun onResume() {
     super.onResume()
-    camera.run { if (!isCameraOpened) start() }
+    camera.start()
 }
 
 override fun onPause() {
@@ -150,11 +150,12 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | outputFormat              | app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
 | jpegQuality               | app:jpegQuality          | **default**, low, medium, high                         |
 | zsl                       | app:zsl                  | **false**, true                                        |
-| isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise              |
-| isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise |
-| supportedAspectRatios <br> (get only) | N/A          | Returns list of AspectRatio supported by selected camera |
-| maxDigitalZoom <br> (get only) | N/A                      | Returns a float value which is the maximum possible digital zoom value supported by selected camera |
-| currentDigitalZoom        | N/A                      | Set camera digital zoom value <br> Must be between 1.0 and maxDigitalZoom inclusive |
+| isActive <br> (get only)  | N/A                      | True if this `CameraView` instance is active and usable, false otherwise. It is set to false after `CameraView.destroy()` call. |
+| isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise.             |
+| isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise. |
+| supportedAspectRatios <br> (get only) | N/A          | Returns list of `AspectRatio` supported by selected camera. |
+| maxDigitalZoom <br> (get only) | N/A                 | Returns a float value which is the maximum possible digital zoom value supported by selected camera. |
+| currentDigitalZoom        | N/A                      | Set camera digital zoom value. Must be between 1.0 and `CameraView.maxDigitalZoom` inclusive. |
 
 _**Note:** Devices that run **Camera1** implementation will only support **app:facing**, **app:aspectRatio**, **app:autoFocus** (`off` and `continuous_picture`), and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 
