@@ -102,6 +102,21 @@ See <a href="#">android.hardware.camera2.CaptureRequest.FLASH_MODE</a></p>
 </tr>
 <tr>
 <td>
+    <p><a href="is-active.html">isActive</a></p>
+</td>
+    <td>
+        <code><span class="keyword">val </span><span class="identifier">isActive</span><span
+                class="symbol">: </span><a
+                href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
+                class="identifier">Boolean</span></a></code>
+        <p>Returns <code>true</code> if this <a href="./index.html">CameraView</a> instance is
+            active and usable.
+            It will <code>return</code> false after <a href="destroy.html">destroy</a> is called.
+            A new instance should be created if <a href="is-active.html">isActive</a> is false.</p>
+    </td>
+</tr>
+<tr>
+    <td>
 <p><a href="is-camera-opened.html">isCameraOpened</a></p>
 </td>
 <td>
@@ -286,6 +301,22 @@ The only critical error thrown for now is for invalid aspect ratio.</p>
 </td>
 </tr>
 <tr>
+    <td>
+        <p><a href="destroy.html">destroy</a></p>
+    </td>
+    <td>
+        <code><span class="keyword">fun </span><span class="identifier">destroy</span><span
+                class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a
+                href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+                class="identifier">Unit</span></a></code>
+        <p>Clear all listeners, <a href="stop.html">stop</a> camera, and kill background threads.
+            Once <a href="destroy.html">destroy</a> is called, camera cannot be started.
+            A new <a href="./index.html">CameraView</a> instance must be created to use camera
+            again.
+            This is typically called from fragment's onDestroyView callback.</p>
+    </td>
+</tr>
+<tr>
 <td>
 <p><a href="on-attached-to-window.html">onAttachedToWindow</a></p>
 </td>
@@ -449,9 +480,12 @@ the device will run out of memory very quickly and force close the app.</p>
 <p><a href="stop.html">stop</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">stop</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$stop(kotlin.Boolean)/removeAllListeners">removeAllListeners</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a>&nbsp;<span class="symbol">=</span>&nbsp;false<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
-<p>Stop camera preview and close the device. This is typically called from
-<a href="#">Activity.onPause</a>.</p>
+    <code><span class="keyword">fun </span><span class="identifier">stop</span><span class="symbol">(</span><span
+            class="symbol">)</span><span class="symbol">: </span><a
+            href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
+            class="identifier">Unit</span></a></code>
+    <p>Stop camera preview and close the device.
+        This is typically called from fragment's onPause callback.</p>
 </td>
 </tr>
 <tr>
