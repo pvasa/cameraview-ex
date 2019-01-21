@@ -260,20 +260,20 @@ internal object ImageProcessor {
         val imageData = yuvImageData(image)
 
         val yuvType = Type.Builder(rs, Element.U8(rs))
-                .setX(imageWidth)
-                .setY(imageHeight)
-                .setYuvFormat(ImageFormat.YUV_420_888)
-                .create()
+            .setX(imageWidth)
+            .setY(imageHeight)
+            .setYuvFormat(ImageFormat.YUV_420_888)
+            .create()
         val yuvAllocation: Allocation = Allocation.createTyped(
-                rs,
-                yuvType,
-                Allocation.USAGE_SCRIPT
+            rs,
+            yuvType,
+            Allocation.USAGE_SCRIPT
         ).apply { copyFrom(imageData) }
 
         val rgbType = Type.Builder(rs, Element.RGBA_8888(rs))
-                .setX(imageWidth)
-                .setY(imageHeight)
-                .create()
+            .setX(imageWidth)
+            .setY(imageHeight)
+            .create()
         val rgbAllocation: Allocation = Allocation.createTyped(rs, rgbType, Allocation.USAGE_SCRIPT)
 
         // Create script

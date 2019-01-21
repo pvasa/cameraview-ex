@@ -25,18 +25,18 @@ import kotlin.reflect.KProperty1
 internal operator fun <R> KProperty0<R>.getValue(instance: Any?, metadata: KProperty<*>): R = get()
 
 internal operator fun <R> KMutableProperty0<R>.setValue(
-        instance: Any?,
-        metadata: KProperty<*>,
-        value: R
+    instance: Any?,
+    metadata: KProperty<*>,
+    value: R
 ) = set(value)
 
 internal operator fun <T, R> KProperty1<T, R>.getValue(
-        instance: T,
-        metadata: KProperty<*>
+    instance: T,
+    metadata: KProperty<*>
 ): R = get(instance)
 
 internal operator fun <T, R> KMutableProperty1<T, R>.setValue(
-        instance: T,
-        metadata: KProperty<*>,
-        value: R
+    instance: T,
+    metadata: KProperty<*>,
+    value: R
 ) = set(instance, value)

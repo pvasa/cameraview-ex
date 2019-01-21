@@ -27,18 +27,20 @@ import android.view.SurfaceHolder
 import androidx.collection.SparseArrayCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
+import kotlinx.coroutines.Job
 import java.io.File
 import java.util.SortedSet
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class Camera1(
-        override val listener: CameraInterface.Listener,
-        override val preview: PreviewImpl,
-        override val config: CameraConfiguration
+    override val listener: CameraInterface.Listener,
+    override val preview: PreviewImpl,
+    override val config: CameraConfiguration,
+    override val cameraJob: Job
 ) : CameraInterface {
 
     private val lifecycleRegistry: LifecycleRegistry =
-            LifecycleRegistry(this).also { it.markState(Lifecycle.State.CREATED) }
+        LifecycleRegistry(this).also { it.markState(Lifecycle.State.CREATED) }
 
     private var cameraId: Int = Modes.Facing.FACING_BACK
 
@@ -93,6 +95,8 @@ internal class Camera1(
             }
         }
 
+    override val isActive: Boolean get() = cameraJob.isActive
+
     override val isCameraOpened: Boolean get() = camera != null
 
     override var isVideoRecording: Boolean = false
@@ -100,9 +104,9 @@ internal class Camera1(
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
             previewSizes.ratios()
-                    .asSequence()
-                    .filter { pictureSizes.sizes(it).isEmpty() }
-                    .forEach { previewSizes.remove(it) }
+                .asSequence()
+                .filter { pictureSizes.sizes(it).isEmpty() }
+                .forEach { previewSizes.remove(it) }
             return previewSizes.ratios()
         }
 
@@ -185,8 +189,8 @@ internal class Camera1(
         }
     }
 
-    override fun stop(internal: Boolean) {
-        super.stop(internal)
+    override fun stop() {
+        super.stop()
         runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it as Exception) }
         showingPreview = false
         releaseCamera()
@@ -254,7 +258,7 @@ internal class Camera1(
     }
 
     override fun startVideoRecording(outputFile: File, config: VideoConfiguration) =
-            listener.onCameraError(UnsupportedOperationException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
+        listener.onCameraError(UnsupportedOperationException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
 
     override fun pauseVideoRecording(): Boolean = false
 
@@ -354,8 +358,8 @@ internal class Camera1(
             desiredHeight = surfaceHeight
         }
         return sizes
-                .firstOrNull { desiredWidth <= it.width && desiredHeight <= it.height }
-                ?: sizes.last()
+            .firstOrNull { desiredWidth <= it.width && desiredHeight <= it.height }
+            ?: sizes.last()
     }
 
     private fun releaseCamera() {
@@ -376,11 +380,11 @@ internal class Camera1(
      * @return Number of degrees required to rotate preview
      */
     private fun calcDisplayOrientation(rotationDegrees: Int): Int =
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                (360 - ((cameraInfo.orientation + rotationDegrees) % 360)) % 360
-            } else { // back-facing
-                (cameraInfo.orientation - rotationDegrees + 360) % 360
-            }
+        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            (360 - ((cameraInfo.orientation + rotationDegrees) % 360)) % 360
+        } else { // back-facing
+            (cameraInfo.orientation - rotationDegrees + 360) % 360
+        }
 
     /**
      * Calculate camera rotation
