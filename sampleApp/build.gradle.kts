@@ -77,7 +77,7 @@ dependencies {
 
     // cameraviewex
     implementation(project(":cameraViewEx"))
-//    implementation("com.priyankvasa.android:cameraview-ex:2.2.2")
+//    implementation("com.priyankvasa.android:cameraview-ex:2.7.0")
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)

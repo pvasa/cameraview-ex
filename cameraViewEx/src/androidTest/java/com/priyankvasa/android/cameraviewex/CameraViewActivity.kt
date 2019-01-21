@@ -33,11 +33,16 @@ class CameraViewActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (!camera.isCameraOpened) camera.start()
+        camera.start()
     }
 
     override fun onPause() {
-        if (camera.isCameraOpened) camera.stop()
+        camera.stop()
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        camera.destroy()
+        super.onDestroy()
     }
 }

@@ -20,14 +20,16 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.os.Build
+import kotlinx.coroutines.Job
 
 @TargetApi(Build.VERSION_CODES.M)
 internal open class Camera2Api23(
-        listener: CameraInterface.Listener,
-        preview: PreviewImpl,
-        config: CameraConfiguration,
-        context: Context
-) : Camera2(listener, preview, config, context) {
+    listener: CameraInterface.Listener,
+    preview: PreviewImpl,
+    config: CameraConfiguration,
+    job: Job,
+    context: Context
+) : Camera2(listener, preview, config, job, context) {
 
     override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         // Try to get hi-res output sizes

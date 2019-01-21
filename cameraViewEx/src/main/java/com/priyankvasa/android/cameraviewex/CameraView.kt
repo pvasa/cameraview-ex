@@ -34,26 +34,29 @@ import androidx.annotation.RequiresPermission
 import androidx.core.view.ViewCompat
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
-import com.priyankvasa.android.cameraviewex.extension.setValue
+import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 
 class CameraView @JvmOverloads constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
     }
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+    private val parentJob: Job = SupervisorJob()
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main + parentJob)
 
     private val preview = createPreview(context)
 
@@ -161,10 +164,10 @@ class CameraView @JvmOverloads constructor(
 
         // Attributes
         context.obtainStyledAttributes(
-                attrs,
-                R.styleable.CameraView,
-                defStyleAttr,
-                R.style.Widget_CameraView
+            attrs,
+            R.styleable.CameraView,
+            defStyleAttr,
+            R.style.Widget_CameraView
         ).run {
 
             adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
@@ -173,10 +176,10 @@ class CameraView @JvmOverloads constructor(
 
                 facing.value = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio.value = getString(R.styleable.CameraView_aspectRatio)
-                        .run ar@{
-                            if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
-                            else AspectRatio.parse(this@ar)
-                        }
+                    .run ar@{
+                        if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
+                        else AspectRatio.parse(this@ar)
+                    }
                 autoFocus.value = getInt(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
                 flash.value = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
 
@@ -195,11 +198,16 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    private var camera: CameraInterface = when {
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config)
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, context)
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, context)
-        else -> Camera2Api24(listener, preview, config, context)
+    private var camera: CameraInterface = run {
+
+        val cameraJob: Job = SupervisorJob(parentJob)
+
+        when {
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config, cameraJob)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, cameraJob, context)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, cameraJob, context)
+            else -> Camera2Api24(listener, preview, config, cameraJob, context)
+        }
     }
 
     init {
@@ -208,6 +216,13 @@ class CameraView @JvmOverloads constructor(
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
+
+    /**
+     * Returns `true` if this [CameraView] instance is active and usable.
+     * It will `return` false after [destroy] is called.
+     * A new instance should be created if [isActive] is false.
+     */
+    val isActive: Boolean get() = camera.isActive && parentJob.isActive
 
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean by camera::isCameraOpened
@@ -218,7 +233,12 @@ class CameraView @JvmOverloads constructor(
     /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
     @get:Modes.CameraMode
     @setparam:Modes.CameraMode
-    var cameraMode: Int by config.cameraMode::value
+    var cameraMode: Int
+        get() = config.cameraMode.value
+        set(value) {
+            if (!isUiThread()) return
+            config.cameraMode.value = value
+        }
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
@@ -226,7 +246,7 @@ class CameraView @JvmOverloads constructor(
      */
     var adjustViewBounds: Boolean = false
         set(value) {
-            if (value == field) return
+            if (value == field || !isUiThread()) return
             field = value
             requestLayout()
         }
@@ -237,7 +257,12 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
-    var outputFormat: Int by config.outputFormat::value
+    var outputFormat: Int
+        get() = config.outputFormat.value
+        set(value) {
+            if (!isUiThread()) return
+            config.outputFormat.value = value
+        }
 
     /**
      * Set image quality of the output image.
@@ -246,18 +271,33 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.JpegQuality
     @setparam:Modes.JpegQuality
-    var jpegQuality: Int by config.jpegQuality::value
+    var jpegQuality: Int
+        get() = config.jpegQuality.value
+        set(value) {
+            if (!isUiThread()) return
+            config.jpegQuality.value = value
+        }
 
     /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
     @setparam:Modes.Facing
-    var facing: Int by config.facing::value
+    var facing: Int
+        get() = config.facing.value
+        set(value) {
+            if (!isUiThread()) return
+            config.facing.value = value
+        }
 
     /** Gets all the aspect ratios supported by the current camera. */
     val supportedAspectRatios: Set<AspectRatio> by camera::supportedAspectRatios
 
     /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio by config.aspectRatio::value
+    var aspectRatio: AspectRatio
+        get() = config.aspectRatio.value
+        set(value) {
+            if (!isUiThread()) return
+            config.aspectRatio.value = value
+        }
 
     /**
      * Set auto focus mode for selected camera. Supported modes are [Modes.AutoFocus].
@@ -265,19 +305,39 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.AutoFocus
     @setparam:Modes.AutoFocus
-    var autoFocus: Int by config.autoFocus::value
+    var autoFocus: Int
+        get() = config.autoFocus.value
+        set(value) {
+            if (!isUiThread()) return
+            config.autoFocus.value = value
+        }
 
     /** Allow manual focus on an area by tapping on camera view. True is on and false is off. */
-    var touchToFocus: Boolean by config.touchToFocus::value
+    var touchToFocus: Boolean
+        get() = config.touchToFocus.value
+        set(value) {
+            if (!isUiThread()) return
+            config.touchToFocus.value = value
+        }
 
     /** Allow pinch gesture on camera view for digital zooming. True is on and false is off. */
-    var pinchToZoom: Boolean by config.pinchToZoom::value
+    var pinchToZoom: Boolean
+        get() = config.pinchToZoom.value
+        set(value) {
+            if (!isUiThread()) return
+            config.pinchToZoom.value = value
+        }
 
     /** Maximum digital zoom supported by selected camera device. */
     val maxDigitalZoom: Float by camera::maxDigitalZoom
 
     /** Set digital zoom value. Must be between 1.0f and [maxDigitalZoom] inclusive. */
-    var currentDigitalZoom: Float by config.currentDigitalZoom::value
+    var currentDigitalZoom: Float
+        get() = config.currentDigitalZoom.value
+        set(value) {
+            if (!isUiThread()) return
+            config.currentDigitalZoom.value = value
+        }
 
     /**
      * Set auto white balance mode for preview and still captures. Supported values are [Modes.AutoWhiteBalance].
@@ -285,7 +345,12 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.AutoWhiteBalance
     @setparam:Modes.AutoWhiteBalance
-    var awb: Int by config.awb::value
+    var awb: Int
+        get() = config.awb.value
+        set(value) {
+            if (!isUiThread()) return
+            config.awb.value = value
+        }
 
     /**
      * Set flash mode. Supported values are [Modes.Flash].
@@ -293,13 +358,23 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.Flash
     @setparam:Modes.Flash
-    var flash: Int by config.flash::value
+    var flash: Int
+        get() = config.flash.value
+        set(value) {
+            if (!isUiThread()) return
+            config.flash.value = value
+        }
 
     /**
      * Turn on or off optical stabilization for preview and still captures.
      * See [android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
      */
-    var opticalStabilization: Boolean by config.opticalStabilization::value
+    var opticalStabilization: Boolean
+        get() = config.opticalStabilization.value
+        set(value) {
+            if (!isUiThread()) return
+            config.opticalStabilization.value = value
+        }
 
     /**
      * Set noise reduction mode. Supported values are [Modes.NoiseReduction].
@@ -307,18 +382,33 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.NoiseReduction
     @setparam:Modes.NoiseReduction
-    var noiseReduction: Int by config.noiseReduction::value
+    var noiseReduction: Int
+        get() = config.noiseReduction.value
+        set(value) {
+            if (!isUiThread()) return
+            config.noiseReduction.value = value
+        }
 
     /** Current shutter time in milliseconds. Supported values are [Modes.Shutter]. */
     @get:Modes.Shutter
     @setparam:Modes.Shutter
-    var shutter: Int by config.shutter::value
+    var shutter: Int
+        get() = config.shutter.value
+        set(value) {
+            if (!isUiThread()) return
+            config.shutter.value = value
+        }
 
     /**
      * Set zero shutter lag mode capture.
      * See [android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG]
      */
-    var zsl: Boolean by config.zsl::value
+    var zsl: Boolean
+        get() = config.zsl.value
+        set(value) {
+            if (!isUiThread()) return
+            config.zsl.value = value
+        }
 
     private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)
 
@@ -356,8 +446,8 @@ class CameraView @JvmOverloads constructor(
                     height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
                 }
                 super.onMeasure(
-                        widthMeasureSpec,
-                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    widthMeasureSpec,
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
                 )
             } else if (widthMode != View.MeasureSpec.EXACTLY && heightMode == View.MeasureSpec.EXACTLY) {
                 val ratio = aspectRatio
@@ -366,7 +456,7 @@ class CameraView @JvmOverloads constructor(
                     width = Math.min(width, View.MeasureSpec.getSize(widthMeasureSpec))
                 }
                 super.onMeasure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                        heightMeasureSpec)
+                    heightMeasureSpec)
             } else {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             }
@@ -382,79 +472,96 @@ class CameraView @JvmOverloads constructor(
         if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
         if (height < width * ratio.y / ratio.x) preview.view.measure(
-                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(
-                        width * ratio.y / ratio.x,
-                        View.MeasureSpec.EXACTLY
-                )
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(
+                width * ratio.y / ratio.x,
+                View.MeasureSpec.EXACTLY
+            )
         ) else preview.view.measure(
-                View.MeasureSpec.makeMeasureSpec(
-                        height * ratio.x / ratio.y,
-                        View.MeasureSpec.EXACTLY
-                ),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+            View.MeasureSpec.makeMeasureSpec(
+                height * ratio.x / ratio.y,
+                View.MeasureSpec.EXACTLY
+            ),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
         )
 
         preview.shutterView.layoutParams = preview.view.layoutParams
     }
 
     override fun onSaveInstanceState(): Parcelable? =
-            SavedState(
-                    super.onSaveInstanceState() ?: Bundle(),
-                    adjustViewBounds,
-                    cameraMode,
-                    outputFormat,
-                    jpegQuality,
-                    facing,
-                    aspectRatio,
-                    autoFocus,
-                    touchToFocus,
-                    pinchToZoom,
-                    currentDigitalZoom,
-                    awb,
-                    flash,
-                    opticalStabilization,
-                    noiseReduction,
-                    config.shutter.value,
-                    zsl
-            )
+        SavedState(
+            super.onSaveInstanceState() ?: Bundle(),
+            adjustViewBounds,
+            cameraMode,
+            outputFormat,
+            jpegQuality,
+            facing,
+            aspectRatio,
+            autoFocus,
+            touchToFocus,
+            pinchToZoom,
+            currentDigitalZoom,
+            awb,
+            flash,
+            opticalStabilization,
+            noiseReduction,
+            config.shutter.value,
+            zsl
+        )
 
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        when (state) {
-            is SavedState -> {
-                super.onRestoreInstanceState(state.superState)
-                adjustViewBounds = state.adjustViewBounds
-                facing = state.facing
-                cameraMode = state.cameraMode
-                outputFormat = state.outputFormat
-                jpegQuality = state.jpegQuality
-                aspectRatio = state.ratio
-                autoFocus = state.autoFocus
-                touchToFocus = state.touchToFocus
-                pinchToZoom = state.pinchToZoom
-                currentDigitalZoom = state.currentDigitalZoom
-                awb = state.awb
-                flash = state.flash
-                opticalStabilization = state.opticalStabilization
-                noiseReduction = state.noiseReduction
-                config.shutter.value = state.shutter
-                zsl = state.zsl
-            }
-            else -> super.onRestoreInstanceState(state)
+    override fun onRestoreInstanceState(state: Parcelable?) = when (state) {
+        is SavedState -> {
+            super.onRestoreInstanceState(state.superState)
+            adjustViewBounds = state.adjustViewBounds
+            facing = state.facing
+            cameraMode = state.cameraMode
+            outputFormat = state.outputFormat
+            jpegQuality = state.jpegQuality
+            aspectRatio = state.ratio
+            autoFocus = state.autoFocus
+            touchToFocus = state.touchToFocus
+            pinchToZoom = state.pinchToZoom
+            currentDigitalZoom = state.currentDigitalZoom
+            awb = state.awb
+            flash = state.flash
+            opticalStabilization = state.opticalStabilization
+            noiseReduction = state.noiseReduction
+            config.shutter.value = state.shutter
+            zsl = state.zsl
         }
+        else -> super.onRestoreInstanceState(state)
+    }
+
+    private fun requireActive(): Boolean = isActive.also {
+        if (!it) listener.onCameraError(
+            CameraViewException("CameraView instance is destroyed and cannot be used further. Please create a new instance."),
+            isCritical = true
+        )
+    }
+
+    private fun requireCameraOpened(): Boolean = isCameraOpened.also {
+        if (!it) listener.onCameraError(
+            CameraViewException("Camera is already open. Call stop() first."),
+            errorLevel = ErrorLevel.Warning
+        )
     }
 
     /**
      * Open a camera device and start showing camera preview. This is typically called from
      * [Activity.onResume].
+     * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
      */
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
+
+        if (!requireActive() || requireCameraOpened()) return
+
         if (!camera.start()) {
             // Store the state and restore this state after falling back to Camera1
             val state = onSaveInstanceState()
+            camera.destroy()
             // Device uses legacy hardware layer; fall back to Camera1
-            camera = Camera1(listener, preview, config)
+            camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
             onRestoreInstanceState(state)
             camera.start()
         }
@@ -466,11 +573,15 @@ class CameraView @JvmOverloads constructor(
      */
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start(id: Int) {
+
+        if (!requireActive() || requireCameraOpened()) return
+
         if (!camera.start(id)) {
             // Store the state and restore this state after falling back to Camera1
             val state = onSaveInstanceState()
+            camera.destroy()
             // Device uses legacy hardware layer; fall back to Camera1
-            camera = Camera1(listener, preview, config)
+            camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
             onRestoreInstanceState(state)
             camera.start(id)
         }
@@ -483,15 +594,82 @@ class CameraView @JvmOverloads constructor(
         facing = camera.cameraMap.nextCamera(facing)
     }
 
+    /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun capture(): Unit = when {
+
+        !requireActive() || !requireCameraOpened() -> Unit
+
+        cameraMode != Modes.CameraMode.SINGLE_CAPTURE -> listener.onCameraError(
+            CameraViewException("Cannot capture still picture in camera mode $cameraMode")
+        )
+
+        else -> camera.takePicture()
+    }
+
     /**
-     * Stop camera preview and close the device. This is typically called from
-     * [Activity.onPause].
-     * @param removeAllListeners if `true`, removes all listeners previously set. See [CameraView.removeAllListeners]
+     * Start capturing video.
+     * @param outputFile where video will be saved
+     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
      */
-    fun stop(removeAllListeners: Boolean = false) {
-        if (removeAllListeners) listener.clear()
-        camera.stop(internal = false)
-        coroutineScope.coroutineContext.cancel()
+    @RequiresPermission(allOf = [
+        Manifest.permission.CAMERA,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.RECORD_AUDIO
+    ])
+    @JvmOverloads
+    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}): Unit = when {
+
+        !requireActive() || !requireCameraOpened() -> Unit
+
+        cameraMode != Modes.CameraMode.VIDEO_CAPTURE -> listener.onCameraError(
+            CameraViewException("Cannot start video recording in camera mode $cameraMode")
+        )
+
+        isVideoRecording -> listener.onCameraError(
+            CameraViewException("Video recording already in progress." +
+                " Call CameraView.stopVideoRecording() before calling start.")
+        )
+
+        else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
+    }
+
+    /**
+     * Pause video recording
+     * @return true if the video was paused false otherwise
+     */
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
+
+    /**
+     * Resume video recording
+     * @return true if the video was resumed false otherwise
+     */
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
+
+    /**
+     * Stop video recording
+     * @return true if video was stopped and saved to given outputFile, false otherwise
+     */
+    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
+
+    /**
+     * Stop camera preview and close the device.
+     * This is typically called from fragment's onPause callback.
+     */
+    fun stop() = camera.stop()
+
+    /**
+     * Clear all listeners, [stop] camera, and kill background threads.
+     * Once [destroy] is called, camera cannot be started.
+     * A new [CameraView] instance must be created to use camera again.
+     * This is typically called from fragment's onDestroyView callback.
+     */
+    fun destroy() {
+        removeAllListeners()
+        camera.destroy()
+        parentJob.cancel()
     }
 
     /**
@@ -649,54 +827,13 @@ class CameraView @JvmOverloads constructor(
         listener.clear()
     }
 
-    /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
-    fun capture() {
-        if (cameraMode == Modes.CameraMode.SINGLE_CAPTURE) camera.takePicture()
-        else listener.onCameraError(
-                CameraViewException("Cannot capture still picture in camera mode $cameraMode")
-        )
-    }
-
-    /**
-     * Start capturing video.
-     * @param outputFile where video will be saved
-     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
-     */
-    @RequiresPermission(allOf = [
-        Manifest.permission.CAMERA,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.RECORD_AUDIO
-    ])
-    @JvmOverloads
-    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}) {
-        if (cameraMode == Modes.CameraMode.VIDEO_CAPTURE) {
-            camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
-        } else {
-            listener.onCameraError(
-                    CameraViewException("Cannot start video recording in camera mode $cameraMode")
+    private fun isUiThread(): Boolean = Thread.currentThread().isUiThread
+        .also {
+            if (!it) listener.onCameraError(
+                CameraViewException("CameraView configuration must only be updated from UI thread."),
+                isCritical = true
             )
         }
-    }
-
-    /**
-     * Pause video recording
-     * @return true if the video was paused false otherwise
-     */
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
-
-    /**
-     * Resume video recording
-     * @return true if the video was resumed false otherwise
-     */
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
-
-    /**
-     * Stop video recording
-     * @return true if video was stopped and saved to given outputFile, false otherwise
-     */
-    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
     /**
      * Gets the camera map which contains all of the front and back camera information
@@ -708,22 +845,22 @@ class CameraView @JvmOverloads constructor(
 
     @Parcelize
     internal data class SavedState(
-            val parcelable: Parcelable,
-            val adjustViewBounds: Boolean,
-            val cameraMode: Int,
-            val outputFormat: Int,
-            val jpegQuality: Int,
-            val facing: Int,
-            val ratio: AspectRatio,
-            val autoFocus: Int,
-            val touchToFocus: Boolean,
-            val pinchToZoom: Boolean,
-            val currentDigitalZoom: Float,
-            val awb: Int,
-            val flash: Int,
-            val opticalStabilization: Boolean,
-            val noiseReduction: Int,
-            val shutter: Int,
-            val zsl: Boolean
+        val parcelable: Parcelable,
+        val adjustViewBounds: Boolean,
+        val cameraMode: Int,
+        val outputFormat: Int,
+        val jpegQuality: Int,
+        val facing: Int,
+        val ratio: AspectRatio,
+        val autoFocus: Int,
+        val touchToFocus: Boolean,
+        val pinchToZoom: Boolean,
+        val currentDigitalZoom: Float,
+        val awb: Int,
+        val flash: Int,
+        val opticalStabilization: Boolean,
+        val noiseReduction: Int,
+        val shutter: Int,
+        val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }

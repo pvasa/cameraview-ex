@@ -45,7 +45,7 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
 
     override fun hashCode(): Int =
     // assuming most sizes are <2^16, doing a rotate will give us perfect hashing
-            y xor (x shl Integer.SIZE / 2 or x.ushr(Integer.SIZE / 2))
+        y xor (x shl Integer.SIZE / 2 or x.ushr(Integer.SIZE / 2))
 
     override fun compareTo(other: AspectRatio): Int = when {
         equals(other) -> 0
@@ -81,10 +81,10 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
             b /= gcd
 
             return cache.get(a)
-                    ?.run { get(b) ?: AspectRatio(a, b).also { put(b, it) } }
-                    ?: AspectRatio(a, b).also {
-                        cache.put(a, SparseArrayCompat<AspectRatio>().apply { put(b, it) })
-                    }
+                ?.run { get(b) ?: AspectRatio(a, b).also { put(b, it) } }
+                ?: AspectRatio(a, b).also {
+                    cache.put(a, SparseArrayCompat<AspectRatio>().apply { put(b, it) })
+                }
         }
 
         /**
@@ -115,7 +115,7 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
         @JvmField
         val CREATOR = object : Parcelable.Creator<AspectRatio> {
             override fun createFromParcel(parcel: Parcel): AspectRatio =
-                    AspectRatio.of(parcel.readInt(), parcel.readInt())
+                AspectRatio.of(parcel.readInt(), parcel.readInt())
 
             override fun newArray(size: Int): Array<AspectRatio?> = arrayOfNulls(size)
         }

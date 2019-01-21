@@ -34,15 +34,15 @@ internal abstract class PictureCaptureCallback : CameraCaptureSession.CaptureCal
     }
 
     override fun onCaptureProgressed(
-            session: CameraCaptureSession,
-            request: CaptureRequest,
-            partialResult: CaptureResult
+        session: CameraCaptureSession,
+        request: CaptureRequest,
+        partialResult: CaptureResult
     ) = process(partialResult)
 
     override fun onCaptureCompleted(
-            session: CameraCaptureSession,
-            request: CaptureRequest,
-            result: TotalCaptureResult
+        session: CameraCaptureSession,
+        request: CaptureRequest,
+        result: TotalCaptureResult
     ) = process(result)
 
     private fun process(result: CaptureResult) {
@@ -58,7 +58,7 @@ internal abstract class PictureCaptureCallback : CameraCaptureSession.CaptureCal
                         val awbState = result.get(CaptureResult.CONTROL_AWB_STATE)
 
                         if ((aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED)
-                                && (awbState == null || awbState == CaptureResult.CONTROL_AWB_STATE_CONVERGED)) {
+                            && (awbState == null || awbState == CaptureResult.CONTROL_AWB_STATE_CONVERGED)) {
                             setState(STATE_CAPTURING)
                             onReady()
                         } else {

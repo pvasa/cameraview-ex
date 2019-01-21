@@ -32,12 +32,12 @@ internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCha
     /** Maximum possible digital zoom based on [CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM]. */
     val maxZoom: Float
         get() = getCameraCharacteristics()
-                ?.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)
-                ?: 1f
+            ?.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)
+            ?: 1f
 
     private val sensorArraySize: Rect?
         get() = getCameraCharacteristics()
-                ?.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+            ?.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
 
     /** Scale factor tolerance until which zooming is ignored */
     private val tolerance = 0.004f
@@ -76,10 +76,10 @@ internal class DigitalZoom(private val getCameraCharacteristics: () -> CameraCha
         val yDelta = 0.5f * sensorArraySize.height() / zoom
 
         return Rect(
-                (xCenter - xDelta).roundToInt(),
-                (yCenter - yDelta).roundToInt(),
-                (xCenter + xDelta).roundToInt(),
-                (yCenter + yDelta).roundToInt()
+            (xCenter - xDelta).roundToInt(),
+            (yCenter - yDelta).roundToInt(),
+            (xCenter + xDelta).roundToInt(),
+            (yCenter + yDelta).roundToInt()
         ).also { currentZoom = zoom }
     }
 }

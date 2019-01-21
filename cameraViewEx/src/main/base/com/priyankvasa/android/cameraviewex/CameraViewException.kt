@@ -17,6 +17,6 @@
 package com.priyankvasa.android.cameraviewex
 
 class CameraViewException(
-        override val message: String? = null,
-        override val cause: Throwable? = null
+    override val message: String? = null,
+    override val cause: Throwable? = null
 ) : Exception()

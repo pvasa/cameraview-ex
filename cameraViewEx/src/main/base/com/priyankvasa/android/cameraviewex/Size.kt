@@ -42,7 +42,7 @@ class Size
 
     override fun hashCode(): Int =
     // assuming most sizes are <2^16, doing a rotate will give us perfect hashing
-            height xor (width shl Integer.SIZE / 2 or width.ushr(Integer.SIZE / 2))
+        height xor (width shl Integer.SIZE / 2 or width.ushr(Integer.SIZE / 2))
 
     override fun compareTo(other: Size): Int = width * height - other.width * other.height
 

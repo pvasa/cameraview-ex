@@ -9,7 +9,7 @@ _This is an extended version of [Google's cameraview library](https://github.com
 CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
 
 #### Why another camera library?
-Every camera library out there has atleast one issue. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
+Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
 
 CameraViewEx requires minimum API level 14. The library uses Camera1 API on API Level 14-20 and Camera2 on API level 21 and above.
 
@@ -25,7 +25,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.7.0"
+    implementation "com.priyankvasa.android:cameraview-ex:2.8.0"
 }
 ```
 
@@ -74,16 +74,16 @@ override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 
 override fun onResume() {
     super.onResume()
-    camera.run { if (!isCameraOpened) start() }
+    camera.start()
 }
 
 override fun onPause() {
-    camera.run { if (isCameraOpened) stop() }
+    camera.stop()
     super.onPause()
 }
 
 override fun onDestroyView() {
-    camera.run { if (isCameraOpened) stop(removeAllListeners = true) }
+    camera.destroy()
     super.onDestroyView()
 }
 ```
@@ -150,11 +150,12 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | outputFormat              | app:outputFormat         | **jpeg**, yuv_420_888, rgba_8888                       |
 | jpegQuality               | app:jpegQuality          | **default**, low, medium, high                         |
 | zsl                       | app:zsl                  | **false**, true                                        |
-| isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise              |
-| isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise |
-| supportedAspectRatios <br> (get only) | N/A          | Returns list of AspectRatio supported by selected camera |
-| maxDigitalZoom <br> (get only) | N/A                      | Returns a float value which is the maximum possible digital zoom value supported by selected camera |
-| currentDigitalZoom        | N/A                      | Set camera digital zoom value <br> Must be between 1.0 and maxDigitalZoom inclusive |
+| isActive <br> (get only)  | N/A                      | True if this `CameraView` instance is active and usable, false otherwise. It is set to false after `CameraView.destroy()` call. |
+| isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise.             |
+| isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise. |
+| supportedAspectRatios <br> (get only) | N/A          | Returns list of `AspectRatio` supported by selected camera. |
+| maxDigitalZoom <br> (get only) | N/A                 | Returns a float value which is the maximum possible digital zoom value supported by selected camera. |
+| currentDigitalZoom        | N/A                      | Set camera digital zoom value. Must be between 1.0 and `CameraView.maxDigitalZoom` inclusive. |
 
 _**Note:** Devices that run **Camera1** implementation will only support **app:facing**, **app:aspectRatio**, **app:autoFocus** (`off` and `continuous_picture`), and **app:flash** attributes. All others will be ignored. Camera2 implementations (ie. API 21 and above) will support all features._
 
