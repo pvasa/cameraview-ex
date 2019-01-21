@@ -19,7 +19,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".camera.CameraActivity">
+        <activity android:name=".camera.CameraActivity"
+            android:screenOrientation="userPortrait">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

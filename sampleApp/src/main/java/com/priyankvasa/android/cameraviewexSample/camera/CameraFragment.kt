@@ -17,6 +17,7 @@ import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
+import com.priyankvasa.android.cameraviewex.AspectRatio
 import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.Modes
@@ -59,7 +60,13 @@ open class CameraFragment : Fragment(), CoroutineScope {
     private val nextVideoFile: File
         get() = File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4")
 
-    private val imageCaptureListener = View.OnClickListener { camera.capture() }
+    private val imageCaptureListener = View.OnClickListener {
+        /*
+         * Takes a photo in 16:9, also changes the preview to 16:9
+         */
+        camera.aspectRatio = AspectRatio.Ratio16x9
+        camera.capture()
+    }
 
     private var isVideoRecording = false
 
@@ -142,7 +149,14 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
             val decoding = AtomicBoolean(false)
 
-            addCameraOpenedListener { Timber.i("Camera opened.") }
+            addCameraOpenedListener {
+                Timber.i("Camera opened.")
+                /*
+                 * Takes photos in 16:9 and also changes the
+                 * preview to 16:9
+                 */
+                //camera.aspectRatio = AspectRatio.Ratio16x9
+            }
 
             val decodeSuccessListener =
                 listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
@@ -186,6 +200,11 @@ open class CameraFragment : Fragment(), CoroutineScope {
             }
 
             addCameraClosedListener { Timber.i("Camera closed.") }
+
+            /*
+             * App crash
+             */
+            //camera.aspectRatio = AspectRatio.Ratio16x9
         }
     }
 
@@ -226,6 +245,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
         ivCameraMode.setOnClickListener {
             camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+            /*
+             * Doesn't crash, takes photos in 4:3
+             */
+            //camera.aspectRatio = AspectRatio.Ratio16x9
             updateViewState()
         }
 
