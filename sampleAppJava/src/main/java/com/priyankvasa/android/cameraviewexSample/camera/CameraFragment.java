@@ -1,6 +1,7 @@
 package com.priyankvasa.android.cameraviewexSample.camera;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.media.Image;
 import android.os.Bundle;
@@ -32,13 +33,14 @@ public class CameraFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(
-            @NonNull LayoutInflater inflater,
-            @Nullable ViewGroup container,
-            @Nullable Bundle savedInstanceState
+        @NonNull LayoutInflater inflater,
+        @Nullable ViewGroup container,
+        @Nullable Bundle savedInstanceState
     ) {
         return inflater.inflate(R.layout.fragment_camera, container, false);
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -87,8 +89,8 @@ public class CameraFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.CAMERA
+            requireContext(),
+            Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED) {
             camera.start();
         }
@@ -119,8 +121,8 @@ public class CameraFragment extends Fragment {
         camera.addPictureTakenListener((byte[] imageData) -> {
             ivPhoto.setVisibility(View.VISIBLE);
             Glide.with(requireContext())
-                    .load(imageData)
-                    .into(ivPhoto);
+                .load(imageData)
+                .into(ivPhoto);
             return Unit.INSTANCE;
         });
 
