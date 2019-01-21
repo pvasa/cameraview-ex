@@ -19,14 +19,16 @@ package com.priyankvasa.android.cameraviewex
 import android.annotation.TargetApi
 import android.content.Context
 import android.os.Build
+import kotlinx.coroutines.Job
 
 @TargetApi(Build.VERSION_CODES.N)
 internal open class Camera2Api24(
-        override val listener: CameraInterface.Listener,
-        preview: PreviewImpl,
-        config: CameraConfiguration,
-        context: Context
-) : Camera2Api23(listener, preview, config, context) {
+    override val listener: CameraInterface.Listener,
+    preview: PreviewImpl,
+    config: CameraConfiguration,
+    job: Job,
+    context: Context
+) : Camera2Api23(listener, preview, config, job, context) {
 
     override fun pauseVideoRecording(): Boolean = runCatching {
         mediaRecorder?.pause()

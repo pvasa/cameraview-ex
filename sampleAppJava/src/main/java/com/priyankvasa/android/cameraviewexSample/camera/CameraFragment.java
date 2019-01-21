@@ -31,7 +31,11 @@ public class CameraFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState
+    ) {
         return inflater.inflate(R.layout.fragment_camera, container, false);
     }
 
@@ -79,6 +83,29 @@ public class CameraFragment extends Fragment {
         setupCamera();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED) {
+            camera.start();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        camera.stop();
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroyView() {
+        camera.destroy();
+        super.onDestroyView();
+    }
+
     private void setupCamera() {
 
         View view = getView();
@@ -112,27 +139,5 @@ public class CameraFragment extends Fragment {
             Timber.i("Camera closed.");
             return Unit.INSTANCE;
         });
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (!camera.isCameraOpened()
-                && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED) {
-            camera.start();
-        }
-    }
-
-    @Override
-    public void onPause() {
-        if (camera.isCameraOpened()) camera.stop(false);
-        super.onPause();
-    }
-
-    @Override
-    public void onDestroyView() {
-        if (camera.isCameraOpened()) camera.stop(true);
-        super.onDestroyView();
     }
 }

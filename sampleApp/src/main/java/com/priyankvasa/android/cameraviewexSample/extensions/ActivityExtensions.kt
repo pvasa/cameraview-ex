@@ -19,9 +19,9 @@ fun Activity.hideSystemUI() {
 }
 
 // Shows the system bars by removing all the flags
-// except for the ones that make the content appear under the system bars.
+// except for the ones that make the content appear under status bar.
 fun Activity.showSystemUI() {
-    window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+    window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_VISIBLE
+            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
 }
