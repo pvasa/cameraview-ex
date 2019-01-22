@@ -18,7 +18,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
 import android.os.Build
-import androidx.annotation.IntDef
+import android.support.annotation.IntDef
 
 object Modes {
 

@@ -26,7 +26,7 @@ import android.renderscript.RenderScript
 import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
-import androidx.annotation.RequiresApi
+import android.support.annotation.RequiresApi
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 

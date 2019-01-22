@@ -20,7 +20,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.media.MediaRecorder
 import android.os.Build
-import androidx.annotation.RequiresApi
+import android.support.annotation.RequiresApi
 
 /** Configuration that abstracts [MediaRecorder] parameters for video recording */
 class VideoConfiguration {

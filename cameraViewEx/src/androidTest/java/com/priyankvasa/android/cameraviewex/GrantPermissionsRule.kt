@@ -16,7 +16,7 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import androidx.test.rule.GrantPermissionRule
+import android.support.test.rule.GrantPermissionRule
 import org.junit.Rule
 
 open class GrantPermissionsRule {

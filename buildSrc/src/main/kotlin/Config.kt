@@ -20,7 +20,7 @@ object Config {
 
     private const val majorVersion = 2
     private const val minorVersion = 8
-    private const val patchVersion = 0
+    private const val patchVersion = 1
 
     val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
 
@@ -32,11 +32,11 @@ object Config {
 
     object Versions {
         const val kotlin = "1.3.11"
-        const val support = "1.0.0"
+        const val support = "28.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"
 
-        const val lifecycle = "2.0.0"
+        const val lifecycle = "1.1.1"
 
         const val googleServices = "4.2.0"
         const val firebaseCore = "16.0.5"
@@ -52,10 +52,10 @@ object Config {
         const val jUnit5 = "5.3.1"
 
         // Android tests
-        const val junit = "1.1.0"
-        const val runner = "1.1.0"
-        const val rules = "1.1.0"
-        const val espressoCore = "3.1.0"
+        const val junit = "1.0.2"
+        const val runner = "1.0.2"
+        const val rules = "1.0.2"
+        const val espressoCore = "3.0.2"
     }
 
     object Android {
@@ -67,12 +67,12 @@ object Config {
     object Libs {
         const val kotlinStdLibJdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Versions.kotlin}"
 
-        const val supportAnnotations = "androidx.annotation:annotation:${Versions.support}"
-        const val appcompatV7 = "androidx.appcompat:appcompat:${Versions.support}"
-        const val supportTransition = "androidx.transition:transition:${Versions.support}"
-        const val constraintLayout = "androidx.constraintlayout:constraintlayout:${Versions.constraintLayout}"
+        const val supportAnnotations = "com.android.support:support-annotations:${Versions.support}"
+        const val appcompatV7 = "com.android.support:appcompat-v7:${Versions.support}"
+        const val supportTransition = "com.android.support:transition:${Versions.support}"
+        const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
-        const val lifecycleLivedata = "androidx.lifecycle:lifecycle-livedata-core:${Versions.lifecycle}"
+        const val lifecycleLivedata = "android.arch.lifecycle:livedata-core:${Versions.lifecycle}"
 
         const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
         const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
@@ -92,8 +92,8 @@ object Config {
     }
 
     object AndroidTestLibs {
-        const val junit = "androidx.test.ext:junit:${Versions.junit}"
-        const val testRules = "androidx.test:rules:${Versions.rules}"
-        const val testEspressoCore = "androidx.test.espresso:espresso-core:${Versions.espressoCore}"
+        const val junit = "com.android.support.test:runner:${Versions.junit}"
+        const val testRules = "com.android.support.test:rules:${Versions.rules}"
+        const val testEspressoCore = "com.android.support.test.espresso:espresso-core:${Versions.espressoCore}"
     }
 }

@@ -20,6 +20,8 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleRegistry
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Rect
@@ -42,8 +44,6 @@ import android.os.HandlerThread
 import android.renderscript.RenderScript
 import android.util.SparseIntArray
 import android.view.Surface
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleRegistry
 import com.priyankvasa.android.cameraviewex.extension.calculateVideoBitRate
 import com.priyankvasa.android.cameraviewex.extension.isAfSupported
 import com.priyankvasa.android.cameraviewex.extension.isAwbSupported

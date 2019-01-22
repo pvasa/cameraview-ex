@@ -17,7 +17,7 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.os.Parcel
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import android.support.test.runner.AndroidJUnit4
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.sameInstance
 import org.hamcrest.core.Is.`is`

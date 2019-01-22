@@ -26,12 +26,12 @@ import android.media.ImageReader
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.support.annotation.RequiresApi
+import android.support.annotation.RequiresPermission
+import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
-import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresPermission
-import androidx.core.view.ViewCompat
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
@@ -211,8 +211,8 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.aspectRatio.observeForever { if (camera.setAspectRatio(it)) requestLayout() }
-        config.shutter.observeForever { preview.shutterView.shutterTime = it }
+        config.aspectRatio.observeForever { ratio -> ratio?.let { if (camera.setAspectRatio(it)) requestLayout() } }
+        config.shutter.observeForever { shutter -> shutter?.let { preview.shutterView.shutterTime = it } }
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2

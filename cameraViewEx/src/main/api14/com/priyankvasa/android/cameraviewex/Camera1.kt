@@ -21,12 +21,12 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
+import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
-import androidx.collection.SparseArrayCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleRegistry
 import kotlinx.coroutines.Job
 import java.io.File
 import java.util.SortedSet

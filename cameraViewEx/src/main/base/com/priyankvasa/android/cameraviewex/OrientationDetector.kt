@@ -66,9 +66,9 @@ internal abstract class OrientationDetector(context: Context) {
 
     private fun dispatchOnDisplayOrientationChanged(rotation: Int) {
         val displayOrientation =
-            DISPLAY_ORIENTATIONS
-                .get(rotation, -1)
-                .takeIf { it > -1 } ?: return
+            DISPLAY_ORIENTATIONS.get(rotation, -1)
+                .takeIf { it != -1 }
+                ?: return
         lastKnownDisplayOrientation = displayOrientation
         onDisplayOrientationChanged(displayOrientation)
     }
