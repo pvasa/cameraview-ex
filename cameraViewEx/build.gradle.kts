@@ -50,7 +50,7 @@ android {
         targetSdkVersion(Config.Android.sdk)
         versionCode = Config.versionCode
         versionName = Config.versionName
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("proguard-rules.pro")
         renderscriptTargetApi = 21
     }
@@ -89,8 +89,8 @@ android {
     )
 
     compileOptions {
-        setSourceCompatibility(JavaVersion.VERSION_1_8)
-        setTargetCompatibility(JavaVersion.VERSION_1_8)
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
 

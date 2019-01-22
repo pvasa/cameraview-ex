@@ -16,7 +16,7 @@
 
 package com.priyankvasa.android.cameraviewex.extension
 
-import androidx.core.math.MathUtils
+import android.support.v4.math.MathUtils
 import com.priyankvasa.android.cameraviewex.Size
 import com.priyankvasa.android.cameraviewex.VideoConfiguration
 import kotlin.math.roundToInt

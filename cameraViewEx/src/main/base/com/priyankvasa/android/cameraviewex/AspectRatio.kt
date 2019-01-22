@@ -18,7 +18,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.os.Parcel
 import android.os.Parcelable
-import androidx.collection.SparseArrayCompat
+import android.support.v4.util.SparseArrayCompat
 
 /**
  * Immutable class for describing proportional relationship between width and height.

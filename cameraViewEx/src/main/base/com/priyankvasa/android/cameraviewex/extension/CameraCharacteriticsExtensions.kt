@@ -18,7 +18,7 @@ package com.priyankvasa.android.cameraviewex.extension
 
 import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
-import androidx.annotation.RequiresApi
+import android.support.annotation.RequiresApi
 import com.priyankvasa.android.cameraviewex.Modes
 
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)

@@ -5,6 +5,11 @@ import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.media.Image;
 import android.os.Bundle;
+import android.support.annotation.DrawableRes;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,11 +21,6 @@ import com.priyankvasa.android.cameraviewex.ErrorLevel;
 import com.priyankvasa.android.cameraviewex.Modes;
 import com.priyankvasa.android.cameraviewexSample.R;
 
-import androidx.annotation.DrawableRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.Fragment;
 import kotlin.Unit;
 import timber.log.Timber;
 
@@ -33,9 +33,9 @@ public class CameraFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(
-        @NonNull LayoutInflater inflater,
-        @Nullable ViewGroup container,
-        @Nullable Bundle savedInstanceState
+            @NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState
     ) {
         return inflater.inflate(R.layout.fragment_camera, container, false);
     }
@@ -89,8 +89,8 @@ public class CameraFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (ActivityCompat.checkSelfPermission(
-            requireContext(),
-            Manifest.permission.CAMERA
+                requireContext(),
+                Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED) {
             camera.start();
         }
@@ -121,8 +121,8 @@ public class CameraFragment extends Fragment {
         camera.addPictureTakenListener((byte[] imageData) -> {
             ivPhoto.setVisibility(View.VISIBLE);
             Glide.with(requireContext())
-                .load(imageData)
-                .into(ivPhoto);
+                    .load(imageData)
+                    .into(ivPhoto);
             return Unit.INSTANCE;
         });
 

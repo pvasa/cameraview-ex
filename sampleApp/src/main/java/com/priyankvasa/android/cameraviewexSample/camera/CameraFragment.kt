@@ -7,12 +7,12 @@ import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.support.annotation.DrawableRes
+import android.support.v4.app.ActivityCompat
+import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.DrawableRes
-import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions

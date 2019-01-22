@@ -19,12 +19,12 @@ package com.priyankvasa.android.cameraviewex
 import android.content.Context
 import android.content.res.Resources
 import android.os.Handler
+import android.support.annotation.ColorRes
+import android.support.transition.TransitionManager
+import android.support.v4.app.ActivityCompat
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.ColorRes
-import androidx.core.app.ActivityCompat
-import androidx.transition.TransitionManager
 import timber.log.Timber
 
 /**
