@@ -26,13 +26,12 @@ object Config {
 
     val versionCode: Int
         get() = Android.minSdkLib * 10000000 +
-                majorVersion * 10000 +
-                minorVersion * 100 +
-                patchVersion
+            majorVersion * 10000 +
+            minorVersion * 100 +
+            patchVersion
 
     object Versions {
         const val kotlin = "1.3.11"
-        const val ktxCore = "1.0.0"
         const val support = "1.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"
@@ -67,8 +66,6 @@ object Config {
 
     object Libs {
         const val kotlinStdLibJdk8 = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Versions.kotlin}"
-
-        const val ktxCore = "androidx.core:core-ktx:${Versions.ktxCore}"
 
         const val supportAnnotations = "androidx.annotation:annotation:${Versions.support}"
         const val appcompatV7 = "androidx.appcompat:appcompat:${Versions.support}"
