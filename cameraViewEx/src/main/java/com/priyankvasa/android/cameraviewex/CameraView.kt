@@ -211,8 +211,8 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.aspectRatio.observeForever { ratio -> ratio?.let { if (camera.setAspectRatio(it)) requestLayout() } }
-        config.shutter.observeForever { shutter -> shutter?.let { preview.shutterView.shutterTime = it } }
+        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+        config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
