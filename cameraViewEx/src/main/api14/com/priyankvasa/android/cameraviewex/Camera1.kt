@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -257,7 +257,7 @@ internal class Camera1(
         }
     }
 
-    override fun startVideoRecording(outputFile: File, config: VideoConfiguration) =
+    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) =
         listener.onCameraError(UnsupportedOperationException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
 
     override fun pauseVideoRecording(): Boolean = false

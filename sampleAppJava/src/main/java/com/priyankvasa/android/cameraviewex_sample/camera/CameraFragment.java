@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewexSample.camera;
+package com.priyankvasa.android.cameraviewex_sample.camera;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -19,7 +19,7 @@ import com.bumptech.glide.Glide;
 import com.priyankvasa.android.cameraviewex.CameraView;
 import com.priyankvasa.android.cameraviewex.ErrorLevel;
 import com.priyankvasa.android.cameraviewex.Modes;
-import com.priyankvasa.android.cameraviewexSample.R;
+import com.priyankvasa.android.cameraviewex_sample.R;
 
 import kotlin.Unit;
 import timber.log.Timber;
@@ -33,9 +33,9 @@ public class CameraFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(
-            @NonNull LayoutInflater inflater,
-            @Nullable ViewGroup container,
-            @Nullable Bundle savedInstanceState
+        @NonNull LayoutInflater inflater,
+        @Nullable ViewGroup container,
+        @Nullable Bundle savedInstanceState
     ) {
         return inflater.inflate(R.layout.fragment_camera, container, false);
     }
@@ -89,8 +89,8 @@ public class CameraFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.CAMERA
+            requireContext(),
+            Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED) {
             camera.start();
         }
@@ -121,8 +121,8 @@ public class CameraFragment extends Fragment {
         camera.addPictureTakenListener((byte[] imageData) -> {
             ivPhoto.setVisibility(View.VISIBLE);
             Glide.with(requireContext())
-                    .load(imageData)
-                    .into(ivPhoto);
+                .load(imageData)
+                .into(ivPhoto);
             return Unit.INSTANCE;
         });
 

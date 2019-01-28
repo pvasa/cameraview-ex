@@ -18,6 +18,21 @@ CameraViewEx requires minimum API level 14. The library uses Camera1 API on API 
 | 14-20     | Camera1    | TextureView  |
 | 21+       | Camera2    | TextureView  |
 
+## Features
+- High quality image capture
+- Multiple camera modes like single capture, continuous frame, and video capture
+- Ability to use all or multiple modes simultaneously
+- Preview frame listener
+- Support multiple formats for output images like jpeg, yuv_420_888, rgba_8888
+- Pinch to zoom
+- Touch to focus
+- Configurable auto white balance, auto focus, flash, noise reduction, and optical / video stabilization
+- Support multiple aspect ratios
+- Switch between front and back camera
+- Adjustable output image quality
+- Zero shutter lag mode
+- Shutter animation for single capture
+
 ## Usage
 
 #### Import dependency
@@ -25,7 +40,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.8.1"
+    implementation "com.priyankvasa.android:cameraview-ex:3.0.0"
 }
 ```
 
@@ -51,14 +66,6 @@ dependencies {
     app:shutter="short_time"
     app:touchToFocus="true"
     app:zsl="true" />
-
-<!-- Or to apply all those params as mentioned above use Widget.CameraView style -->
-
-<com.priyankvasa.android.cameraviewex.CameraView
-    android:id="@+id/camera"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    style="@style/Widget.CameraView" />
 ```
 
 #### Setup camera
@@ -132,9 +139,30 @@ camera.pauseVideoRecording()
 camera.resumeVideoRecording()
 ```
 
+#### Set multiple modes simultaneously
+- **In xml**
+```xml
+<com.priyankvasa.android.cameraviewex.CameraView
+    android:id="@+id/camera"
+    ...
+    app:cameraMode="single_capture|continuous_frame|video_capture"
+    ... />
+```
+- **Or in code**
+```kotlin
+camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE or Modes.CameraMode.CONTINUOUS_FRAME or Modes.CameraMode.VIDEO_CAPTURE
+
+// Setup all the listeners including preview frame listener
+
+camera.startVideoRecording(outputFile)
+camera.capture()
+
+// The listeners will receive their respective outputs
+```
+
 You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module or [sampleAppJava](https://github.com/pvasa/cameraview-ex/tree/development/sampleAppJava) for usage in Java.
 
-## Features
+## Configuration
 
 | CameraView property       | XML Attribute            | Possible Values <br/> (bold value is the default one)  |
 |---------------------------|--------------------------|--------------------------------------------------------|

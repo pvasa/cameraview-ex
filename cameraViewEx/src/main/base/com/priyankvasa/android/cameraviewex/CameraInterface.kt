@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -44,7 +44,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     val isCameraOpened: Boolean
 
-    var isVideoRecording: Boolean
+    val isVideoRecording: Boolean
 
     val supportedAspectRatios: Set<AspectRatio>
 
@@ -76,7 +76,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     fun takePicture()
 
-    fun startVideoRecording(outputFile: File, config: VideoConfiguration)
+    fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration)
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean
