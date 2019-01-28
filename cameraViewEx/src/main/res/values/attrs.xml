@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-    Copyright 2018 Priyank Vasa
+    Copyright 2019 Priyank Vasa
     Copyright (C) 2016 The Android Open Source Project
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -113,11 +113,11 @@
         <!-- Zero shutter lag capture -->
         <attr name="zsl" format="boolean" />
 
-        <attr name="cameraMode" format="enum">
-            <enum name="single_capture" value="0" />
-            <!--<enum name="burst_capture" value="1" />-->
-            <enum name="continuous_frame" value="2" />
-            <enum name="video_capture" value="3" />
+        <attr name="cameraMode" format="flags">
+            <flag name="single_capture" value="1" />
+            <!--<flag name="burst_capture" value="2" />-->
+            <flag name="continuous_frame" value="4" />
+            <flag name="video_capture" value="8" />
         </attr>
 
     </declare-styleable>
