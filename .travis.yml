@@ -35,9 +35,9 @@ env:
 
 stages:
 - name: test
-  if: branch = development AND type = pull_request
+  if: type = pull_request
 - name: deploy
-  if: branch = master OR branch =~ /^release-[0-9].[0-9].[0-9](-(alpha|beta))?$/
+  if: (branch = master OR branch =~ /^release-[0-9].[0-9].[0-9](-(alpha|beta))?$/) AND type = push
 
 jobs:
   include:
