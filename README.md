@@ -180,6 +180,9 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | zsl                       | app:zsl                  | **false**, true                                        |
 | isActive <br> (get only)  | N/A                      | True if this `CameraView` instance is active and usable, false otherwise. It is set to false after `CameraView.destroy()` call. |
 | isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise.             |
+| isSingleCaptureModeEnabled <br> (get only) | N/A     | True if single capture mode is enabled, false otherwise. |
+| isContinuousFrameModeEnabled <br> (get only) | N/A   | True if continuous frame mode is enabled, false otherwise. |
+| isVideoCaptureModeEnabled <br> (get only) | N/A      | True if video capture mode is enabled, false otherwise. |
 | isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise. |
 | supportedAspectRatios <br> (get only) | N/A          | Returns list of `AspectRatio` supported by selected camera. |
 | maxDigitalZoom <br> (get only) | N/A                 | Returns a float value which is the maximum possible digital zoom value supported by selected camera. |

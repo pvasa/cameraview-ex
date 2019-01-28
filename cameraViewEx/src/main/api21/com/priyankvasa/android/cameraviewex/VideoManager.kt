@@ -170,10 +170,6 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
     fun startMediaRecorder() = mediaRecorder?.start()?.also { isVideoRecording = true }
         ?: throw IllegalStateException("Media recorder surface is not available. Cannot start video recording.")
 
-    fun addTarget(outputTarget: Surface) = videoRequestBuilder.addTarget(outputTarget)
-
-    fun addTargets(outputTargets: List<Surface>) = outputTargets.forEach(videoRequestBuilder::addTarget)
-
     fun getRequestBuilder(): CaptureRequest.Builder = videoRequestBuilder
 
     fun buildRequest(): CaptureRequest = videoRequestBuilder.build()
