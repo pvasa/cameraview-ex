@@ -4,29 +4,33 @@
 
 # CameraViewEx
 
-_This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) which provides more features over original implementation._
+_This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) with better stability and many more features._
 
-CameraViewEx makes integration of camera implementation and various camera features into any Android project very easy.
+CameraViewEx highly simplifies integration of camera implementation and various camera features into any Android project. It uses new camera2 api with advanced features on API level 21 and higher and smartly switches to camera1 on older devices (API < 21).
 
-#### Why another camera library?
-Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
-
-CameraViewEx requires minimum API level 14. The library uses Camera1 API on API Level 14-20 and Camera2 on API level 21 and above.
+Minimum API 14 is required to use CameraViewEx.
+<br><br>
 
 | API Level | Camera API | Preview View |
 |:---------:|------------|--------------|
 | 14-20     | Camera1    | TextureView  |
 | 21+       | Camera2    | TextureView  |
 
+#### Why another camera library?
+Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
+
+> ***Note:** This is a beta version with more advanced features like multiple simultaneous camera modes support. If you need more stable version or find any issues with this version, please switch to [version v2.8.2](https://github.com/pvasa/cameraview-ex/tree/v2.8.2).*
+
 ## Features
 - High quality image capture
 - Multiple camera modes like single capture, continuous frame, and video capture
-- Ability to use all or multiple modes simultaneously
+- Ability to enable all or multiple modes simultaneously
 - Preview frame listener
 - Support multiple formats for output images like jpeg, yuv_420_888, rgba_8888
 - Pinch to zoom
 - Touch to focus
 - Configurable auto white balance, auto focus, flash, noise reduction, and optical / video stabilization
+- Highly configurable video recording with most of the options from MediaRecorder
 - Support multiple aspect ratios
 - Switch between front and back camera
 - Adjustable output image quality
