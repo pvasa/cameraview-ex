@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ internal open class Camera2Api24(
 ) : Camera2Api23(listener, preview, config, job, context) {
 
     override fun pauseVideoRecording(): Boolean = runCatching {
-        mediaRecorder?.pause()
+        videoManager.pause()
         true
     }.getOrElse { t ->
         listener.onCameraError(t as Exception)
@@ -39,7 +39,7 @@ internal open class Camera2Api24(
     }
 
     override fun resumeVideoRecording(): Boolean = runCatching {
-        mediaRecorder?.resume()
+        videoManager.resume()
         true
     }.getOrElse { t ->
         listener.onCameraError(t as Exception)

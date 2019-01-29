@@ -1,4 +1,4 @@
-// Copyright 2018 Priyank Vasa
+// Copyright 2019 Priyank Vasa
 //
 // Copyright (C) 2016 The Android Open Source Project
 //
@@ -14,13 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import org.jetbrains.kotlin.cli.jvm.main
-import org.jetbrains.kotlin.gradle.internal.CacheImplementation
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.dokka.gradle.DokkaAndroidTask
 import org.jetbrains.dokka.gradle.LinkMapping
 import org.jetbrains.dokka.gradle.SourceRoot
 import org.jetbrains.kotlin.gradle.internal.AndroidExtensionsExtension
+import org.jetbrains.kotlin.gradle.internal.CacheImplementation
 
 plugins {
     id("com.android.library")
@@ -89,8 +87,8 @@ android {
     )
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
 }
 
@@ -124,6 +122,9 @@ dependencies {
     // Android support
     implementation(Config.Libs.supportAnnotations)
     implementation(Config.Libs.supportTransition)
+
+    // Dependency injection
+    implementation(Config.Libs.koin)
 
     // KotlinX
     implementation(Config.Libs.coroutinesCore)

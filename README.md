@@ -19,11 +19,12 @@ Minimum API 14 is required to use CameraViewEx.
 #### Why another camera library?
 Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
 
-> ***Note:** CameraViewEx beta version is out with more advanced features like multiple simultaneous camera modes support. To use these features, switch to the beta [version v3.0.0-beta](https://github.com/pvasa/cameraview-ex/tree/v3.0.0-beta).*
+> ***Note:** This is a beta version with more advanced features like multiple simultaneous camera modes support. If you need more stable version or find any issues with this version, please switch to [version v2.8.2](https://github.com/pvasa/cameraview-ex/tree/v2.8.2).*
 
 ## Features
 - High quality image capture
 - Multiple camera modes like single capture, continuous frame, and video capture
+- Ability to enable all or multiple modes simultaneously
 - Preview frame listener
 - Support multiple formats for output images like jpeg, yuv_420_888, rgba_8888
 - Pinch to zoom
@@ -43,7 +44,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:2.8.2"
+    implementation "com.priyankvasa.android:cameraview-ex:3.0.1-beta"
 }
 ```
 
@@ -142,6 +143,27 @@ camera.pauseVideoRecording()
 camera.resumeVideoRecording()
 ```
 
+#### Set multiple modes simultaneously
+- **In xml**
+```xml
+<com.priyankvasa.android.cameraviewex.CameraView
+    android:id="@+id/camera"
+    ...
+    app:cameraMode="single_capture|continuous_frame|video_capture"
+    ... />
+```
+- **Or in code**
+```kotlin
+camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE or Modes.CameraMode.CONTINUOUS_FRAME or Modes.CameraMode.VIDEO_CAPTURE
+
+// Setup all the listeners including preview frame listener
+
+camera.startVideoRecording(outputFile)
+camera.capture()
+
+// The listeners will receive their respective outputs
+```
+
 You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module or [sampleAppJava](https://github.com/pvasa/cameraview-ex/tree/development/sampleAppJava) for usage in Java.
 
 ## Configuration
@@ -162,6 +184,9 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | zsl                       | app:zsl                  | **false**, true                                        |
 | isActive <br> (get only)  | N/A                      | True if this `CameraView` instance is active and usable, false otherwise. It is set to false after `CameraView.destroy()` call. |
 | isCameraOpened <br> (get only) | N/A                 | True if camera is opened, false otherwise.             |
+| isSingleCaptureModeEnabled <br> (get only) | N/A     | True if single capture mode is enabled, false otherwise. |
+| isContinuousFrameModeEnabled <br> (get only) | N/A   | True if continuous frame mode is enabled, false otherwise. |
+| isVideoCaptureModeEnabled <br> (get only) | N/A      | True if video capture mode is enabled, false otherwise. |
 | isVideoRecording <br> (get only) | N/A               | True if there is a video recording in progress, false otherwise. |
 | supportedAspectRatios <br> (get only) | N/A          | Returns list of `AspectRatio` supported by selected camera. |
 | maxDigitalZoom <br> (get only) | N/A                 | Returns a float value which is the maximum possible digital zoom value supported by selected camera. |

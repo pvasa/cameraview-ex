@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ object Config {
 
     const val jvmTarget = "1.8"
 
-    private const val majorVersion = 2
-    private const val minorVersion = 8
-    private const val patchVersion = 2
+    private const val majorVersion = 3
+    private const val minorVersion = 0
+    private const val patchVersion = 1
+    private const val versionClassifier = "beta"
 
-    val versionName: String get() = "$majorVersion.$minorVersion.$patchVersion"
+    val versionName: String
+        get() = "$majorVersion.$minorVersion.$patchVersion${if (versionClassifier.isNotBlank()) "-" else ""}$versionClassifier"
 
     val versionCode: Int
         get() = Android.minSdkLib * 10000000 +
@@ -41,6 +43,7 @@ object Config {
         const val googleServices = "4.2.0"
         const val firebaseCore = "16.0.5"
         const val firebaseMlVision = "18.0.1"
+        const val koin = "1.0.2"
         const val coroutines = "1.0.1"
         const val timber = "4.7.1"
         const val glide = "4.8.0"
@@ -73,7 +76,7 @@ object Config {
         const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
         const val lifecycleLivedata = "android.arch.lifecycle:livedata-core:${Versions.lifecycle}"
-
+        const val koin = "org.koin:koin-android:${Versions.koin}"
         const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
         const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
 
