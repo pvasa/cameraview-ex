@@ -107,7 +107,7 @@ class CameraView @JvmOverloads constructor(
 
         @RequiresApi(Build.VERSION_CODES.KITKAT)
         override fun onPreviewFrame(reader: ImageReader) {
-            previewFrameListener?.run { reader.acquireLatestImage()?.use { invoke(it) } }
+            reader.acquireLatestImage()?.use { previewFrameListener?.invoke(it) }
         }
 
         override fun onPictureTaken(imageData: ByteArray) {
