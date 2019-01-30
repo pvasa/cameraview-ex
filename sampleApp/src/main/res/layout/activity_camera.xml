@@ -4,4 +4,4 @@
     android:id="@+id/flMainContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.priyankvasa.android.cameraviewexSample.camera.CameraActivity" />
+    tools:context="com.priyankvasa.android.cameraviewex_sample.camera.CameraActivity" />

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
 import android.os.Build
-import androidx.annotation.IntDef
+import android.support.annotation.IntDef
 
 object Modes {
 
@@ -34,11 +34,11 @@ object Modes {
     annotation class CameraMode {
         companion object {
             /** Output format is according to [CameraView.outputFormat] */
-            const val SINGLE_CAPTURE = 0
-            internal const val BURST_CAPTURE = 1
+            const val SINGLE_CAPTURE = 0x01
+            internal const val BURST_CAPTURE = 0x02
             /** Output format is always [android.graphics.ImageFormat.YUV_420_888] */
-            const val CONTINUOUS_FRAME = 2
-            const val VIDEO_CAPTURE = 3
+            const val CONTINUOUS_FRAME = 0x04
+            const val VIDEO_CAPTURE = 0x08
         }
     }
 

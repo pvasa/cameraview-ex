@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewexSample.camera
+package com.priyankvasa.android.cameraviewex_sample.camera
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -7,12 +7,12 @@ import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.support.annotation.DrawableRes
+import android.support.v4.app.ActivityCompat
+import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.DrawableRes
-import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
@@ -21,10 +21,12 @@ import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.VideoSize
-import com.priyankvasa.android.cameraviewexSample.R
-import com.priyankvasa.android.cameraviewexSample.extensions.hideSystemUI
-import com.priyankvasa.android.cameraviewexSample.extensions.showSystemUI
-import com.priyankvasa.android.cameraviewexSample.extensions.toast
+import com.priyankvasa.android.cameraviewex_sample.R
+import com.priyankvasa.android.cameraviewex_sample.extensions.hide
+import com.priyankvasa.android.cameraviewex_sample.extensions.hideSystemUI
+import com.priyankvasa.android.cameraviewex_sample.extensions.show
+import com.priyankvasa.android.cameraviewex_sample.extensions.showSystemUI
+import com.priyankvasa.android.cameraviewex_sample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +61,7 @@ open class CameraFragment : Fragment(), CoroutineScope {
     private val nextVideoFile: File
         get() = File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4")
 
+    @SuppressLint("MissingPermission")
     private val imageCaptureListener = View.OnClickListener { camera.capture() }
 
     private var isVideoRecording = false
@@ -67,9 +70,9 @@ open class CameraFragment : Fragment(), CoroutineScope {
     private val videoCaptureListener = View.OnClickListener {
         if (isVideoRecording) {
             camera.stopVideoRecording()
-            ivPlayPause.visibility = View.GONE
+            ivPlayPause.hide()
             ivPlayPause.isActivated = false
-            ivCaptureButton.isActivated = false
+            ivVideoCaptureButton.isActivated = false
         } else {
             videoFile = nextVideoFile.also { outputFile ->
                 camera.startVideoRecording(outputFile) {
@@ -80,10 +83,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                ivPlayPause.visibility = View.VISIBLE
+                ivPlayPause.show()
                 ivPlayPause.isActivated = true
             }
-            ivCaptureButton.isActivated = true
+            ivVideoCaptureButton.isActivated = true
         }
         isVideoRecording = !isVideoRecording
     }
@@ -225,17 +228,17 @@ open class CameraFragment : Fragment(), CoroutineScope {
         }
 
         ivCameraMode.setOnClickListener {
-            camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+            camera.setCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
             updateViewState()
         }
 
         ivVideoMode.setOnClickListener {
-            camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+            camera.setCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
             updateViewState()
         }
 
         ivBarcodeScanner.setOnClickListener {
-            camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
+            camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME or Modes.CameraMode.VIDEO_CAPTURE)
             camera.facing = Modes.Facing.FACING_BACK
             updateViewState()
         }
@@ -260,35 +263,27 @@ open class CameraFragment : Fragment(), CoroutineScope {
             }
             updateViewState()
         }
-
-        ivPhoto.setOnClickListener { it.visibility = View.GONE }
     }
 
     private fun updateViewState() {
 
-        when (camera.cameraMode) {
-            Modes.CameraMode.SINGLE_CAPTURE -> {
-                tvBarcodes.visibility = View.GONE
-                ivCaptureButton.visibility = View.VISIBLE
-                ivPlayPause.visibility = View.GONE
-                ivCameraSwitch.visibility = View.VISIBLE
-                context?.let { ivCaptureButton.setImageDrawable(ActivityCompat.getDrawable(it, R.drawable.ic_camera_capture)) }
-                ivCaptureButton.setOnClickListener(imageCaptureListener)
-            }
-            Modes.CameraMode.VIDEO_CAPTURE -> {
-                tvBarcodes.visibility = View.GONE
-                ivCaptureButton.visibility = View.VISIBLE
-                ivCameraSwitch.visibility = View.VISIBLE
-                context?.let { ivCaptureButton.setImageDrawable(ActivityCompat.getDrawable(it, R.drawable.ic_camera_video_capture)) }
-                ivCaptureButton.setOnClickListener(videoCaptureListener)
-            }
-            Modes.CameraMode.CONTINUOUS_FRAME -> {
-                tvBarcodes.visibility = View.VISIBLE
-                ivCaptureButton.visibility = View.GONE
-                ivPlayPause.visibility = View.GONE
-                ivCameraSwitch.visibility = View.GONE
-                ivCaptureButton.setOnClickListener(null)
-            }
+        if (camera.isSingleCaptureModeEnabled) {
+            ivCaptureButton.show()
+            ivCaptureButton.setOnClickListener(imageCaptureListener)
+        } else {
+            ivCaptureButton.setOnClickListener(null)
+            ivCaptureButton.hide()
+        }
+
+        if (camera.isContinuousFrameModeEnabled) tvBarcodes.show() else tvBarcodes.hide()
+
+        if (camera.isVideoCaptureModeEnabled) {
+            ivVideoCaptureButton.show()
+            ivVideoCaptureButton.setOnClickListener(videoCaptureListener)
+        } else {
+            ivVideoCaptureButton.setOnClickListener(null)
+            ivPlayPause.hide()
+            ivVideoCaptureButton.hide()
         }
 
         ivCameraSwitch.isActivated = camera.facing != Modes.Facing.FACING_BACK

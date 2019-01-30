@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -20,12 +20,12 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.support.v4.view.ViewCompat
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.ViewCompat
 import kotlinx.android.synthetic.main.surface_view.view.*
 
 @SuppressLint("ClickableViewAccessibility")

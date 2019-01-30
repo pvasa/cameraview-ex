@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    tools:context="com.priyankvasa.android.cameraviewexSample.camera.CameraActivity"
+    android:paddingBottom="64dp"
+    tools:context="com.priyankvasa.android.cameraviewex_sample.camera.CameraActivity"
     tools:ignore="ContentDescription">
 
     <ImageView
@@ -62,7 +63,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="continuous_picture"
         app:awb="auto"
-        app:cameraMode="single_capture"
+        app:cameraMode="single_capture|video_capture|continuous_frame"
         app:facing="back"
         app:flash="auto"
         app:jpegQuality="high"
@@ -75,7 +76,7 @@
         app:pinchToZoom="true"
         app:shutter="short_time"
         app:touchToFocus="true"
-        app:zsl="true" />
+        app:zsl="false" />
 
     <TextView
         android:id="@+id/tvBarcodes"
@@ -94,51 +95,43 @@
         tools:visibility="visible" />
 
     <ImageView
-        android:id="@+id/ivCameraSwitch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="32dp"
-        android:padding="12dp"
-        android:src="@drawable/ic_camera_switch"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/ivCaptureButton"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/ivCaptureButton"
-        tools:visibility="visible" />
-
-    <ImageView
         android:id="@+id/ivPlayPause"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="32dp"
         android:padding="12dp"
         android:src="@drawable/ic_play_pause"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/ivCaptureButton"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ivVideoCaptureButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/ivCaptureButton"
         tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivVideoCaptureButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_camera_video_capture"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ivCaptureButton"
+        app:layout_constraintStart_toEndOf="@id/ivPlayPause" />
 
     <ImageView
         android:id="@+id/ivCaptureButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="64dp"
         android:src="@drawable/ic_camera_capture"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toStartOf="@id/ivCameraSwitch"
+        app:layout_constraintStart_toEndOf="@id/ivVideoCaptureButton" />
 
     <ImageView
-        android:id="@+id/ivPhoto"
+        android:id="@+id/ivCameraSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@android:color/darker_gray"
-        android:elevation="12dp"
-        android:visibility="gone"
+        android:padding="12dp"
+        android:src="@drawable/ic_camera_switch"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@id/ivCaptureButton" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</android.support.constraint.ConstraintLayout>

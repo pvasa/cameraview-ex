@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ package com.priyankvasa.android.cameraviewex
 import android.content.Context
 import android.content.res.Resources
 import android.os.Handler
+import android.support.annotation.ColorRes
+import android.support.transition.TransitionManager
+import android.support.v4.app.ActivityCompat
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.ColorRes
-import androidx.core.app.ActivityCompat
-import androidx.transition.TransitionManager
 import timber.log.Timber
 
 /**

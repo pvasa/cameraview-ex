@@ -2,8 +2,7 @@ branches:
   only:
   - master
   - development
-
-if: (branch = development AND type = pull_request) OR branch = master
+  - /^release-[0-9].[0-9].[0-9](-(alpha|beta))?$/
 
 language: android
 
@@ -36,16 +35,16 @@ env:
 
 stages:
 - name: test
-  if: branch = development AND type = pull_request
+  if: type = pull_request
 - name: deploy
-  if: branch = master
+  if: (branch = master OR branch =~ /^release-[0-9].[0-9].[0-9](-(alpha|beta))?$/) AND type = push
 
 jobs:
   include:
   - stage: test
-    script: "./gradlew cleanBuildCache clean buildDebug testDebugUnitTest"
+    script: "./gradlew cleanBuildCache clean build testDebugUnitTest"
   - stage: deploy
-    script: "./gradlew cleanBuildCache clean build testDebugUnitTest install bintrayUpload"
+    script: "./gradlew cleanBuildCache clean :cameraViewEx:build :cameraViewEx:testDebugUnitTest :cameraViewEx:install :cameraViewEx:bintrayUpload"
 
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock

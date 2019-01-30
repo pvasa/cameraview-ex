@@ -1,4 +1,4 @@
-// Copyright 2018 Priyank Vasa
+// Copyright 2019 Priyank Vasa
 //
 // Copyright (C) 2016 The Android Open Source Project
 //
@@ -14,13 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import org.jetbrains.kotlin.cli.jvm.main
-import org.jetbrains.kotlin.gradle.internal.CacheImplementation
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.dokka.gradle.DokkaAndroidTask
 import org.jetbrains.dokka.gradle.LinkMapping
 import org.jetbrains.dokka.gradle.SourceRoot
 import org.jetbrains.kotlin.gradle.internal.AndroidExtensionsExtension
+import org.jetbrains.kotlin.gradle.internal.CacheImplementation
 
 plugins {
     id("com.android.library")
@@ -50,7 +48,7 @@ android {
         targetSdkVersion(Config.Android.sdk)
         versionCode = Config.versionCode
         versionName = Config.versionName
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("proguard-rules.pro")
         renderscriptTargetApi = 21
     }
@@ -79,13 +77,13 @@ android {
     }
 
     sourceSets["main"].java.srcDirs(
-            "src/main/base",
-            "src/main/api9",
-            "src/main/api14",
-            "src/main/api21",
-            "src/main/api23",
-            "src/main/api24",
-            "src/main/sample"
+        "src/main/base",
+        "src/main/api9",
+        "src/main/api14",
+        "src/main/api21",
+        "src/main/api23",
+        "src/main/api24",
+        "src/main/sample"
     )
 
     compileOptions {
@@ -111,8 +109,8 @@ tasks.withType(Test::class.java) {
     systemProperty("java.util.logging.manager", "java.util.logging.LogManager")
     systemProperty("junit.jupiter.conditions.deactivate", "*")
     systemProperties = mutableMapOf<String, Any>(
-            "junit.jupiter.extensions.autodetection.enabled" to "true",
-            "junit.jupiter.testinstance.lifecycle.default" to "per_class"
+        "junit.jupiter.extensions.autodetection.enabled" to "true",
+        "junit.jupiter.testinstance.lifecycle.default" to "per_class"
     )
 }
 
@@ -120,11 +118,13 @@ dependencies {
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)
-    implementation(Config.Libs.ktxCore)
 
     // Android support
     implementation(Config.Libs.supportAnnotations)
     implementation(Config.Libs.supportTransition)
+
+    // Dependency injection
+    implementation(Config.Libs.koin)
 
     // KotlinX
     implementation(Config.Libs.coroutinesCore)

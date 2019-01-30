@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -23,7 +23,6 @@ import android.util.SparseIntArray
 import android.view.Display
 import android.view.OrientationEventListener
 import android.view.Surface
-import androidx.core.util.getOrElse
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Monitors the value returned from [Display.getRotation] and device's sensor orientation. */
@@ -66,7 +65,10 @@ internal abstract class OrientationDetector(context: Context) {
     }
 
     private fun dispatchOnDisplayOrientationChanged(rotation: Int) {
-        val displayOrientation = DISPLAY_ORIENTATIONS.getOrElse(rotation) { return }
+        val displayOrientation =
+            DISPLAY_ORIENTATIONS.get(rotation, -1)
+                .takeIf { it != -1 }
+                ?: return
         lastKnownDisplayOrientation = displayOrientation
         onDisplayOrientationChanged(displayOrientation)
     }

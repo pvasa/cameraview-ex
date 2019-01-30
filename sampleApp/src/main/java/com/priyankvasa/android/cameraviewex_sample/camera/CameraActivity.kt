@@ -1,8 +1,8 @@
-package com.priyankvasa.android.cameraviewexSample.camera
+package com.priyankvasa.android.cameraviewex_sample.camera
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import com.priyankvasa.android.cameraviewexSample.R
+import android.support.v7.app.AppCompatActivity
+import com.priyankvasa.android.cameraviewex_sample.R
 
 class CameraActivity : AppCompatActivity(), CameraInitFragment.Navigator {
 
