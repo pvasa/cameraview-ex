@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.support.v4.app.ActivityCompat
 import android.view.View
-import androidx.core.app.ActivityCompat
 import com.priyankvasa.android.cameraviewex.extension.convertDpToPixelF
 
 internal class PreviewOverlayView(context: Context) : View(context) {

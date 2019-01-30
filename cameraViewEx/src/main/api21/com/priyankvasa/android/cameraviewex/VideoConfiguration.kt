@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.media.MediaRecorder
 import android.os.Build
-import androidx.annotation.RequiresApi
+import android.support.annotation.RequiresApi
 
 /** Configuration that abstracts [MediaRecorder] parameters for video recording */
 class VideoConfiguration {

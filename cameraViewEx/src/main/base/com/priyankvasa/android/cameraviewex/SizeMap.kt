@@ -16,7 +16,7 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import androidx.collection.ArrayMap
+import android.support.v4.util.ArrayMap
 import java.util.SortedSet
 import java.util.TreeSet
 

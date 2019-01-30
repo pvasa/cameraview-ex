@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -21,12 +21,12 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
+import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
-import androidx.collection.SparseArrayCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleRegistry
 import kotlinx.coroutines.Job
 import java.io.File
 import java.util.SortedSet
@@ -290,7 +290,7 @@ internal class Camera1(
         }
     }
 
-    override fun startVideoRecording(outputFile: File, config: VideoConfiguration) =
+    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) =
         listener.onCameraError(UnsupportedOperationException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
 
     override fun pauseVideoRecording(): Boolean = false

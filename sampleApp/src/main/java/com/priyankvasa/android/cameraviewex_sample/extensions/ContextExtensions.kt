@@ -1,4 +1,4 @@
-package com.priyankvasa.android.cameraviewexSample.extensions
+package com.priyankvasa.android.cameraviewex_sample.extensions
 
 import android.content.Context
 import android.widget.Toast

@@ -65,15 +65,6 @@ See <a href="#">android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE</a></p>
 </tr>
 <tr>
 <td>
-<p><a href="camera-mode.html">cameraMode</a></p>
-</td>
-<td>
-<code><span class="keyword">var </span><span class="identifier">cameraMode</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code>
-<p>Set camera mode of operation. Supported values are <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
-</td>
-</tr>
-<tr>
-<td>
 <p><a href="current-digital-zoom.html">currentDigitalZoom</a></p>
 </td>
 <td>
@@ -102,26 +93,49 @@ See <a href="#">android.hardware.camera2.CaptureRequest.FLASH_MODE</a></p>
 </tr>
 <tr>
 <td>
-    <p><a href="is-active.html">isActive</a></p>
+<p><a href="is-active.html">isActive</a></p>
 </td>
-    <td>
-        <code><span class="keyword">val </span><span class="identifier">isActive</span><span
-                class="symbol">: </span><a
-                href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span
-                class="identifier">Boolean</span></a></code>
-        <p>Returns <code>true</code> if this <a href="./index.html">CameraView</a> instance is
-            active and usable.
-            It will <code>return</code> false after <a href="destroy.html">destroy</a> is called.
-            A new instance should be created if <a href="is-active.html">isActive</a> is false.</p>
-    </td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">isActive</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Returns <code>true</code> if this <a href="./index.html">CameraView</a> instance is active and usable.
+It will <code>return</code> false after <a href="destroy.html">destroy</a> is called.
+A new instance should be created if <a href="is-active.html">isActive</a> is false.</p>
+</td>
 </tr>
 <tr>
-    <td>
+<td>
 <p><a href="is-camera-opened.html">isCameraOpened</a></p>
 </td>
 <td>
 <code><span class="keyword">val </span><span class="identifier">isCameraOpened</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
 <p><code>true</code> if the camera is opened <code>false</code> otherwise.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="is-continuous-frame-mode-enabled.html">isContinuousFrameModeEnabled</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">isContinuousFrameModeEnabled</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Check if <a href="../-modes/-camera-mode/-c-o-n-t-i-n-u-o-u-s_-f-r-a-m-e.html">Modes.CameraMode.CONTINUOUS_FRAME</a> is enabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="is-single-capture-mode-enabled.html">isSingleCaptureModeEnabled</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">isSingleCaptureModeEnabled</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Check if <a href="../-modes/-camera-mode/-s-i-n-g-l-e_-c-a-p-t-u-r-e.html">Modes.CameraMode.SINGLE_CAPTURE</a> is enabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="is-video-capture-mode-enabled.html">isVideoCaptureModeEnabled</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">isVideoCaptureModeEnabled</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Check if <a href="../-modes/-camera-mode/-v-i-d-e-o_-c-a-p-t-u-r-e.html">Modes.CameraMode.VIDEO_CAPTURE</a> is enabled</p>
 </td>
 </tr>
 <tr>
@@ -301,20 +315,16 @@ The only critical error thrown for now is for invalid aspect ratio.</p>
 </td>
 </tr>
 <tr>
-    <td>
-        <p><a href="destroy.html">destroy</a></p>
-    </td>
-    <td>
-        <code><span class="keyword">fun </span><span class="identifier">destroy</span><span
-                class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a
-                href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
-                class="identifier">Unit</span></a></code>
-        <p>Clear all listeners, <a href="stop.html">stop</a> camera, and kill background threads.
-            Once <a href="destroy.html">destroy</a> is called, camera cannot be started.
-            A new <a href="./index.html">CameraView</a> instance must be created to use camera
-            again.
-            This is typically called from fragment's onDestroyView callback.</p>
-    </td>
+<td>
+<p><a href="destroy.html">destroy</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">destroy</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Clear all listeners, <a href="stop.html">stop</a> camera, and kill background threads.
+Once <a href="destroy.html">destroy</a> is called, camera cannot be started.
+A new <a href="./index.html">CameraView</a> instance must be created to use camera again.
+This is typically called from fragment's onDestroyView callback.</p>
+</td>
 </tr>
 <tr>
 <td>
@@ -444,6 +454,15 @@ The only critical error thrown for now is for invalid aspect ratio.</p>
 </tr>
 <tr>
 <td>
+<p><a href="set-camera-mode.html">setCameraMode</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">setCameraMode</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setCameraMode(kotlin.Int)/mode">mode</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Set camera mode of operation. Supported values are <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="set-preview-frame-listener.html">setPreviewFrameListener</a></p>
 </td>
 <td>
@@ -470,8 +489,8 @@ the device will run out of memory very quickly and force close the app.</p>
 <p><a href="start-video-recording.html">startVideoRecording</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((com.priyankvasa.android.cameraviewex.VideoConfiguration, kotlin.Unit)))/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">, </span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((com.priyankvasa.android.cameraviewex.VideoConfiguration, kotlin.Unit)))/config">config</span><span class="symbol">:</span>&nbsp;<a href="../-video-configuration/index.html"><span class="identifier">VideoConfiguration</span></a><span class="symbol">.</span><span class="symbol">(</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a>&nbsp;<span class="symbol">=</span>&nbsp;{}<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code><br/>
-<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((, kotlin.Unit)))/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">, </span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((, kotlin.Unit)))/config">config</span><span class="symbol">:</span>&nbsp;<span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">.</span><span class="symbol">(</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a>&nbsp;<span class="symbol">=</span>&nbsp;{}<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((com.priyankvasa.android.cameraviewex.VideoConfiguration, kotlin.Unit)))/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">, </span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((com.priyankvasa.android.cameraviewex.VideoConfiguration, kotlin.Unit)))/videoConfig">videoConfig</span><span class="symbol">:</span>&nbsp;<a href="../-video-configuration/index.html"><span class="identifier">VideoConfiguration</span></a><span class="symbol">.</span><span class="symbol">(</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a>&nbsp;<span class="symbol">=</span>&nbsp;{}<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code><br/>
+<code><span class="keyword">fun </span><span class="identifier">startVideoRecording</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((, kotlin.Unit)))/outputFile">outputFile</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/java/io/File.html"><span class="identifier">File</span></a><span class="symbol">, </span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$startVideoRecording(java.io.File, kotlin.Function1((, kotlin.Unit)))/videoConfig">videoConfig</span><span class="symbol">:</span>&nbsp;<span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">.</span><span class="symbol">(</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a>&nbsp;<span class="symbol">=</span>&nbsp;{}<span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
 <p>Start capturing video.</p>
 </td>
 </tr>
@@ -480,12 +499,9 @@ the device will run out of memory very quickly and force close the app.</p>
 <p><a href="stop.html">stop</a></p>
 </td>
 <td>
-    <code><span class="keyword">fun </span><span class="identifier">stop</span><span class="symbol">(</span><span
-            class="symbol">)</span><span class="symbol">: </span><a
-            href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span
-            class="identifier">Unit</span></a></code>
-    <p>Stop camera preview and close the device.
-        This is typically called from fragment's onPause callback.</p>
+<code><span class="keyword">fun </span><span class="identifier">stop</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Stop camera preview and close the device.
+This is typically called from fragment's onPause callback.</p>
 </td>
 </tr>
 <tr>

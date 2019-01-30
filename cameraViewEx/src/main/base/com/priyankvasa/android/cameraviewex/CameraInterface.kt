@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -18,10 +18,10 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.arch.lifecycle.LifecycleOwner
 import android.media.ImageReader
 import android.os.Build
-import androidx.annotation.RequiresApi
-import androidx.lifecycle.LifecycleOwner
+import android.support.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -44,7 +44,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     val isCameraOpened: Boolean
 
-    var isVideoRecording: Boolean
+    val isVideoRecording: Boolean
 
     val supportedAspectRatios: Set<AspectRatio>
 
@@ -83,7 +83,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     fun takePicture()
 
-    fun startVideoRecording(outputFile: File, config: VideoConfiguration)
+    fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration)
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean
@@ -100,9 +100,9 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
         fun onVideoRecordStarted()
         fun onVideoRecordStopped(isSuccess: Boolean)
         fun onCameraError(
-                e: Exception,
-                errorLevel: ErrorLevel = ErrorLevel.Error,
-                isCritical: Boolean = false
+            e: Exception,
+            errorLevel: ErrorLevel = ErrorLevel.Error,
+            isCritical: Boolean = false
         )
 
         @RequiresApi(Build.VERSION_CODES.KITKAT)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -20,22 +20,22 @@ package com.priyankvasa.android.cameraviewex
 
 import android.os.Build
 import android.os.Environment
+import android.support.test.espresso.Espresso.onView
+import android.support.test.espresso.IdlingRegistry
+import android.support.test.espresso.IdlingResource
+import android.support.test.espresso.NoMatchingViewException
+import android.support.test.espresso.UiController
+import android.support.test.espresso.ViewAction
+import android.support.test.espresso.ViewAssertion
+import android.support.test.espresso.assertion.ViewAssertions.matches
+import android.support.test.espresso.matcher.ViewMatchers.assertThat
+import android.support.test.espresso.matcher.ViewMatchers.isDisplayed
+import android.support.test.espresso.matcher.ViewMatchers.withId
+import android.support.test.filters.FlakyTest
+import android.support.test.rule.ActivityTestRule
+import android.support.test.runner.AndroidJUnit4
 import android.view.View
 import android.view.ViewGroup
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.IdlingRegistry
-import androidx.test.espresso.IdlingResource
-import androidx.test.espresso.NoMatchingViewException
-import androidx.test.espresso.UiController
-import androidx.test.espresso.ViewAction
-import androidx.test.espresso.ViewAssertion
-import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.matcher.ViewMatchers.assertThat
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.FlakyTest
-import androidx.test.rule.ActivityTestRule
 import com.priyankvasa.android.cameraviewex.CameraViewActions.setAspectRatio
 import com.priyankvasa.android.cameraviewex.CameraViewMatchers.hasAspectRatio
 import com.priyankvasa.android.cameraviewex.test.R

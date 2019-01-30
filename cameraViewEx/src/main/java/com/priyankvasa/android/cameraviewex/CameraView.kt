@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Priyank Vasa
+ * Copyright 2019 Priyank Vasa
  *
  * Copyright (C) 2016 The Android Open Source Project
  *
@@ -26,12 +26,12 @@ import android.media.ImageReader
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.support.annotation.RequiresApi
+import android.support.annotation.RequiresPermission
+import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
-import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresPermission
-import androidx.core.view.ViewCompat
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
@@ -107,7 +107,7 @@ class CameraView @JvmOverloads constructor(
 
         @RequiresApi(Build.VERSION_CODES.KITKAT)
         override fun onPreviewFrame(reader: ImageReader) {
-            previewFrameListener?.run { reader.acquireNextImage().use { invoke(it) } }
+            reader.acquireLatestImage()?.use { previewFrameListener?.invoke(it) }
         }
 
         override fun onPictureTaken(imageData: ByteArray) {
@@ -211,8 +211,8 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.aspectRatio.observeForever { if (camera.setAspectRatio(it)) requestLayout() }
-        config.shutter.observeForever { preview.shutterView.shutterTime = it }
+        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+        config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
@@ -225,20 +225,25 @@ class CameraView @JvmOverloads constructor(
     val isActive: Boolean get() = camera.isActive && parentJob.isActive
 
     /** `true` if the camera is opened `false` otherwise. */
-    val isCameraOpened: Boolean by camera::isCameraOpened
+    val isCameraOpened: Boolean get() = camera.isCameraOpened
 
     /** `true` if there is a video recording in progress, `false` otherwise. */
-    val isVideoRecording: Boolean by camera::isVideoRecording
+    val isVideoRecording: Boolean get() = camera.isVideoRecording
+
+    /** Check if [Modes.CameraMode.SINGLE_CAPTURE] is enabled */
+    val isSingleCaptureModeEnabled: Boolean get() = config.isSingleCaptureModeEnabled
+
+    /** Check if [Modes.CameraMode.CONTINUOUS_FRAME] is enabled */
+    val isContinuousFrameModeEnabled: Boolean get() = config.isContinuousFrameModeEnabled
+
+    /** Check if [Modes.CameraMode.VIDEO_CAPTURE] is enabled */
+    val isVideoCaptureModeEnabled: Boolean get() = config.isVideoCaptureModeEnabled
 
     /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
-    @get:Modes.CameraMode
-    @setparam:Modes.CameraMode
-    var cameraMode: Int
-        get() = config.cameraMode.value
-        set(value) {
-            if (!isUiThread()) return
-            config.cameraMode.value = value
-        }
+    fun setCameraMode(@Modes.CameraMode mode: Int) {
+        if (!isUiThread()) return
+        config.cameraMode.value = mode
+    }
 
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
@@ -492,7 +497,7 @@ class CameraView @JvmOverloads constructor(
         SavedState(
             super.onSaveInstanceState() ?: Bundle(),
             adjustViewBounds,
-            cameraMode,
+            config.cameraMode.value,
             outputFormat,
             jpegQuality,
             facing,
@@ -509,25 +514,28 @@ class CameraView @JvmOverloads constructor(
             zsl
         )
 
-    override fun onRestoreInstanceState(state: Parcelable?) = when (state) {
+    override fun onRestoreInstanceState(state: Parcelable?): Unit = when (state) {
         is SavedState -> {
             super.onRestoreInstanceState(state.superState)
             adjustViewBounds = state.adjustViewBounds
-            facing = state.facing
-            cameraMode = state.cameraMode
-            outputFormat = state.outputFormat
-            jpegQuality = state.jpegQuality
-            aspectRatio = state.ratio
-            autoFocus = state.autoFocus
-            touchToFocus = state.touchToFocus
-            pinchToZoom = state.pinchToZoom
-            currentDigitalZoom = state.currentDigitalZoom
-            awb = state.awb
-            flash = state.flash
-            opticalStabilization = state.opticalStabilization
-            noiseReduction = state.noiseReduction
-            config.shutter.value = state.shutter
-            zsl = state.zsl
+            config.apply {
+                facing.value = state.facing
+                cameraMode.value = state.cameraMode
+                outputFormat.value = state.outputFormat
+                jpegQuality.value = state.jpegQuality
+                aspectRatio.value = state.ratio
+                autoFocus.value = state.autoFocus
+                touchToFocus.value = state.touchToFocus
+                pinchToZoom.value = state.pinchToZoom
+                currentDigitalZoom.value = state.currentDigitalZoom
+                awb.value = state.awb
+                flash.value = state.flash
+                opticalStabilization.value = state.opticalStabilization
+                noiseReduction.value = state.noiseReduction
+                shutter.value = state.shutter
+                zsl.value = state.zsl
+            }
+            Unit
         }
         else -> super.onRestoreInstanceState(state)
     }
@@ -541,7 +549,7 @@ class CameraView @JvmOverloads constructor(
 
     private fun requireCameraOpened(): Boolean = isCameraOpened.also {
         if (!it) listener.onCameraError(
-            CameraViewException("Camera is already open. Call stop() first."),
+            CameraViewException("Camera is already open. Call release() first."),
             errorLevel = ErrorLevel.Warning
         )
     }
@@ -600,8 +608,11 @@ class CameraView @JvmOverloads constructor(
 
         !requireActive() || !requireCameraOpened() -> Unit
 
-        cameraMode != Modes.CameraMode.SINGLE_CAPTURE -> listener.onCameraError(
-            CameraViewException("Cannot capture still picture in camera mode $cameraMode")
+        !config.isSingleCaptureModeEnabled -> listener.onCameraError(
+            CameraViewException("Single capture mode is disabled." +
+                " Update camera mode by" +
+                " `CameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE`" +
+                " to enable and capture images.")
         )
 
         else -> camera.takePicture()
@@ -610,7 +621,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Start capturing video.
      * @param outputFile where video will be saved
-     * @param config lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
+     * @param videoConfig lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
      */
     @RequiresPermission(allOf = [
         Manifest.permission.CAMERA,
@@ -618,12 +629,15 @@ class CameraView @JvmOverloads constructor(
         Manifest.permission.RECORD_AUDIO
     ])
     @JvmOverloads
-    fun startVideoRecording(outputFile: File, config: VideoConfiguration.() -> Unit = {}): Unit = when {
+    fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration.() -> Unit = {}): Unit = when {
 
         !requireActive() || !requireCameraOpened() -> Unit
 
-        cameraMode != Modes.CameraMode.VIDEO_CAPTURE -> listener.onCameraError(
-            CameraViewException("Cannot start video recording in camera mode $cameraMode")
+        !config.isVideoCaptureModeEnabled -> listener.onCameraError(
+            CameraViewException("Video capture mode is disabled." +
+                " Update camera mode by" +
+                " `CameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE`" +
+                " to enable and capture videos.")
         )
 
         isVideoRecording -> listener.onCameraError(
@@ -631,7 +645,7 @@ class CameraView @JvmOverloads constructor(
                 " Call CameraView.stopVideoRecording() before calling start.")
         )
 
-        else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(config))
+        else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig))
     }
 
     /**
