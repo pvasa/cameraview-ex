@@ -474,10 +474,7 @@ internal open class Camera2(
             if (isCameraOpened) {
                 stop()
                 start()
-            }/* else {
-                chooseCameraIdByFacing()
-                collectCameraInfo()
-            }*/
+            }
         }
         autoFocus.observe(this@Camera2) {
             updateAf()
@@ -630,7 +627,7 @@ internal open class Camera2(
         super.stop()
         try {
             cameraOpenCloseLock.acquire()
-            releaseCaptureSession()
+            stopPreview()
             camera?.close()
             camera = null
             captureImageReader?.close()
@@ -645,7 +642,7 @@ internal open class Camera2(
         }
     }
 
-    private fun releaseCaptureSession() {
+    private fun stopPreview() {
         captureSession?.run {
             stopRepeating()
             abortCaptures()
@@ -667,7 +664,7 @@ internal open class Camera2(
         }
 
         prepareImageReaders()
-        releaseCaptureSession()
+        stopPreview()
         startPreviewCaptureSession()
         return true
     }
@@ -1200,7 +1197,7 @@ internal open class Camera2(
         }
         .also {
             listener.onVideoRecordStopped(it)
-            releaseCaptureSession()
+            stopPreview()
             startPreviewCaptureSession()
         }
 

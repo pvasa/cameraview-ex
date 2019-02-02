@@ -17,8 +17,10 @@ import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
+import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
 import com.priyankvasa.android.cameraviewex.AudioEncoder
 import com.priyankvasa.android.cameraviewex.ErrorLevel
+import com.priyankvasa.android.cameraviewex.LegacyImage
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewex_sample.R
@@ -162,9 +164,28 @@ open class CameraFragment : Fragment(), CoroutineScope {
                 }
 
             setPreviewFrameListener { image: Image ->
-                if (!decoding.get()) {
-                    decoding.set(true)
+                if (decoding.compareAndSet(false, true)) {
                     val visionImage = FirebaseVisionImage.fromMediaImage(image, 0)
+                    barcodeDetector.detectInImage(visionImage)
+                        .addOnCompleteListener { decoding.set(false) }
+                        .addOnSuccessListener(decodeSuccessListener)
+                        .addOnFailureListener { e -> Timber.e(e) }
+                }
+            }
+
+            setLegacyPreviewFrameListener { image: LegacyImage ->
+
+                if (decoding.compareAndSet(false, true)) {
+
+                    val metadata = FirebaseVisionImageMetadata.Builder()
+                        .setFormat(image.format)
+                        .setWidth(image.width)
+                        .setHeight(image.height)
+                        .build()
+
+                    val visionImage: FirebaseVisionImage =
+                        FirebaseVisionImage.fromByteArray(image.data, metadata)
+
                     barcodeDetector.detectInImage(visionImage)
                         .addOnCompleteListener { decoding.set(false) }
                         .addOnSuccessListener(decodeSuccessListener)
