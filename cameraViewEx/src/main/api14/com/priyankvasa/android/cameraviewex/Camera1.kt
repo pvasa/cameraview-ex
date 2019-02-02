@@ -20,10 +20,8 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.annotation.SuppressLint
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleRegistry
-import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
@@ -56,29 +54,9 @@ internal class Camera1(
 
     private val pictureSizes = SizeMap()
 
-    private var aspectRatio: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
-        set(value) {
-            if (field == value) return
-            field = value
-            if (isCameraOpened) {
-                stop()
-                start()
-            }
-        }
-
     private var showingPreview: Boolean = false
 
     override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
-
-    private var facing: Int = Modes.DEFAULT_FACING
-        set(value) {
-            if (field == value) return
-            field = value
-            if (isCameraOpened) {
-                stop()
-                start()
-            }
-        }
 
     override var deviceRotation: Int = 0
         set(value) {
@@ -166,13 +144,27 @@ internal class Camera1(
 
     override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
-    private fun addObservers() {
-        config.run {
-            facing.observe(this@Camera1) { this@Camera1.facing = it }
-            autoFocus.observe(this@Camera1) { this@Camera1.autoFocus = it != Modes.AutoFocus.AF_OFF }
-            flash.observe(this@Camera1) { this@Camera1.flash = it }
-            aspectRatio.observe(this@Camera1) { this@Camera1.aspectRatio = it }
+    private fun addObservers() = config.run {
+        facing.observe(this@Camera1) {
+            if (isCameraOpened) {
+                stop()
+                start()
+            }
         }
+        aspectRatio.observe(this@Camera1) {
+            if (isCameraOpened) {
+                stop()
+                start()
+            }
+        }
+        cameraMode.observe(this@Camera1) {
+            if (isCameraOpened) {
+                stop()
+                start()
+            }
+        }
+        autoFocus.observe(this@Camera1) { this@Camera1.autoFocus = it != Modes.AutoFocus.AF_OFF }
+        flash.observe(this@Camera1) { this@Camera1.flash = it }
     }
 
     override fun start(): Boolean {
@@ -193,35 +185,35 @@ internal class Camera1(
         super.stop()
         runCatching { camera?.stopPreview() }.onFailure { listener.onCameraError(it as Exception) }
         showingPreview = false
-        releaseCamera()
+        camera?.release()
+        camera = null
+        listener.onCameraClosed()
     }
 
-    // Suppresses Camera#setPreviewTexture
-    @SuppressLint("NewApi")
-    fun setUpPreview() {
-        try {
-            if (preview.outputClass === SurfaceHolder::class.java) {
-                camera?.setPreviewDisplay(preview.surfaceHolder)
-            } else {
-                camera?.setPreviewTexture(preview.surfaceTexture as SurfaceTexture)
-            }
-            lifecycleRegistry.markState(Lifecycle.State.STARTED)
-        } catch (e: Exception) {
-            listener.onCameraError(e)
+    private fun setUpPreview() {
+
+        camera.runCatching {
+            this ?: return
+            if (preview.outputClass === SurfaceHolder::class.java) setPreviewDisplay(preview.surfaceHolder)
+            else preview.surfaceTexture?.let { setPreviewTexture(it) }
+                ?: throw IllegalStateException("Surface texture not initialized!")
+            if (config.isContinuousFrameModeEnabled) setPreviewCallback(previewCallback)
         }
+            .onSuccess { lifecycleRegistry.markState(Lifecycle.State.STARTED) }
+            .onFailure { listener.onCameraError(CameraViewException(cause = it)) }
     }
 
     override fun setAspectRatio(ratio: AspectRatio): Boolean {
         if (!isCameraOpened) {
             // Handle this later when camera is opened
-            aspectRatio = ratio
+            config.aspectRatio.value = ratio
             return true
-        } else if (aspectRatio != ratio) {
+        } else if (config.aspectRatio.value != ratio) {
             val sizes = previewSizes.sizes(ratio)
             if (sizes.isEmpty()) {
                 listener.onCameraError(UnsupportedOperationException("$ratio is not supported"))
             } else {
-                aspectRatio = ratio
+                config.aspectRatio.value = ratio
                 adjustCameraParameters()
                 return true
             }
@@ -268,34 +260,40 @@ internal class Camera1(
 
     /** This rewrites [.cameraId] and [.cameraInfo]. */
     private fun chooseCamera() {
-        var i = 0
-        val count = Camera.getNumberOfCameras()
-        while (i < count) {
-            Camera.getCameraInfo(i, cameraInfo)
-            if (cameraInfo.facing == facing) {
-                cameraId = i
-                return
-            }
-            i++
+
+        (0 until Camera.getNumberOfCameras()).forEach { id ->
+            Camera.getCameraInfo(id, cameraInfo)
+            if (cameraInfo.facing != config.facing.value) return@forEach
+            cameraId = id
+            return
         }
+
         cameraId = INVALID_CAMERA_ID
+    }
+
+    private val previewCallback = Camera.PreviewCallback { data, camera ->
+        val image = LegacyImage(
+            data,
+            camera.parameters.previewSize.width,
+            camera.parameters.previewSize.height,
+            camera.parameters.previewFormat
+        )
+        listener.onLegacyPreviewFrame(image)
     }
 
     private fun openCamera() {
         try {
-            releaseCamera()
+            stop()
             camera = Camera.open(cameraId)
             cameraParameters = camera?.parameters
             // Supported preview sizes
             previewSizes.clear()
-            cameraParameters?.supportedPreviewSizes?.forEach { size ->
-                previewSizes.add(Size(size.width, size.height))
-            }
+            cameraParameters?.supportedPreviewSizes
+                ?.forEach { size -> previewSizes.add(Size(size.width, size.height)) }
             // Supported picture sizes;
             pictureSizes.clear()
-            cameraParameters?.supportedPictureSizes?.forEach { size ->
-                pictureSizes.add(Size(size.width, size.height))
-            }
+            cameraParameters?.supportedPictureSizes
+                ?.forEach { size -> pictureSizes.add(Size(size.width, size.height)) }
             adjustCameraParameters()
             camera?.setDisplayOrientation(calcDisplayOrientation(deviceRotation))
             listener.onCameraOpened()
@@ -306,26 +304,24 @@ internal class Camera1(
 
     private fun chooseAspectRatio(): AspectRatio {
         var r: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
-        for (ratio in previewSizes.ratios()) {
+        previewSizes.ratios().forEach { ratio ->
             r = ratio
-            if (ratio == Modes.DEFAULT_ASPECT_RATIO) {
-                return ratio
-            }
+            if (ratio == Modes.DEFAULT_ASPECT_RATIO) return ratio
         }
         return r
     }
 
     private fun adjustCameraParameters() {
-        var sizes = previewSizes.sizes(aspectRatio)
+        var sizes = previewSizes.sizes(config.aspectRatio.value)
         if (sizes.isEmpty()) { // Not supported
-            aspectRatio = chooseAspectRatio()
-            sizes = previewSizes.sizes(aspectRatio)
+            config.aspectRatio.value = chooseAspectRatio()
+            sizes = previewSizes.sizes(config.aspectRatio.value)
         }
         val size = chooseOptimalSize(sizes)
 
         // Always re-apply camera parameters
         // Largest picture size in this ratio
-        val pictureSize = pictureSizes.sizes(aspectRatio).last()
+        val pictureSize = pictureSizes.sizes(config.aspectRatio.value).last()
         if (showingPreview) camera?.stopPreview()
         cameraParameters?.apply {
             setPreviewSize(size.width, size.height)
@@ -334,18 +330,13 @@ internal class Camera1(
         }?.also { camera?.parameters = it }
         setAutoFocusInternal(autoFocus)
         setFlashInternal(flash)
-        try {
-            if (showingPreview) camera?.startPreview()
 
-        } catch (e: RuntimeException) {
-            listener.onCameraError(e)
-        }
+        runCatching { if (showingPreview) camera?.startPreview() }
+            .onFailure { listener.onCameraError(CameraViewException("Unable to start preview.", it)) }
     }
 
     private fun chooseOptimalSize(sizes: SortedSet<Size>): Size {
-        if (!preview.isReady) { // Not yet laid out
-            return sizes.first() // Return the smallest size
-        }
+        if (!preview.isReady) return sizes.first() // Not yet laid out. Return the smallest size.
         val desiredWidth: Int
         val desiredHeight: Int
         val surfaceWidth = preview.width
@@ -360,12 +351,6 @@ internal class Camera1(
         return sizes
             .firstOrNull { desiredWidth <= it.width && desiredHeight <= it.height }
             ?: sizes.last()
-    }
-
-    private fun releaseCamera() {
-        camera?.release()
-        camera = null
-        listener.onCameraClosed()
     }
 
     /**

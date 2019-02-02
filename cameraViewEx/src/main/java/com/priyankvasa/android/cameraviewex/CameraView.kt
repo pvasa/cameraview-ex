@@ -63,6 +63,7 @@ class CameraView @JvmOverloads constructor(
     /** Listeners for monitoring events about [CameraView]. */
     private val cameraOpenedListeners = HashSet<() -> Unit>()
     private val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
+    private var legacyPreviewFrameListener: ((image: LegacyImage) -> Unit)? = null
     private var previewFrameListener: ((image: Image) -> Unit)? = null
     private val cameraErrorListeners = HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>()
     private val cameraClosedListeners = HashSet<() -> Unit>()
@@ -103,6 +104,10 @@ class CameraView @JvmOverloads constructor(
                 }
                 cameraOpenedListeners.forEach { it() }
             }
+        }
+
+        override fun onLegacyPreviewFrame(image: LegacyImage) {
+            legacyPreviewFrameListener?.invoke(image)
         }
 
         @RequiresApi(Build.VERSION_CODES.KITKAT)
@@ -206,7 +211,7 @@ class CameraView @JvmOverloads constructor(
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config, cameraJob)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, cameraJob, context)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, cameraJob, context)
-            else -> Camera2Api24(listener, preview, config, cameraJob, context)
+            else -> Camera1(listener, preview, config, cameraJob)
         }
     }
 
@@ -703,6 +708,29 @@ class CameraView @JvmOverloads constructor(
      */
     fun removePreviewFrameListener(): CameraView {
         previewFrameListener = null
+        return this
+    }
+
+    /**
+     * Set legacy (camera1) preview frame [listener].
+     *
+     * @param listener lambda with image of type [LegacyImage] as its argument
+     * which contains the preview frame from camera1 and its metadata.
+     * The image data format stated by [LegacyImage.format] is [android.graphics.ImageFormat]
+     * @return instance of [CameraView] it is called on
+     */
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    fun setLegacyPreviewFrameListener(listener: (image: LegacyImage) -> Unit): CameraView {
+        if (this.listener.isEnabled) legacyPreviewFrameListener = listener
+        return this
+    }
+
+    /**
+     * Remove legacy (camera1) preview frame [listener].
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeLegacyPreviewFrameListener(): CameraView {
+        legacyPreviewFrameListener = null
         return this
     }
 
