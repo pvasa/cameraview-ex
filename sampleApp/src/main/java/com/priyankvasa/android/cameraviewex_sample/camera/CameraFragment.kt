@@ -225,6 +225,14 @@ open class CameraFragment : Fragment(), CoroutineScope {
 
     private fun setupView() {
 
+        val context = context ?: return
+
+        ivSettings.setOnClickListener {
+            fragmentManager?.let {
+                SettingsDialogFragment.newInstance().show(it, SettingsDialogFragment.TAG)
+            }
+        }
+
         ivFlashSwitch.setOnClickListener {
 
             @DrawableRes val flashDrawableId: Int
@@ -245,7 +253,7 @@ open class CameraFragment : Fragment(), CoroutineScope {
                 else -> return@setOnClickListener
             }
 
-            context?.let { c -> ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(c, flashDrawableId)) }
+            ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(context, flashDrawableId))
         }
 
         ivCameraMode.setOnClickListener {

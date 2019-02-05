@@ -1,5 +1,6 @@
 package com.priyankvasa.android.cameraviewex
 
+// TODO: Add docs
 data class LegacyImage(val data: ByteArray, val width: Int, val height: Int, val format: Int) {
 
     override fun equals(other: Any?): Boolean = this === other ||
