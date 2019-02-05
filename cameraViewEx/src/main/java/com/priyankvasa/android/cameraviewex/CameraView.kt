@@ -33,7 +33,6 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
-import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
@@ -88,6 +87,7 @@ class CameraView @JvmOverloads constructor(
 
         fun clear() {
             cameraOpenedListeners.clear()
+            legacyPreviewFrameListener = null
             previewFrameListener = null
             pictureTakenListeners.clear()
             cameraErrorListeners.clear()
@@ -199,7 +199,8 @@ class CameraView @JvmOverloads constructor(
                 noiseReduction.value = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
                 shutter.value = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
                 zsl.value = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
-            }.also { recycle() }
+                this@run.recycle()
+            }
         }
     }
 
@@ -211,7 +212,7 @@ class CameraView @JvmOverloads constructor(
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config, cameraJob)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, cameraJob, context)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, cameraJob, context)
-            else -> Camera1(listener, preview, config, cameraJob)
+            else -> Camera2Api24(listener, preview, config, cameraJob, context)
         }
     }
 
@@ -299,7 +300,7 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Gets all the aspect ratios supported by the current camera. */
-    val supportedAspectRatios: Set<AspectRatio> by camera::supportedAspectRatios
+    val supportedAspectRatios: Set<AspectRatio> get() = camera.supportedAspectRatios
 
     /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
     var aspectRatio: AspectRatio
@@ -339,7 +340,7 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Maximum digital zoom supported by selected camera device. */
-    val maxDigitalZoom: Float by camera::maxDigitalZoom
+    val maxDigitalZoom: Float get() = camera.maxDigitalZoom
 
     /** Set digital zoom value. Must be between 1.0f and [maxDigitalZoom] inclusive. */
     var currentDigitalZoom: Float
@@ -554,7 +555,7 @@ class CameraView @JvmOverloads constructor(
 
     private fun requireCameraOpened(): Boolean = isCameraOpened.also {
         if (!it) listener.onCameraError(
-            CameraViewException("Camera is already open. Call release() first."),
+            CameraViewException("Camera is not open. Call start() first."),
             errorLevel = ErrorLevel.Warning
         )
     }
@@ -567,12 +568,28 @@ class CameraView @JvmOverloads constructor(
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
 
-        if (!requireActive() || requireCameraOpened()) return
+        if (!requireActive()) return
+
+        if (isCameraOpened) {
+            listener.onCameraError(
+                CameraViewException("Camera is already open. Call stop() first."),
+                errorLevel = ErrorLevel.Warning
+            )
+            return
+        }
 
         if (!camera.start()) {
             // Store the state and restore this state after falling back to Camera1
             val state = onSaveInstanceState()
             camera.destroy()
+            if (camera is Camera1) {
+                listener.onCameraError(
+                    CameraViewException("Unable to use camera or camera2 api." +
+                        " Please check if the camera hardware is usable and CameraView is correctly configured."),
+                    isCritical = true
+                )
+                return
+            }
             // Device uses legacy hardware layer; fall back to Camera1
             camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
             onRestoreInstanceState(state)
@@ -590,7 +607,8 @@ class CameraView @JvmOverloads constructor(
             CameraViewException("Single capture mode is disabled." +
                 " Update camera mode by" +
                 " `CameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE`" +
-                " to enable and capture images.")
+                " to enable and capture images."),
+            isCritical = true
         )
 
         else -> camera.takePicture()
@@ -615,7 +633,8 @@ class CameraView @JvmOverloads constructor(
             CameraViewException("Video capture mode is disabled." +
                 " Update camera mode by" +
                 " `CameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE`" +
-                " to enable and capture videos.")
+                " to enable and capture videos."),
+            isCritical = true
         )
 
         isVideoRecording -> listener.onCameraError(
@@ -685,6 +704,28 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
+     * Set legacy (camera1) preview frame [listener].
+     *
+     * @param listener lambda with image of type [LegacyImage] as its argument
+     * which contains the preview frame from camera1 and its metadata.
+     * The image data format stated by [LegacyImage.format] is [android.graphics.ImageFormat]
+     * @return instance of [CameraView] it is called on
+     */
+    fun setLegacyPreviewFrameListener(listener: (image: LegacyImage) -> Unit): CameraView {
+        if (this.listener.isEnabled) legacyPreviewFrameListener = listener
+        return this
+    }
+
+    /**
+     * Remove legacy (camera1) preview frame [listener].
+     * @return instance of [CameraView] it is called on
+     */
+    fun removeLegacyPreviewFrameListener(): CameraView {
+        legacyPreviewFrameListener = null
+        return this
+    }
+
+    /**
      * Set preview frame [listener]. Be careful while using this listener as it is invoked on each frame,
      * which could be 60 times per second if frame rate is 60 fps.
      * Ideally, next frame should only be processed once current frame is done processing.
@@ -708,29 +749,6 @@ class CameraView @JvmOverloads constructor(
      */
     fun removePreviewFrameListener(): CameraView {
         previewFrameListener = null
-        return this
-    }
-
-    /**
-     * Set legacy (camera1) preview frame [listener].
-     *
-     * @param listener lambda with image of type [LegacyImage] as its argument
-     * which contains the preview frame from camera1 and its metadata.
-     * The image data format stated by [LegacyImage.format] is [android.graphics.ImageFormat]
-     * @return instance of [CameraView] it is called on
-     */
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    fun setLegacyPreviewFrameListener(listener: (image: LegacyImage) -> Unit): CameraView {
-        if (this.listener.isEnabled) legacyPreviewFrameListener = listener
-        return this
-    }
-
-    /**
-     * Remove legacy (camera1) preview frame [listener].
-     * @return instance of [CameraView] it is called on
-     */
-    fun removeLegacyPreviewFrameListener(): CameraView {
-        legacyPreviewFrameListener = null
         return this
     }
 
