@@ -647,8 +647,12 @@ internal open class Camera2(
 
     private fun releaseCaptureSession() {
         captureSession?.run {
-            stopRepeating()
-            abortCaptures()
+            try {
+                stopRepeating()
+                abortCaptures()
+            } catch (e: Exception) {
+                // Fails if the camera is already closed but doesn't prevent continuing
+            }
             close()
         }
         captureSession = null
