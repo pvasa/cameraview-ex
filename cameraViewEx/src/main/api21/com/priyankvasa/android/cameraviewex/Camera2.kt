@@ -261,7 +261,7 @@ internal open class Camera2(
         image.close()
     }
 
-    private lateinit var cameraId: String
+    private var cameraId: String = Modes.DEFAULT_FACING.toString()
 
     private lateinit var cameraCharacteristics: CameraCharacteristics
 
@@ -641,7 +641,7 @@ internal open class Camera2(
      */
     override fun start(cameraId: Int): Boolean {
         cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
-        if (!chooseCameraById(cameraId.toString())) return false
+        if (!chooseCameraById(cameraId)) return false
         if (backgroundThread == null || backgroundHandler == null) {
             stopBackgroundThread()
             startBackgroundThread()
@@ -779,29 +779,35 @@ internal open class Camera2(
         // We treat it as facing back.
         config.facing.value = Modes.Facing.FACING_BACK
         return@runCatching true
+    }.getOrElse {
+        listener.onCameraError(CameraViewException("Failed to get a list of camera devices", it))
+        return@getOrElse false
+    }.also {
+        if (it) videoManager.setCameraCharacteristics(cameraCharacteristics)
     }
-        .getOrElse {
-            listener.onCameraError(CameraViewException("Failed to get a list of camera devices", it))
-            return@getOrElse false
-        }
-        .also { if (it) videoManager.setCameraCharacteristics(cameraCharacteristics) }
 
     /**
      * This will choose a camera based on a passed in cameraId
      * Called from [start(cameraId)]
      */
-    private fun chooseCameraById(cameraId: String): Boolean {
-        if (cameraManager.cameraIdList.contains(cameraId)) {
-            val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
-            val level = cameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+    private fun chooseCameraById(cameraId: Int): Boolean = runCatching {
+        if (cameraManager.cameraIdList.contains(cameraId.toString())) {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId.toString())
+            val level = characteristics.get(
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
             if (level != null &&
                     level != CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
-                this.cameraId = cameraId
-                this.cameraCharacteristics = cameraCharacteristics
-                return true
+                this.cameraId = cameraId.toString()
+                cameraCharacteristics = characteristics
+                return@runCatching true
             }
         }
-        return false
+        return chooseCameraIdByFacing()
+    }.getOrElse {
+        listener.onCameraError(CameraViewException("Failed to get a list of camera devices", it))
+        return@getOrElse false
+    }.also {
+        if (it) videoManager.setCameraCharacteristics(cameraCharacteristics)
     }
 
     /**
