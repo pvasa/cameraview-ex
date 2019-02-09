@@ -17,4 +17,8 @@
 
     </style>
 
+    <style name="Dialog.Settings" parent="Theme.AppCompat.Dialog.MinWidth">
+        <item name="dialogCornerRadius">6dp</item>
+    </style>
+
 </resources>

@@ -25,7 +25,6 @@ import android.arch.lifecycle.LifecycleRegistry
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Rect
-import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
@@ -126,7 +125,10 @@ internal open class Camera2(
 
         override fun onError(camera: CameraDevice, error: Int) {
             cameraOpenCloseLock.release()
-            listener.onCameraError(CameraViewException("Error opening camera with id ${camera.id} (error: $error)"))
+            listener.onCameraError(
+                CameraViewException("Error opening camera with id ${camera.id} (error: $error)"),
+                isCritical = true
+            )
             this@Camera2.camera = null
         }
     }
@@ -474,10 +476,7 @@ internal open class Camera2(
             if (isCameraOpened) {
                 stop()
                 start()
-            }/* else {
-                chooseCameraIdByFacing()
-                collectCameraInfo()
-            }*/
+            }
         }
         autoFocus.observe(this@Camera2) {
             updateAf()
@@ -630,7 +629,7 @@ internal open class Camera2(
         super.stop()
         try {
             cameraOpenCloseLock.acquire()
-            releaseCaptureSession()
+            stopPreview()
             camera?.close()
             camera = null
             captureImageReader?.close()
@@ -645,7 +644,7 @@ internal open class Camera2(
         }
     }
 
-    private fun releaseCaptureSession() {
+    private fun stopPreview() {
         captureSession?.run {
             stopRepeating()
             abortCaptures()
@@ -667,7 +666,7 @@ internal open class Camera2(
         }
 
         prepareImageReaders()
-        releaseCaptureSession()
+        stopPreview()
         startPreviewCaptureSession()
         return true
     }
@@ -688,13 +687,11 @@ internal open class Camera2(
             }
         }
 
-        if (!isRatioValid) {
-            val e = IllegalArgumentException(
-                "Aspect ratio $this is not supported by this device." +
-                    " Valid ratios are $sbRatios. Refer CameraView.supportedAspectRatios"
-            )
-            listener.onCameraError(e, isCritical = true)
-        }
+        if (!isRatioValid) listener.onCameraError(
+            CameraViewException("Aspect ratio $this is not supported by this device." +
+                " Valid ratios are $sbRatios. Refer CameraView.supportedAspectRatios"),
+            isCritical = true
+        )
 
         return isRatioValid
     }
@@ -712,7 +709,7 @@ internal open class Camera2(
     private fun chooseCameraIdByFacing(): Boolean = runCatching {
 
         cameraManager.cameraIdList.run {
-            ifEmpty { throw CameraViewException("No camera available.") }
+            ifEmpty { throw IllegalStateException("No camera available.") }
             forEach { id ->
                 val characteristics = cameraManager.getCameraCharacteristics(id)
                 val level = characteristics.get(
@@ -770,7 +767,7 @@ internal open class Camera2(
 
         val map = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             ?: run {
-                listener.onCameraError(IllegalStateException("Failed to get configuration map for camera id $cameraId"))
+                listener.onCameraError(CameraViewException("Failed to get configuration map for camera id $cameraId"))
                 return
             }
 
@@ -830,15 +827,13 @@ internal open class Camera2(
     /** Starts opening a camera device. The result will be processed in [cameraDeviceCallback]. */
     @SuppressLint("MissingPermission")
     private fun startOpeningCamera() {
-        try {
-            cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler)
-        } catch (e: CameraAccessException) {
-            listener.onCameraError(CameraViewException("Failed to open camera with id $cameraId", e))
-        } catch (e: IllegalArgumentException) {
-            listener.onCameraError(CameraViewException("Failed to open camera with id $cameraId", e))
-        } catch (e: SecurityException) {
-            listener.onCameraError(CameraViewException("Camera permissions not granted", e))
-        }
+        runCatching { cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler) }
+            .onFailure { t ->
+                when (t) {
+                    is SecurityException -> listener.onCameraError(CameraViewException("Camera permissions not granted", t))
+                    else -> listener.onCameraError(CameraViewException("Failed to open camera with id $cameraId", t))
+                }
+            }
     }
 
     /**
@@ -869,7 +864,7 @@ internal open class Camera2(
 
         val surfaces: MutableList<Surface> = runCatching { setupSurfaces(previewRequestBuilder) }
             .getOrElse {
-                listener.onCameraError(CameraViewException(cause = it))
+                listener.onCameraError(CameraViewException("Unable to setup surfaces.", it))
                 return
             }
 
@@ -898,7 +893,11 @@ internal open class Camera2(
         // Setup capture image reader surface
         if (config.isSingleCaptureModeEnabled) captureImageReader?.surface
             ?.let { surfaces.add(it) }
-            ?: listener.onCameraError(CameraViewException("Capture image reader surface not available. Image capture is not available."))
+            ?: listener.onCameraError(
+                CameraViewException("Could not retrieve capture image reader surface." +
+                    " Image capture is not available."),
+                ErrorLevel.Warning
+            )
 
         // Setup preview image reader surface
         if (config.isContinuousFrameModeEnabled) previewImageReader?.surface
@@ -906,7 +905,11 @@ internal open class Camera2(
                 surfaces.add(it)
                 captureRequestBuilder.addTarget(it)
             }
-            ?: listener.onCameraError(CameraViewException("Preview image reader surface not available. Preview frames are not available."))
+            ?: listener.onCameraError(
+                CameraViewException("Could not retrieve preview image reader surface." +
+                    " Preview frames are not available."),
+                ErrorLevel.Warning
+            )
 
         if (shouldAddMediaRecorderSurface && config.isVideoCaptureModeEnabled)
             runCatching { videoManager.getRecorderSurface() }
@@ -914,7 +917,16 @@ internal open class Camera2(
                     surfaces.add(it)
                     captureRequestBuilder.addTarget(it)
                 }
-                .onFailure { listener.onCameraError(CameraViewException("Media recorder surface not available. Video recording is not available.", it)) }
+                .onFailure {
+                    listener.onCameraError(
+                        CameraViewException(
+                            message = "Could not retrieve media recorder surface." +
+                                " Video recording is not available.",
+                            cause = it
+                        ),
+                        ErrorLevel.Warning
+                    )
+                }
 
         return surfaces
     }
@@ -1082,7 +1094,7 @@ internal open class Camera2(
     private val outputOrientation: Int
         get() {
             val cameraSensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
-                ?: throw CameraViewException("Camera characteristics not available")
+                ?: throw IllegalStateException("Camera characteristics not available")
 
             return (cameraSensorOrientation
                 + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
@@ -1094,7 +1106,7 @@ internal open class Camera2(
 
         try {
             val surface = captureImageReader?.surface
-                ?: throw CameraViewException("Image reader surface not available")
+                ?: throw IllegalStateException("Image reader surface not available")
 
             val template = when {
                 videoManager.isVideoRecording -> CameraDevice.TEMPLATE_VIDEO_SNAPSHOT
@@ -1153,7 +1165,7 @@ internal open class Camera2(
             )
         }
             .onFailure {
-                listener.onCameraError(CameraViewException(cause = it))
+                listener.onCameraError(CameraViewException("Unable to start video recording.", it))
                 return
             }
 
@@ -1166,7 +1178,7 @@ internal open class Camera2(
 
         runCatching { videoManager.setupVideoRequestBuilder(previewRequestBuilder, config, videoConfig) }
             .onFailure {
-                listener.onCameraError(CameraViewException(cause = it))
+                listener.onCameraError(CameraViewException("Unable to start video recording.", it))
                 return
             }
 
@@ -1176,7 +1188,7 @@ internal open class Camera2(
                 shouldAddMediaRecorderSurface = true
             )
         }.getOrElse {
-            listener.onCameraError(CameraViewException(cause = it))
+            listener.onCameraError(CameraViewException("Unable to start video recording.", it))
             return
         }
 
@@ -1184,23 +1196,23 @@ internal open class Camera2(
     }
 
     override fun pauseVideoRecording(): Boolean {
-        listener.onCameraError(UnsupportedOperationException("Video pausing and resuming is only supported on API 24 and higher"))
+        listener.onCameraError(CameraViewException("Video pausing and resuming is only supported on API 24 and higher"))
         return false
     }
 
     override fun resumeVideoRecording(): Boolean {
-        listener.onCameraError(UnsupportedOperationException("Video pausing and resuming is only supported on API 24 and higher"))
+        listener.onCameraError(CameraViewException("Video pausing and resuming is only supported on API 24 and higher"))
         return false
     }
 
     override fun stopVideoRecording(): Boolean = runCatching { videoManager.stopVideoRecording() }
         .getOrElse {
-            listener.onCameraError(CameraViewException(cause = it))
+            listener.onCameraError(CameraViewException("Unable to stop video recording.", it))
             false
         }
         .also {
             listener.onVideoRecordStopped(it)
-            releaseCaptureSession()
+            stopPreview()
             startPreviewCaptureSession()
         }
 
