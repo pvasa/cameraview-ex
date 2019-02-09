@@ -39,7 +39,7 @@
 -dontnote android.os.Build.VERSION.**
 
 # Project
--dontnote com.priyankvasa.android.cameraviewexSample.**
+-dontnote com.priyankvasa.android.cameraviewex_sample.**
 
 # Sample app
--dontwarn com.priyankvasa.android.cameraviewexSample.camera.**
+-dontwarn com.priyankvasa.android.cameraviewex_sample.camera.**
