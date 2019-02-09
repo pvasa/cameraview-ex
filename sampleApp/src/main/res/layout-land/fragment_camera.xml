@@ -11,6 +11,16 @@
     tools:ignore="ContentDescription">
 
     <ImageView
+        android:id="@+id/ivSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:padding="18dp"
+        android:src="@drawable/ic_settings_white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
         android:id="@+id/ivFlashSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -18,7 +28,7 @@
         android:padding="18dp"
         android:src="@drawable/ic_flash_auto"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/ivSettings" />
 
     <ImageView
         android:id="@+id/ivCameraMode"

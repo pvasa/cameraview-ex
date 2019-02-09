@@ -20,9 +20,6 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Glide
--dontnote com.bumptech.glide.**
-
 # Google
 -dontnote com.google.android.**
 -dontnote com.google.android.gms.**
@@ -32,6 +29,9 @@
 -dontnote kotlin.internal.**
 -dontnote kotlin.jvm.internal.**
 -dontnote kotlin.coroutines.**
+
+-dontnote .R
+-dontnote android.os.Build.VERSION.**
 
 # Project
 -dontnote com.priyankvasa.android.cameraviewexSample.**
