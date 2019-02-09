@@ -60,14 +60,14 @@ class CameraView @JvmOverloads constructor(
     private val preview = createPreview(context)
 
     /** Listeners for monitoring events about [CameraView]. */
-    private val cameraOpenedListeners = HashSet<() -> Unit>()
-    private val pictureTakenListeners = HashSet<(imageData: ByteArray) -> Unit>()
+    private val cameraOpenedListeners by lazy { HashSet<() -> Unit>() }
+    private val pictureTakenListeners by lazy { HashSet<(imageData: ByteArray) -> Unit>() }
     private var legacyPreviewFrameListener: ((image: LegacyImage) -> Unit)? = null
     private var previewFrameListener: ((image: Image) -> Unit)? = null
-    private val cameraErrorListeners = HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>()
-    private val cameraClosedListeners = HashSet<() -> Unit>()
-    private val videoRecordStartedListeners = HashSet<() -> Unit>()
-    private val videoRecordStoppedListeners = HashSet<(isSuccess: Boolean) -> Unit>()
+    private val cameraErrorListeners by lazy { HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>() }
+    private val cameraClosedListeners by lazy { HashSet<() -> Unit>() }
+    private val videoRecordStartedListeners by lazy { HashSet<() -> Unit>() }
+    private val videoRecordStoppedListeners by lazy { HashSet<(isSuccess: Boolean) -> Unit>() }
 
     private val listener = object : CameraInterface.Listener {
 
@@ -181,23 +181,31 @@ class CameraView @JvmOverloads constructor(
 
                 facing.value = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
                 aspectRatio.value = getString(R.styleable.CameraView_aspectRatio)
-                    .run ar@{
+                    .runCatching ar@{
                         if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
                         else AspectRatio.parse(this@ar)
                     }
+                    .getOrElse {
+                        listener.onCameraError(CameraViewException(
+                            "Invalid aspect ratio." +
+                                " Reverting to default ${Modes.DEFAULT_ASPECT_RATIO}",
+                            it
+                        ))
+                        Modes.DEFAULT_ASPECT_RATIO
+                    }
                 autoFocus.value = getInt(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
                 flash.value = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
-
-                // API 21+
                 cameraMode.value = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
                 outputFormat.value = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
+                shutter.value = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
+
+                // API 21+
                 jpegQuality.value = getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
                 touchToFocus.value = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
                 pinchToZoom.value = getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
                 awb.value = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
                 opticalStabilization.value = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
                 noiseReduction.value = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
-                shutter.value = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
                 zsl.value = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
                 this@run.recycle()
             }
@@ -578,23 +586,34 @@ class CameraView @JvmOverloads constructor(
             return
         }
 
-        if (!camera.start()) {
-            // Store the state and restore this state after falling back to Camera1
-            val state = onSaveInstanceState()
-            camera.destroy()
-            if (camera is Camera1) {
-                listener.onCameraError(
-                    CameraViewException("Unable to use camera or camera2 api." +
-                        " Please check if the camera hardware is usable and CameraView is correctly configured."),
-                    isCritical = true
-                )
-                return
-            }
-            // Device uses legacy hardware layer; fall back to Camera1
-            camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
-            onRestoreInstanceState(state)
-            camera.start()
-        }
+        // Save original state and restore later if camera falls back to using Camera1
+        val state: Parcelable? = onSaveInstanceState()
+
+        if (camera.start()) return // Camera started successfully, return.
+
+        // This camera instance is no longer useful, destroy it.
+        camera.destroy()
+
+        // Already tried using Camera1 api, return.
+        // Errors leading to this situation are already posted from Camera1 api
+        if (camera is Camera1) return
+
+        // Device uses legacy hardware layer; fall back to Camera1
+        camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
+
+        // Restore original state
+        onRestoreInstanceState(state)
+
+        // Try to start camera again using Camera1 api
+        // Return if successful
+        if (camera.start()) return
+
+        // Unable to start camera using any api. Post a critical error.
+        listener.onCameraError(
+            CameraViewException("Unable to use camera or camera2 api." +
+                " Please check if the camera hardware is usable and CameraView is correctly configured."),
+            isCritical = true
+        )
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
@@ -639,7 +658,8 @@ class CameraView @JvmOverloads constructor(
 
         isVideoRecording -> listener.onCameraError(
             CameraViewException("Video recording already in progress." +
-                " Call CameraView.stopVideoRecording() before calling start.")
+                " Call CameraView.stopVideoRecording() before calling start."),
+            ErrorLevel.Warning
         )
 
         else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig))

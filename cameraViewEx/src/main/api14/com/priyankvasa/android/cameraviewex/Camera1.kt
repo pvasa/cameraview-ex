@@ -43,26 +43,28 @@ internal class Camera1(
 
     private var cameraId: Int = Modes.Facing.FACING_BACK
 
-    private val isPictureCaptureInProgress = AtomicBoolean(false)
+    private val isPictureCaptureInProgress: AtomicBoolean by lazy { AtomicBoolean(false) }
 
     var camera: Camera? = null
 
-    private val previewCallback = Camera.PreviewCallback { data, camera ->
-        if (!isCameraOpened) return@PreviewCallback
-        val image = LegacyImage(
-            data,
-            camera.parameters.previewSize.width,
-            camera.parameters.previewSize.height,
-            camera.parameters.previewFormat
-        )
-        listener.onLegacyPreviewFrame(image)
+    private val previewCallback: Camera.PreviewCallback by lazy {
+        Camera.PreviewCallback { data, camera ->
+            if (!isCameraOpened) return@PreviewCallback
+            val image = LegacyImage(
+                data,
+                camera.parameters.previewSize.width,
+                camera.parameters.previewSize.height,
+                camera.parameters.previewFormat
+            )
+            listener.onLegacyPreviewFrame(image)
+        }
     }
 
-    private val cameraInfo = Camera.CameraInfo()
+    private val cameraInfo: Camera.CameraInfo by lazy { Camera.CameraInfo() }
 
-    private val previewSizes = SizeMap()
+    private val previewSizes: SizeMap by lazy { SizeMap() }
 
-    private val pictureSizes = SizeMap()
+    private val pictureSizes: SizeMap by lazy { SizeMap() }
 
     private var showingPreview: Boolean = false
 
@@ -117,9 +119,11 @@ internal class Camera1(
             } else field = value
         }
 
-    private val previewSurfaceChangedListener: () -> Unit = {
-        setUpPreview()
-        adjustCameraParameters()
+    private val previewSurfaceChangedListener: () -> Unit by lazy {
+        {
+            setUpPreview()
+            adjustCameraParameters()
+        }
     }
 
     init {
@@ -159,7 +163,7 @@ internal class Camera1(
         showingPreview = true
         true
     }.getOrElse {
-        listener.onCameraError(CameraViewException(cause = it))
+        listener.onCameraError(CameraViewException("Unable to start preview.", it))
         false
     }
 
@@ -168,7 +172,7 @@ internal class Camera1(
         camera?.stopPreview()
         true
     }.getOrElse {
-        listener.onCameraError(CameraViewException(cause = it))
+        listener.onCameraError(CameraViewException("Unable to stop preview.", it))
         false
     }
 
@@ -190,7 +194,7 @@ internal class Camera1(
                 ?: throw IllegalStateException("Surface texture not initialized!")
             lifecycleRegistry.markState(Lifecycle.State.STARTED)
         }
-            .onFailure { listener.onCameraError(CameraViewException(cause = it)) }
+            .onFailure { listener.onCameraError(CameraViewException("Unable to setup preview.", it)) }
     }
 
     private fun updateCameraParams(func: Camera.Parameters.() -> Unit): Boolean =
@@ -198,7 +202,7 @@ internal class Camera1(
             camera?.parameters = camera?.parameters?.apply(func)
             true
         }.getOrElse {
-            listener.onCameraError(CameraViewException(cause = it))
+            listener.onCameraError(CameraViewException("Unable to update camera parameters.", it))
             false
         }
 
@@ -207,7 +211,7 @@ internal class Camera1(
         if (!isCameraOpened) return true
         val sizes = previewSizes.sizes(ratio)
         if (sizes.isEmpty()) {
-            listener.onCameraError(UnsupportedOperationException("$ratio is not supported"))
+            listener.onCameraError(CameraViewException("Ratio $ratio is not supported"))
             return false
         }
         adjustCameraParameters()
@@ -216,7 +220,7 @@ internal class Camera1(
 
     override fun takePicture() {
         if (!isCameraOpened) {
-            listener.onCameraError(IllegalStateException("Camera is not ready. Call start() before capture()."))
+            listener.onCameraError(CameraViewException("Camera is not ready. Call start() before capture()."))
             return
         }
         try {
@@ -227,7 +231,7 @@ internal class Camera1(
                 takePictureInternal()
             }
         } catch (e: RuntimeException) {
-            listener.onCameraError(e)
+            listener.onCameraError(CameraViewException("Unable to capture picture.", e))
         }
     }
 
@@ -255,7 +259,7 @@ internal class Camera1(
     }
 
     override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) =
-        listener.onCameraError(UnsupportedOperationException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
+        listener.onCameraError(CameraViewException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
 
     override fun pauseVideoRecording(): Boolean = false
 
@@ -291,7 +295,7 @@ internal class Camera1(
             camera?.setDisplayOrientation(calcDisplayOrientation(deviceRotation))
             listener.onCameraOpened()
         } catch (e: RuntimeException) {
-            listener.onCameraError(e)
+            listener.onCameraError(CameraViewException("Unable to open camera.", e), isCritical = true)
         }
     }
 
@@ -420,14 +424,13 @@ internal class Camera1(
 
         private const val INVALID_CAMERA_ID = -1
 
-        private val FLASH_MODES = SparseArrayCompat<String>()
-
-        init {
-            FLASH_MODES.put(Modes.Flash.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
-            FLASH_MODES.put(Modes.Flash.FLASH_ON, Camera.Parameters.FLASH_MODE_ON)
-            FLASH_MODES.put(Modes.Flash.FLASH_TORCH, Camera.Parameters.FLASH_MODE_TORCH)
-            FLASH_MODES.put(Modes.Flash.FLASH_AUTO, Camera.Parameters.FLASH_MODE_AUTO)
-            FLASH_MODES.put(Modes.Flash.FLASH_RED_EYE, Camera.Parameters.FLASH_MODE_RED_EYE)
-        }
+        private val FLASH_MODES: SparseArrayCompat<String> = SparseArrayCompat<String>()
+            .apply {
+                put(Modes.Flash.FLASH_OFF, Camera.Parameters.FLASH_MODE_OFF)
+                put(Modes.Flash.FLASH_ON, Camera.Parameters.FLASH_MODE_ON)
+                put(Modes.Flash.FLASH_TORCH, Camera.Parameters.FLASH_MODE_TORCH)
+                put(Modes.Flash.FLASH_AUTO, Camera.Parameters.FLASH_MODE_AUTO)
+                put(Modes.Flash.FLASH_RED_EYE, Camera.Parameters.FLASH_MODE_RED_EYE)
+            }
     }
 }

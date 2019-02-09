@@ -60,7 +60,7 @@ internal suspend fun Image.decode(
             else -> throw IllegalArgumentException("Output format $outputFormat is invalid.")
         }
 
-        else -> throw IllegalArgumentException("${image.format} is not supported.")
+        else -> throw IllegalArgumentException("Image format ${image.format} is not supported.")
     }
 }
 
