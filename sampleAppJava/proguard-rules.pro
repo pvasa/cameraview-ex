@@ -37,3 +37,9 @@
 -dontnote kotlin.jvm.internal.**
 -dontnote .R
 -dontnote android.os.Build.VERSION.**
+
+# Project
+-dontnote com.priyankvasa.android.cameraviewexSample.**
+
+# Sample app
+-dontwarn com.priyankvasa.android.cameraviewexSample.camera.**
