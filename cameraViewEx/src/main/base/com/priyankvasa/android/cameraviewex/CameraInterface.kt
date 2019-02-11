@@ -78,10 +78,8 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration)
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun resumeVideoRecording(): Boolean
 
     fun stopVideoRecording(): Boolean

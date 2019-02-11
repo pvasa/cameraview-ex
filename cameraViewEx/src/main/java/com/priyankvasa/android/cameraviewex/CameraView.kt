@@ -180,7 +180,7 @@ class CameraView @JvmOverloads constructor(
             CameraConfiguration().apply {
 
                 facing.value = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
-                aspectRatio.value = getString(R.styleable.CameraView_aspectRatio)
+                aspectRatio = getString(R.styleable.CameraView_aspectRatio)
                     .runCatching ar@{
                         if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
                         else AspectRatio.parse(this@ar)
@@ -225,7 +225,7 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+        config.observeAspectRatio(camera) { if (camera.setAspectRatio(it)) requestLayout() }
         config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
     }
 
@@ -255,7 +255,7 @@ class CameraView @JvmOverloads constructor(
 
     /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
     fun setCameraMode(@Modes.CameraMode mode: Int) {
-        if (!isUiThread()) return
+        if (!requireInUiThread()) return
         config.cameraMode.value = mode
     }
 
@@ -265,7 +265,7 @@ class CameraView @JvmOverloads constructor(
      */
     var adjustViewBounds: Boolean = false
         set(value) {
-            if (value == field || !isUiThread()) return
+            if (value == field || !requireInUiThread()) return
             field = value
             requestLayout()
         }
@@ -279,7 +279,7 @@ class CameraView @JvmOverloads constructor(
     var outputFormat: Int
         get() = config.outputFormat.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.outputFormat.value = value
         }
 
@@ -293,7 +293,7 @@ class CameraView @JvmOverloads constructor(
     var jpegQuality: Int
         get() = config.jpegQuality.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.jpegQuality.value = value
         }
 
@@ -303,20 +303,12 @@ class CameraView @JvmOverloads constructor(
     var facing: Int
         get() = config.facing.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.facing.value = value
         }
 
     /** Gets all the aspect ratios supported by the current camera. */
     val supportedAspectRatios: Set<AspectRatio> get() = camera.supportedAspectRatios
-
-    /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio
-        get() = config.aspectRatio.value
-        set(value) {
-            if (!isUiThread()) return
-            config.aspectRatio.value = value
-        }
 
     /**
      * Set auto focus mode for selected camera. Supported modes are [Modes.AutoFocus].
@@ -327,7 +319,7 @@ class CameraView @JvmOverloads constructor(
     var autoFocus: Int
         get() = config.autoFocus.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.autoFocus.value = value
         }
 
@@ -335,7 +327,7 @@ class CameraView @JvmOverloads constructor(
     var touchToFocus: Boolean
         get() = config.touchToFocus.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.touchToFocus.value = value
         }
 
@@ -343,7 +335,7 @@ class CameraView @JvmOverloads constructor(
     var pinchToZoom: Boolean
         get() = config.pinchToZoom.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.pinchToZoom.value = value
         }
 
@@ -354,7 +346,7 @@ class CameraView @JvmOverloads constructor(
     var currentDigitalZoom: Float
         get() = config.currentDigitalZoom.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.currentDigitalZoom.value = value
         }
 
@@ -367,7 +359,7 @@ class CameraView @JvmOverloads constructor(
     var awb: Int
         get() = config.awb.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.awb.value = value
         }
 
@@ -380,7 +372,7 @@ class CameraView @JvmOverloads constructor(
     var flash: Int
         get() = config.flash.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.flash.value = value
         }
 
@@ -391,7 +383,7 @@ class CameraView @JvmOverloads constructor(
     var opticalStabilization: Boolean
         get() = config.opticalStabilization.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.opticalStabilization.value = value
         }
 
@@ -404,7 +396,7 @@ class CameraView @JvmOverloads constructor(
     var noiseReduction: Int
         get() = config.noiseReduction.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.noiseReduction.value = value
         }
 
@@ -414,7 +406,7 @@ class CameraView @JvmOverloads constructor(
     var shutter: Int
         get() = config.shutter.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.shutter.value = value
         }
 
@@ -425,7 +417,7 @@ class CameraView @JvmOverloads constructor(
     var zsl: Boolean
         get() = config.zsl.value
         set(value) {
-            if (!isUiThread()) return
+            if (!requireInUiThread()) return
             config.zsl.value = value
         }
 
@@ -455,12 +447,12 @@ class CameraView @JvmOverloads constructor(
                 return
             }
 
-            val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
-            val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
+            val widthMode: Int = View.MeasureSpec.getMode(widthMeasureSpec)
+            val heightMode: Int = View.MeasureSpec.getMode(heightMeasureSpec)
 
             if (widthMode == View.MeasureSpec.EXACTLY && heightMode != View.MeasureSpec.EXACTLY) {
-                val ratio = aspectRatio
-                var height = (View.MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
+                val ratio: AspectRatio = config.aspectRatio
+                var height: Int = (View.MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
                 if (heightMode == View.MeasureSpec.AT_MOST) {
                     height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
                 }
@@ -469,8 +461,8 @@ class CameraView @JvmOverloads constructor(
                     View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
                 )
             } else if (widthMode != View.MeasureSpec.EXACTLY && heightMode == View.MeasureSpec.EXACTLY) {
-                val ratio = aspectRatio
-                var width = (View.MeasureSpec.getSize(heightMeasureSpec) * ratio.toFloat()).toInt()
+                val ratio: AspectRatio = config.aspectRatio
+                var width: Int = (View.MeasureSpec.getSize(heightMeasureSpec) * ratio.toFloat()).toInt()
                 if (widthMode == View.MeasureSpec.AT_MOST) {
                     width = Math.min(width, View.MeasureSpec.getSize(widthMeasureSpec))
                 }
@@ -484,9 +476,9 @@ class CameraView @JvmOverloads constructor(
         }
 
         // Measure the TextureView
-        val width = measuredWidth
-        val height = measuredHeight
-        var ratio = aspectRatio
+        val width: Int = measuredWidth
+        val height: Int = measuredHeight
+        var ratio: AspectRatio = config.aspectRatio
 
         if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
@@ -515,7 +507,7 @@ class CameraView @JvmOverloads constructor(
             outputFormat,
             jpegQuality,
             facing,
-            aspectRatio,
+            config.aspectRatio,
             autoFocus,
             touchToFocus,
             pinchToZoom,
@@ -537,7 +529,7 @@ class CameraView @JvmOverloads constructor(
                 cameraMode.value = state.cameraMode
                 outputFormat.value = state.outputFormat
                 jpegQuality.value = state.jpegQuality
-                aspectRatio.value = state.ratio
+                aspectRatio = state.ratio
                 autoFocus.value = state.autoFocus
                 touchToFocus.value = state.touchToFocus
                 pinchToZoom.value = state.pinchToZoom
@@ -567,6 +559,8 @@ class CameraView @JvmOverloads constructor(
             errorLevel = ErrorLevel.Warning
         )
     }
+
+    fun config(configBlock: CameraConfiguration.() -> Unit = {}): CameraConfiguration = config.apply(configBlock)
 
     /**
      * Open a camera device and start showing camera preview. This is typically called from
@@ -668,6 +662,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Pause video recording
      * @return true if the video was paused false otherwise
+     * Note: Always returns false on API < 24
      */
     @RequiresApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean = camera.pauseVideoRecording()
@@ -675,6 +670,7 @@ class CameraView @JvmOverloads constructor(
     /**
      * Resume video recording
      * @return true if the video was resumed false otherwise
+     * Note: Always returns false on API < 24
      */
     @RequiresApi(Build.VERSION_CODES.N)
     fun resumeVideoRecording(): Boolean = camera.resumeVideoRecording()
@@ -880,14 +876,6 @@ class CameraView @JvmOverloads constructor(
         listener.clear()
     }
 
-    private fun isUiThread(): Boolean = Thread.currentThread().isUiThread
-        .also {
-            if (!it) listener.onCameraError(
-                CameraViewException("CameraView configuration must only be updated from UI thread."),
-                isCritical = true
-            )
-        }
-
     @Parcelize
     internal data class SavedState(
         val parcelable: Parcelable,
@@ -909,3 +897,7 @@ class CameraView @JvmOverloads constructor(
         val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
 }
+
+@JvmSynthetic
+internal fun requireInUiThread(): Boolean = Thread.currentThread().isUiThread
+    .also { if (!it) throw CameraViewException("This task needs to be executed in UI thread.") }

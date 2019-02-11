@@ -10,6 +10,7 @@ import android.os.Environment
 import android.support.annotation.DrawableRes
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
+import android.support.v4.app.FragmentManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +20,7 @@ import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
-import com.priyankvasa.android.cameraviewex.AudioEncoder
+import com.priyankvasa.android.cameraviewex.AspectRatio
 import com.priyankvasa.android.cameraviewex.ErrorLevel
 import com.priyankvasa.android.cameraviewex.LegacyImage
 import com.priyankvasa.android.cameraviewex.Modes
@@ -42,7 +43,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 
-open class CameraFragment : Fragment(), CoroutineScope {
+open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.ConfigListener {
 
     private val job: Job = SupervisorJob()
 
@@ -56,7 +57,7 @@ open class CameraFragment : Fragment(), CoroutineScope {
         "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
     }
 
-    private var videoFile: File? = null
+    private lateinit var videoFile: File
 
     private val nextImageFile: File
         get() = File(imageOutputDirectory, "image_${System.currentTimeMillis()}.jpg")
@@ -77,19 +78,12 @@ open class CameraFragment : Fragment(), CoroutineScope {
             ivPlayPause.isActivated = false
             ivVideoCaptureButton.isActivated = false
         } else {
-            videoFile = nextVideoFile.also { outputFile ->
-                camera.startVideoRecording(outputFile) {
-                    audioEncoder = AudioEncoder.Aac
-                    videoFrameRate = 60
-                    videoStabilization = true
-                    videoSize = VideoSize.Max
-                }
+            videoFile = nextVideoFile
+            camera.startVideoRecording(videoFile) {
+                videoFrameRate = 60
+                videoStabilization = true
+                videoSize = VideoSize.Max1x1
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                ivPlayPause.show()
-                ivPlayPause.isActivated = true
-            }
-            ivVideoCaptureButton.isActivated = true
         }
     }
 
@@ -196,6 +190,14 @@ open class CameraFragment : Fragment(), CoroutineScope {
                 }
             }
 
+            addVideoRecordStartedListener {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    ivPlayPause.show()
+                    ivPlayPause.isActivated = true
+                }
+                ivVideoCaptureButton.isActivated = true
+            }
+
             addVideoRecordStoppedListener { isSuccess ->
                 if (isSuccess) context?.toast("Video saved to ${videoFile?.absolutePath}")
                 else context?.toast("Failed to save video!")
@@ -227,8 +229,10 @@ open class CameraFragment : Fragment(), CoroutineScope {
         val context = context ?: return
 
         ivSettings.setOnClickListener {
-            fragmentManager?.let {
-                SettingsDialogFragment.newInstance().show(it, SettingsDialogFragment.TAG)
+            val fm: FragmentManager = fragmentManager ?: return@setOnClickListener
+            SettingsDialogFragment.newInstance().apply {
+                setTargetFragment(this@CameraFragment, 0)
+                show(fm, SettingsDialogFragment.TAG)
             }
         }
 
@@ -314,6 +318,12 @@ open class CameraFragment : Fragment(), CoroutineScope {
         }
 
         ivCameraSwitch.isActivated = camera.facing != Modes.Facing.FACING_BACK
+    }
+
+    override fun onNewAspectRatio(aspectRatio: AspectRatio) {
+        camera.config {
+            this.aspectRatio = aspectRatio
+        }
     }
 
     companion object {

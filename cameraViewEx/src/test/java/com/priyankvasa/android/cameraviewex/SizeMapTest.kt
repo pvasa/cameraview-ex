@@ -24,17 +24,17 @@ class SizeMapTest {
     @Test
     fun testAdd_simple() {
         val map = SizeMap()
-        map.add(Size(3, 4))
-        map.add(Size(9, 16))
+        map.add(3, 4)
+        map.add(9, 16)
         assertEquals(map.ratios().size, 2)
     }
 
     @Test
     fun testAdd_duplicate() {
         val map = SizeMap()
-        map.add(Size(3, 4))
-        map.add(Size(6, 8))
-        map.add(Size(9, 12))
+        map.add(3, 4)
+        map.add(6, 8)
+        map.add(9, 12)
         assertEquals(map.ratios().size, 1)
         val ratio = map.ratios().toTypedArray()[0]
         assertEquals(ratio.toString(), "3:4")
@@ -44,7 +44,7 @@ class SizeMapTest {
     @Test
     fun testClear() {
         val map = SizeMap()
-        map.add(Size(12, 34))
+        map.add(12, 34)
         assertEquals(map.ratios().size, 1)
         map.clear()
         assertEquals(map.ratios().size, 0)

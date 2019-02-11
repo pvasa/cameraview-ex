@@ -47,6 +47,9 @@ internal class Camera1(
 
     var camera: Camera? = null
 
+    private val videoManager: VideoManager
+        by lazy { VideoManager { listener.onCameraError(CameraViewException(it), ErrorLevel.Warning) } }
+
     private val previewCallback: Camera.PreviewCallback by lazy {
         Camera.PreviewCallback { data, camera ->
             if (!isCameraOpened) return@PreviewCallback
@@ -81,7 +84,7 @@ internal class Camera1(
 
     override val isCameraOpened: Boolean get() = camera != null
 
-    override var isVideoRecording: Boolean = false
+    override val isVideoRecording: Boolean get() = videoManager.isVideoRecording
 
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
@@ -258,14 +261,53 @@ internal class Camera1(
         }
     }
 
-    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) =
-        listener.onCameraError(CameraViewException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
+    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) {
 
-    override fun pauseVideoRecording(): Boolean = false
+        if (!isCameraOpened || !preview.isReady) {
+            listener.onCameraError(CameraViewException("Camera not started or already stopped"))
+            return
+        }
 
-    override fun resumeVideoRecording(): Boolean = false
+        camera?.unlock()
 
-    override fun stopVideoRecording(): Boolean = false
+        runCatching {
+            videoManager.setupMediaRecorder(
+                camera ?: return,
+                cameraId,
+                preview.surface,
+                outputFile,
+                videoConfig,
+                config.aspectRatio,
+                calcCameraRotation(deviceRotation),
+                ::stopVideoRecording
+            )
+            videoManager.startMediaRecorder()
+            listener.onVideoRecordStarted()
+        }.onFailure {
+            listener.onCameraError(CameraViewException("Unable to start video recording", it))
+            camera?.lock()
+        }
+    }
+
+    override fun pauseVideoRecording(): Boolean {
+        listener.onCameraError(CameraViewException("Video pausing and resuming is only supported on API 24 and higher"))
+        return false
+    }
+
+    override fun resumeVideoRecording(): Boolean {
+        listener.onCameraError(CameraViewException("Video pausing and resuming is only supported on API 24 and higher"))
+        return false
+    }
+
+    override fun stopVideoRecording(): Boolean = runCatching { videoManager.stopVideoRecording() }
+        .getOrElse {
+            listener.onCameraError(CameraViewException("Unable to stop video recording.", it))
+            false
+        }
+        .also {
+            listener.onVideoRecordStopped(it)
+            camera?.lock()
+        }
 
     /** This rewrites [.cameraId] and [.cameraInfo]. */
     private fun chooseCamera() {
@@ -281,22 +323,29 @@ internal class Camera1(
     }
 
     private fun openCamera() {
-        try {
-            camera = Camera.open(cameraId)
-            // Supported preview sizes
-            previewSizes.clear()
-            camera?.parameters?.supportedPreviewSizes
-                ?.forEach { size -> previewSizes.add(Size(size.width, size.height)) }
-            // Supported picture sizes;
-            pictureSizes.clear()
-            camera?.parameters?.supportedPictureSizes
-                ?.forEach { size -> pictureSizes.add(Size(size.width, size.height)) }
-            adjustCameraParameters()
-            camera?.setDisplayOrientation(calcDisplayOrientation(deviceRotation))
-            listener.onCameraOpened()
-        } catch (e: RuntimeException) {
-            listener.onCameraError(CameraViewException("Unable to open camera.", e), isCritical = true)
-        }
+
+        camera = runCatching { Camera.open(cameraId) }
+            .getOrElse {
+                listener.onCameraError(CameraViewException("Unable to open camera.", it), isCritical = true)
+                return
+            }
+            .apply {
+                // Supported preview sizes
+                previewSizes.clear()
+                parameters.supportedPreviewSizes
+                    ?.forEach { previewSizes.add(it.width, it.height) }
+                // Supported picture sizes;
+                pictureSizes.clear()
+                parameters.supportedPictureSizes
+                    ?.forEach { pictureSizes.add(it.width, it.height) }
+                // Supported video sizes;
+                parameters.supportedVideoSizes
+                    ?.map { com.priyankvasa.android.cameraviewex.Size(it.width, it.height) }
+                    ?.let { videoManager.addVideoSizes(it) }
+                adjustCameraParameters()
+                setDisplayOrientation(calcDisplayOrientation(deviceRotation))
+                listener.onCameraOpened()
+            }
     }
 
     private fun chooseAspectRatio(): AspectRatio {
@@ -310,18 +359,20 @@ internal class Camera1(
 
     private fun adjustCameraParameters() {
 
-        val sizes = previewSizes.sizes(config.aspectRatio.value)
+        if (!preview.isReady) return
+
+        val sizes: SortedSet<Size> = previewSizes.sizes(config.aspectRatio)
 
         if (sizes.isEmpty()) { // Not supported
-            config.aspectRatio.value = chooseAspectRatio()
+            config.aspectRatio = chooseAspectRatio()
             return
         }
 
-        val size = chooseOptimalSize(sizes)
+        val size: Size = sizes.chooseOptimalPreviewSize()
 
         // Always re-apply camera parameters
         // Largest picture size in this ratio
-        val pictureSize = pictureSizes.sizes(config.aspectRatio.value).last()
+        val pictureSize = pictureSizes.sizes(config.aspectRatio).last()
 
         if (showingPreview) stopPreview()
 
@@ -338,22 +389,19 @@ internal class Camera1(
         if (showingPreview) startPreview()
     }
 
-    private fun chooseOptimalSize(sizes: SortedSet<Size>): Size {
-        if (!preview.isReady) return sizes.first() // Not yet laid out. Return the smallest size.
-        val desiredWidth: Int
-        val desiredHeight: Int
-        val surfaceWidth = preview.width
-        val surfaceHeight = preview.height
-        if (deviceRotation % 180 == 90) {
-            desiredWidth = surfaceHeight
-            desiredHeight = surfaceWidth
-        } else {
-            desiredWidth = surfaceWidth
-            desiredHeight = surfaceHeight
-        }
-        return sizes
-            .firstOrNull { desiredWidth <= it.width && desiredHeight <= it.height }
-            ?: sizes.last()
+    private fun SortedSet<Size>.chooseOptimalPreviewSize(): Size {
+
+        val (maxWidth: Int, maxHeight: Int) =
+            if (deviceRotation % 180 == 90) preview.height to preview.width
+            else preview.width to preview.height
+
+        return asSequence()
+            .filter { it.width <= maxWidth && it.height <= maxHeight }
+            .run {
+                firstOrNull { it.width >= preview.width && it.height >= preview.height }
+                    ?: lastOrNull { it.width < preview.width || it.height < preview.height }
+                    ?: last()
+            }
     }
 
     /**
