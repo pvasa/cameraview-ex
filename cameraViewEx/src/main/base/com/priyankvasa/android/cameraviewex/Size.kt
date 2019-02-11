@@ -28,6 +28,8 @@ class Size
  */
 (val width: Int, val height: Int) : Comparable<Size> {
 
+    val aspectRatio: AspectRatio = AspectRatio.of(this)
+
     override fun equals(other: Any?): Boolean = when {
         other == null -> false
         this === other -> true
@@ -47,7 +49,13 @@ class Size
     override fun compareTo(other: Size): Int = width * height - other.width * other.height
 
     companion object {
-        val P1080 = Size(1920, 1080)
-        val P720 = Size(1280, 720)
+        val P2160: Size = Size(3840, 2160)
+        val P1080: Size = Size(1920, 1080)
+        val P720: Size = Size(1280, 720)
+        val P480: Size = Size(720, 480)
+        val CIF: Size = Size(352, 288)
+        val QVGA: Size = Size(320, 240)
+        val QCIF: Size = Size(176, 144)
+        val Invalid: Size = Size(-1, -1)
     }
 }

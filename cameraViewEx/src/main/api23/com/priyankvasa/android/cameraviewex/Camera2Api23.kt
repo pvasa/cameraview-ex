@@ -36,7 +36,7 @@ internal open class Camera2Api23(
         val outputSizes = map.getHighResolutionOutputSizes(internalOutputFormat)
         if (outputSizes != null) {
             for (size in map.getHighResolutionOutputSizes(internalOutputFormat)) {
-                sizes.add(Size(size.width, size.height))
+                sizes.add(size.width, size.height)
             }
         }
         if (sizes.isEmpty) super.collectPictureSizes(sizes, map)

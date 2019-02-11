@@ -16,25 +16,45 @@
 
 package com.priyankvasa.android.cameraviewex
 
-internal class CameraConfiguration {
+import android.arch.lifecycle.LifecycleOwner
 
-    val cameraMode: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_CAMERA_MODE)
-    val outputFormat: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_OUTPUT_FORMAT)
-    val jpegQuality: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_JPEG_QUALITY)
-    val facing: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_FACING)
-    val aspectRatio: CameraConfigLiveData<AspectRatio> = CameraConfigLiveData(Modes.DEFAULT_ASPECT_RATIO)
-    val autoFocus: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_AUTO_FOCUS)
-    val touchToFocus: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_TOUCH_TO_FOCUS)
-    val pinchToZoom: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_PINCH_TO_ZOOM)
-    val currentDigitalZoom: CameraConfigLiveData<Float> = CameraConfigLiveData(1f)
-    val awb: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_AWB)
-    val flash: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_FLASH)
-    val opticalStabilization: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_OPTICAL_STABILIZATION)
-    val noiseReduction: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_NOISE_REDUCTION)
-    val shutter: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_SHUTTER)
-    val zsl: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_ZSL)
+class CameraConfiguration {
 
-    val isSingleCaptureModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.SINGLE_CAPTURE != 0
-    val isContinuousFrameModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.CONTINUOUS_FRAME != 0
-    val isVideoCaptureModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.VIDEO_CAPTURE != 0
+    private val aspectRatioI: CameraConfigLiveData<AspectRatio> = CameraConfigLiveData(Modes.DEFAULT_ASPECT_RATIO)
+
+    /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
+    var aspectRatio: AspectRatio
+        get() = aspectRatioI.value
+        set(value) {
+            if (!requireInUiThread()) return
+            aspectRatioI.value = value
+        }
+
+    internal val cameraMode: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_CAMERA_MODE)
+    internal val outputFormat: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_OUTPUT_FORMAT)
+    internal val jpegQuality: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_JPEG_QUALITY)
+    internal val facing: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_FACING)
+    internal val autoFocus: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_AUTO_FOCUS)
+    internal val touchToFocus: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_TOUCH_TO_FOCUS)
+    internal val pinchToZoom: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_PINCH_TO_ZOOM)
+    internal val currentDigitalZoom: CameraConfigLiveData<Float> = CameraConfigLiveData(1f)
+    internal val awb: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_AWB)
+    internal val flash: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_FLASH)
+    internal val opticalStabilization: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_OPTICAL_STABILIZATION)
+    internal val noiseReduction: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_NOISE_REDUCTION)
+    internal val shutter: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_SHUTTER)
+    internal val zsl: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_ZSL)
+
+    internal val isSingleCaptureModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.SINGLE_CAPTURE != 0
+    internal val isContinuousFrameModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.CONTINUOUS_FRAME != 0
+    internal val isVideoCaptureModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.VIDEO_CAPTURE != 0
+
+    @JvmSynthetic
+    internal fun observeAspectRatio(
+        owner: LifecycleOwner,
+        observer: (AspectRatio) -> Unit
+    ) = aspectRatioI.observe(owner, observer)
+
+    @JvmSynthetic
+    internal fun revertAspectRatio() = aspectRatioI.revert()
 }

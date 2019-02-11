@@ -60,13 +60,10 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
 
     companion object {
 
-        val Ratio16x9 = AspectRatio(16, 9)
-        val Ratio4x3 = AspectRatio(4, 3)
-
         private val cache = SparseArrayCompat<SparseArrayCompat<AspectRatio>>(16)
 
         /**
-         * Returns an instance of [AspectRatio] specified by `x` and `y` values.
+         * Returns an instance of [AspectRatio] specified by [x] and [y] values.
          * The values `x` and `y` will be reduced by their greatest common divider.
          *
          * @param x The width
@@ -86,6 +83,15 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
                     cache.put(a, SparseArrayCompat<AspectRatio>().apply { put(b, it) })
                 }
         }
+
+        /**
+         * Returns an instance of [AspectRatio] specified by [Size.width] and [Size.height] of [size].
+         * The values `width` and `height` will be reduced by their greatest common divider.
+         *
+         * @param size
+         * @return An instance of [AspectRatio]
+         */
+        fun of(size: Size): AspectRatio = of(size.width, size.height)
 
         /**
          * Parse an [AspectRatio] from a [String] formatted like "4:3".
