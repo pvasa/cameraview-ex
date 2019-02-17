@@ -82,7 +82,7 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
             camera.startVideoRecording(videoFile) {
                 videoFrameRate = 60
                 videoStabilization = true
-                videoSize = VideoSize.Max1x1
+                videoSize = VideoSize.Max
             }
         }
     }
@@ -199,7 +199,7 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
             }
 
             addVideoRecordStoppedListener { isSuccess ->
-                if (isSuccess) context?.toast("Video saved to ${videoFile?.absolutePath}")
+                if (isSuccess) context?.toast("Video saved to ${videoFile.absolutePath}")
                 else context?.toast("Failed to save video!")
             }
 
