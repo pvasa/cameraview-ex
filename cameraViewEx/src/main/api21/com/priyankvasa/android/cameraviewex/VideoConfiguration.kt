@@ -215,61 +215,95 @@ sealed class VideoEncoder(val value: Int) {
 }
 
 /** Common video resolutions */
-sealed class VideoSize(internal open val size: Size) {
+sealed class VideoSize(
+    internal open val size: Size,
+    internal open val aspectRatio: AspectRatio = size.aspectRatio
+) {
 
-    /** Minimum possible video size at preview's aspect ratio [CameraView.aspectRatio] */
+    /** Minimum possible video size at preview's aspect ratio */
     object Min : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio
+            get() = throw IllegalAccessException("aspectRatio must not be accessed for $this")
     }
 
     /** Minimum possible video size at 16:9 aspect ratio */
     object Min16x9 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(16, 9)
     }
 
     /** Minimum possible video size at 11:9 aspect ratio */
     object Min11x9 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(11, 9)
     }
 
     /** Minimum possible video size at 4:3 aspect ratio */
     object Min4x3 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(4, 3)
     }
 
     /** Minimum possible video size at 3:2 aspect ratio */
     object Min3x2 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(3, 2)
     }
 
     /** Minimum possible video size at 1:1 aspect ratio */
     object Min1x1 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(1, 1)
     }
 
-    /** Maximum possible video size at preview's aspect ratio [CameraView.aspectRatio] */
+    /** Maximum possible video size at preview's aspect ratio */
     object Max : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio
+            get() = throw IllegalAccessException("aspectRatio must not be accessed for $this")
     }
 
     /** Maximum possible video size at 16:9 aspect ratio */
     object Max16x9 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(16, 9)
+    }
+
+    /** Maximum possible video size at 11:9 aspect ratio */
+    object Max11x9 : VideoSize(Size.Invalid) {
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(11, 9)
     }
 
     /** Maximum possible video size at 4:3 aspect ratio */
     object Max4x3 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(4, 3)
     }
 
     /** Maximum possible video size at 3:2 aspect ratio */
     object Max3x2 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(3, 2)
     }
 
     /** Maximum possible video size at 1:1 aspect ratio */
     object Max1x1 : VideoSize(Size.Invalid) {
-        override val size: Size get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val size: Size
+            get() = throw IllegalAccessException("size must not be accessed for $this")
+        override val aspectRatio: AspectRatio = AspectRatio.of(1, 1)
     }
 
     /** Video size 3840 x 2160 */

@@ -19,7 +19,7 @@ package com.priyankvasa.android.cameraviewex
 /**
  * Immutable class for describing width and height dimensions in pixels.
  */
-class Size
+data class Size
 /**
  * Create a new immutable Size instance.
  *
@@ -33,10 +33,7 @@ class Size
     override fun equals(other: Any?): Boolean = when {
         other == null -> false
         this === other -> true
-        other is Size -> {
-            val size = other as Size?
-            width == size?.width && height == size.height
-        }
+        other is Size -> width == other.width && height == other.height
         else -> false
     }
 
