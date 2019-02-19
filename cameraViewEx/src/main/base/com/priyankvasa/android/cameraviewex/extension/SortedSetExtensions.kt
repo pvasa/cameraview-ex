@@ -23,24 +23,24 @@ import java.util.SortedSet
 
 /**
  * Chooses the optimal size based on respective supported sizes
- * and the surface size of [previewWidth] and [previewHeight].
+ * and the surface size of [viewWidth] and [viewHeight].
  *
  * @return The picked optimal size.
  */
 internal suspend fun SortedSet<Size>.chooseOptimalPreviewSize(
-    previewWidth: Int,
-    previewHeight: Int
+    viewWidth: Int,
+    viewHeight: Int
 ): Size = withContext(Dispatchers.Default) {
 
     val (maxWidth: Int, maxHeight: Int) =
-        if (previewHeight > previewWidth) previewHeight to previewWidth
-        else previewWidth to previewHeight
+        if (viewHeight > viewWidth) viewHeight to viewWidth
+        else viewWidth to viewHeight
 
     return@withContext asSequence()
         .filter { it.width <= maxWidth && it.height <= maxHeight }
         .run {
-            firstOrNull { it.width >= previewWidth && it.height >= previewHeight }
-                ?: lastOrNull { it.width < previewWidth || it.height < previewHeight }
+            firstOrNull { it.width >= viewWidth && it.height >= viewHeight }
+                ?: lastOrNull { it.width < viewWidth || it.height < viewHeight }
                 ?: last()
         }
 }
