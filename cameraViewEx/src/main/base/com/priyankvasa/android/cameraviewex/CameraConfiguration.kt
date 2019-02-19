@@ -26,7 +26,8 @@ class CameraConfiguration {
     var aspectRatio: AspectRatio
         get() = aspectRatioI.value
         set(value) {
-            if (!requireInUiThread()) return
+            TODO("Confirm if require ui thread")
+//            if (!requireInUiThread()) return
             aspectRatioI.value = value
         }
 
@@ -53,8 +54,8 @@ class CameraConfiguration {
     internal fun observeAspectRatio(
         owner: LifecycleOwner,
         observer: (AspectRatio) -> Unit
-    ) = aspectRatioI.observe(owner, observer)
+    ): Unit = aspectRatioI.observe(owner, observer)
 
     @JvmSynthetic
-    internal fun revertAspectRatio() = aspectRatioI.revert()
+    internal fun revertAspectRatio(): Unit = aspectRatioI.revert()
 }

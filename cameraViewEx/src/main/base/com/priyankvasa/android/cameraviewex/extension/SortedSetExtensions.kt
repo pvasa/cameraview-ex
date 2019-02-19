@@ -1,0 +1,46 @@
+/*
+ * Copyright 2019 Priyank Vasa
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.priyankvasa.android.cameraviewex.extension
+
+import com.priyankvasa.android.cameraviewex.Size
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.SortedSet
+
+/**
+ * Chooses the optimal size based on respective supported sizes
+ * and the surface size of [previewWidth] and [previewHeight].
+ *
+ * @return The picked optimal size.
+ */
+internal suspend fun SortedSet<Size>.chooseOptimalPreviewSize(
+    previewWidth: Int,
+    previewHeight: Int
+): Size = withContext(Dispatchers.Default) {
+
+    val (maxWidth: Int, maxHeight: Int) =
+        if (previewHeight > previewWidth) previewHeight to previewWidth
+        else previewWidth to previewHeight
+
+    return@withContext asSequence()
+        .filter { it.width <= maxWidth && it.height <= maxHeight }
+        .run {
+            firstOrNull { it.width >= previewWidth && it.height >= previewHeight }
+                ?: lastOrNull { it.width < previewWidth || it.height < previewHeight }
+                ?: last()
+        }
+}

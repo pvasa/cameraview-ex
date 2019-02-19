@@ -16,6 +16,8 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import java.lang.Long.signum
+
 /**
  * Immutable class for describing width and height dimensions in pixels.
  */
@@ -43,10 +45,12 @@ data class Size
     // assuming most sizes are <2^16, doing a rotate will give us perfect hashing
         height xor (width shl Integer.SIZE / 2 or width.ushr(Integer.SIZE / 2))
 
-    override fun compareTo(other: Size): Int = width * height - other.width * other.height
+    override fun compareTo(other: Size): Int =
+        signum((width.toLong() * height) - (other.width.toLong() * other.height))
 
     companion object {
         val P2160: Size = Size(3840, 2160)
+        val P1440: Size = Size(2560, 1440)
         val P1080: Size = Size(1920, 1080)
         val P720: Size = Size(1280, 720)
         val P480: Size = Size(720, 480)

@@ -33,15 +33,19 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
+import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
+import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.File
+import kotlin.coroutines.CoroutineContext
 
 class CameraView @JvmOverloads constructor(
     context: Context,
@@ -50,24 +54,40 @@ class CameraView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
-        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+            System.setProperty("kotlinx.coroutines.debug", "on")
+        }
     }
 
     private val parentJob: Job = SupervisorJob()
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main + parentJob)
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default + parentJob)
 
-    private val preview = createPreview(context)
+    private val coroutineContext: CoroutineContext get() = coroutineScope.coroutineContext
 
-    /** Listeners for monitoring events about [CameraView]. */
-    private val cameraOpenedListeners by lazy { HashSet<() -> Unit>() }
-    private val pictureTakenListeners by lazy { HashSet<(imageData: ByteArray) -> Unit>() }
+    private val preview: PreviewImpl = createPreview(context)
+
+    private val cameraOpenedListeners: HashSet<() -> Unit> by lazy { HashSet<() -> Unit>() }
+
+    private val pictureTakenListeners: HashSet<(imageData: ByteArray) -> Unit>
+        by lazy { HashSet<(imageData: ByteArray) -> Unit>() }
+
     private var legacyPreviewFrameListener: ((image: LegacyImage) -> Unit)? = null
+
     private var previewFrameListener: ((image: Image) -> Unit)? = null
-    private val cameraErrorListeners by lazy { HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>() }
-    private val cameraClosedListeners by lazy { HashSet<() -> Unit>() }
-    private val videoRecordStartedListeners by lazy { HashSet<() -> Unit>() }
-    private val videoRecordStoppedListeners by lazy { HashSet<(isSuccess: Boolean) -> Unit>() }
+
+    private val cameraErrorListeners: HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>
+        by lazy { HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>() }
+
+    private val cameraClosedListeners: HashSet<() -> Unit>
+        by lazy { HashSet<() -> Unit>() }
+
+    private val videoRecordStartedListeners: HashSet<() -> Unit>
+        by lazy { HashSet<() -> Unit>() }
+
+    private val videoRecordStoppedListeners: HashSet<(isSuccess: Boolean) -> Unit>
+        by lazy { HashSet<(isSuccess: Boolean) -> Unit>() }
 
     private val listener = object : CameraInterface.Listener {
 
@@ -97,7 +117,7 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onCameraOpened() {
-            coroutineScope.launch {
+            launchOnUi {
                 if (requestLayoutOnOpen) {
                     requestLayoutOnOpen = false
                     requestLayout()
@@ -116,25 +136,25 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onPictureTaken(imageData: ByteArray) {
-            coroutineScope.launch { pictureTakenListeners.forEach { it(imageData) } }
+            launchOnUi { pictureTakenListeners.forEach { it(imageData) } }
         }
 
         override fun onCameraError(e: Exception, errorLevel: ErrorLevel, isCritical: Boolean) {
             if (isCritical && cameraErrorListeners.isEmpty()) throw e
             if (errorLevel == ErrorLevel.Debug) Timber.d(e)
-            else coroutineScope.launch { cameraErrorListeners.forEach { it(e, errorLevel) } }
+            else launchOnUi { cameraErrorListeners.forEach { it(e, errorLevel) } }
         }
 
         override fun onCameraClosed() {
-            coroutineScope.launch { cameraClosedListeners.forEach { it.invoke() } }
+            launchOnUi { cameraClosedListeners.forEach { it.invoke() } }
         }
 
         override fun onVideoRecordStarted() {
-            coroutineScope.launch { videoRecordStartedListeners.forEach { it.invoke() } }
+            launchOnUi { videoRecordStartedListeners.forEach { it.invoke() } }
         }
 
         override fun onVideoRecordStopped(isSuccess: Boolean) {
-            coroutineScope.launch { videoRecordStoppedListeners.forEach { it.invoke(isSuccess) } }
+            launchOnUi { videoRecordStoppedListeners.forEach { it.invoke(isSuccess) } }
         }
     }
 
@@ -147,13 +167,14 @@ class CameraView @JvmOverloads constructor(
         }
 
         override fun onSensorOrientationChanged(sensorOrientation: Int) {
-            val orientation = Orientation.parse(sensorOrientation)
-            camera.deviceRotation = when (orientation) {
+            val orientation: Orientation = Orientation.parse(sensorOrientation)
+            val rotation: Int = when (orientation) {
                 Orientation.Portrait, Orientation.PortraitInverted -> orientation.value
                 Orientation.Landscape -> Orientation.LandscapeInverted.value
                 Orientation.LandscapeInverted -> Orientation.Landscape.value
                 Orientation.Unknown -> return
             }
+            if (camera.deviceRotation != rotation) camera.deviceRotation = rotation
         }
     }
 
@@ -216,7 +237,7 @@ class CameraView @JvmOverloads constructor(
 
         val cameraJob: Job = SupervisorJob(parentJob)
 
-        when {
+        return@run when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config, cameraJob)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, cameraJob, context)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, cameraJob, context)
@@ -225,7 +246,9 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.observeAspectRatio(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+        config.observeAspectRatio(camera) {
+            if (runBlocking(coroutineContext) { camera.setAspectRatio(it) }) requestLayout()
+        }
         config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
     }
 
@@ -270,18 +293,16 @@ class CameraView @JvmOverloads constructor(
             requestLayout()
         }
 
+    /** Current aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
+    var aspectRatio: AspectRatio by config::aspectRatio
+
     /**
      * Set format of the output of image data produced from the camera for [Modes.CameraMode.SINGLE_CAPTURE] mode.
      * Supported values are [Modes.OutputFormat].
      */
     @get:Modes.OutputFormat
     @setparam:Modes.OutputFormat
-    var outputFormat: Int
-        get() = config.outputFormat.value
-        set(value) {
-            if (!requireInUiThread()) return
-            config.outputFormat.value = value
-        }
+    var outputFormat: Int by config.outputFormat::value
 
     /**
      * Set image quality of the output image.
@@ -290,12 +311,7 @@ class CameraView @JvmOverloads constructor(
      */
     @get:Modes.JpegQuality
     @setparam:Modes.JpegQuality
-    var jpegQuality: Int
-        get() = config.jpegQuality.value
-        set(value) {
-            if (!requireInUiThread()) return
-            config.jpegQuality.value = value
-        }
+    var jpegQuality: Int by config.jpegQuality::value
 
     /** Set which camera to use (like front or back). Supported values are [Modes.Facing]. */
     @get:Modes.Facing
@@ -324,20 +340,10 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Allow manual focus on an area by tapping on camera view. True is on and false is off. */
-    var touchToFocus: Boolean
-        get() = config.touchToFocus.value
-        set(value) {
-            if (!requireInUiThread()) return
-            config.touchToFocus.value = value
-        }
+    var touchToFocus: Boolean by config.touchToFocus::value
 
     /** Allow pinch gesture on camera view for digital zooming. True is on and false is off. */
-    var pinchToZoom: Boolean
-        get() = config.pinchToZoom.value
-        set(value) {
-            if (!requireInUiThread()) return
-            config.pinchToZoom.value = value
-        }
+    var pinchToZoom: Boolean by config.pinchToZoom::value
 
     /** Maximum digital zoom supported by selected camera device. */
     val maxDigitalZoom: Float get() = camera.maxDigitalZoom
@@ -403,12 +409,7 @@ class CameraView @JvmOverloads constructor(
     /** Current shutter time in milliseconds. Supported values are [Modes.Shutter]. */
     @get:Modes.Shutter
     @setparam:Modes.Shutter
-    var shutter: Int
-        get() = config.shutter.value
-        set(value) {
-            if (!requireInUiThread()) return
-            config.shutter.value = value
-        }
+    var shutter: Int by config.shutter::value
 
     /**
      * Set zero shutter lag mode capture.
@@ -560,6 +561,9 @@ class CameraView @JvmOverloads constructor(
         )
     }
 
+    /**
+     * TODO: Add docs
+     */
     fun config(configBlock: CameraConfiguration.() -> Unit = {}): CameraConfiguration = config.apply(configBlock)
 
     /**
@@ -568,29 +572,29 @@ class CameraView @JvmOverloads constructor(
      * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
      */
     @RequiresPermission(Manifest.permission.CAMERA)
-    fun start() {
+    fun start(): Unit = runBlocking(coroutineContext) {
 
-        if (!requireActive()) return
+        if (!requireActive()) return@runBlocking
 
         if (isCameraOpened) {
             listener.onCameraError(
                 CameraViewException("Camera is already open. Call stop() first."),
                 errorLevel = ErrorLevel.Warning
             )
-            return
+            return@runBlocking
         }
 
         // Save original state and restore later if camera falls back to using Camera1
         val state: Parcelable? = onSaveInstanceState()
 
-        if (camera.start()) return // Camera started successfully, return.
+        if (camera.start()) return@runBlocking // Camera started successfully, return.
 
         // This camera instance is no longer useful, destroy it.
         camera.destroy()
 
         // Already tried using Camera1 api, return.
         // Errors leading to this situation are already posted from Camera1 api
-        if (camera is Camera1) return
+        if (camera is Camera1) return@runBlocking
 
         // Device uses legacy hardware layer; fall back to Camera1
         camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
@@ -600,7 +604,7 @@ class CameraView @JvmOverloads constructor(
 
         // Try to start camera again using Camera1 api
         // Return if successful
-        if (camera.start()) return
+        if (camera.start()) return@runBlocking
 
         // Unable to start camera using any api. Post a critical error.
         listener.onCameraError(
@@ -624,7 +628,7 @@ class CameraView @JvmOverloads constructor(
             isCritical = true
         )
 
-        else -> camera.takePicture()
+        else -> runBlocking(coroutineContext) { camera.takePicture() }
     }
 
     /**
@@ -656,7 +660,9 @@ class CameraView @JvmOverloads constructor(
             ErrorLevel.Warning
         )
 
-        else -> camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig))
+        else -> runBlocking(coroutineContext) {
+            camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig))
+        }
     }
 
     /**
@@ -679,13 +685,13 @@ class CameraView @JvmOverloads constructor(
      * Stop video recording
      * @return true if video was stopped and saved to given outputFile, false otherwise
      */
-    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
+    fun stopVideoRecording(): Boolean = runBlocking(coroutineContext) { camera.stopVideoRecording() }
 
     /**
      * Stop camera preview and close the device.
      * This is typically called from fragment's onPause callback.
      */
-    fun stop() = camera.stop()
+    fun stop(): Unit = runBlocking(coroutineContext) { camera.stop() }
 
     /**
      * Clear all listeners, [stop] camera, and kill background threads.
@@ -694,8 +700,10 @@ class CameraView @JvmOverloads constructor(
      * This is typically called from fragment's onDestroyView callback.
      */
     fun destroy() {
-        removeAllListeners()
-        camera.destroy()
+        runBlocking(coroutineContext) {
+            removeAllListeners()
+            camera.destroy()
+        }
         parentJob.cancel()
     }
 
@@ -875,6 +883,9 @@ class CameraView @JvmOverloads constructor(
     fun removeAllListeners() {
         listener.clear()
     }
+
+    private inline fun launchOnUi(crossinline block: suspend () -> Unit): Job =
+        coroutineScope.launch(Dispatchers.Main) { block() }
 
     @Parcelize
     internal data class SavedState(
