@@ -2,6 +2,7 @@ package com.priyankvasa.android.cameraviewex_sample.camera
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.Image
 import android.os.Build
@@ -37,6 +38,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.BufferedOutputStream
 import java.io.File
@@ -74,9 +76,6 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
     private val videoCaptureListener = View.OnClickListener {
         if (camera.isVideoRecording) {
             camera.stopVideoRecording()
-            ivPlayPause.hide()
-            ivPlayPause.isActivated = false
-            ivVideoCaptureButton.isActivated = false
         } else {
             videoFile = nextVideoFile
             camera.startVideoRecording(videoFile) {
@@ -87,9 +86,10 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
         }
     }
 
-    private val barcodeDetectorOptions = FirebaseVisionBarcodeDetectorOptions.Builder()
-        .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
-        .build()
+    private val barcodeDetectorOptions: FirebaseVisionBarcodeDetectorOptions =
+        FirebaseVisionBarcodeDetectorOptions.Builder()
+            .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
+            .build()
 
     private val barcodeDetector: FirebaseVisionBarcodeDetector =
         FirebaseVision.getInstance().getVisionBarcodeDetector(barcodeDetectorOptions)
@@ -179,9 +179,7 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
                 }
             }
 
-            addPictureTakenListener { imageData: ByteArray ->
-                launch(Dispatchers.IO) { saveDataToFile(imageData) }
-            }
+            addPictureTakenListener { imageData: ByteArray -> launch { saveDataToFile(imageData) } }
 
             addCameraErrorListener { t, errorLevel ->
                 when (errorLevel) {
@@ -198,7 +196,10 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
                 ivVideoCaptureButton.isActivated = true
             }
 
-            addVideoRecordStoppedListener { isSuccess ->
+            addVideoRecordStoppedListener { isSuccess: Boolean ->
+                ivPlayPause.hide()
+                ivPlayPause.isActivated = false
+                ivVideoCaptureButton.isActivated = false
                 if (isSuccess) context?.toast("Video saved to ${videoFile.absolutePath}")
                 else context?.toast("Failed to save video!")
             }
@@ -214,19 +215,21 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
             .addOnFailureListener { e -> Timber.e(e) }
     }
 
-    private fun saveDataToFile(data: ByteArray): File = nextImageFile.apply {
-        createNewFile()
-        runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
-            .onFailure {
-                context?.toast("Unable to save image to file.")
-                Timber.e(it)
-            }
-            .onSuccess { context?.toast("Saved image to file $absolutePath") }
+    private suspend fun saveDataToFile(data: ByteArray): File = withContext(Dispatchers.IO) {
+        nextImageFile.apply {
+            createNewFile()
+            runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
+                .onFailure {
+                    withContext(Dispatchers.Main) { context?.toast("Unable to save image to file.") }
+                    Timber.e(it)
+                }
+                .onSuccess { withContext(Dispatchers.Main) { context?.toast("Saved image to file $absolutePath") } }
+        }
     }
 
     private fun setupView() {
 
-        val context = context ?: return
+        val context: Context = context ?: return
 
         ivSettings.setOnClickListener {
             val fm: FragmentManager = fragmentManager ?: return@setOnClickListener

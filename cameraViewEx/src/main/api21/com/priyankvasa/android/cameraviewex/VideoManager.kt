@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package com.priyankvasa.android.cameraviewex
 
+import android.annotation.SuppressLint
 import android.hardware.Camera
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
@@ -25,6 +28,7 @@ import android.os.Build
 import android.support.annotation.RequiresApi
 import android.support.v4.math.MathUtils
 import android.view.Surface
+import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import kotlin.math.roundToInt
@@ -38,14 +42,49 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
     var isVideoRecording: Boolean = false
         private set
 
-    private val ratio16x9: AspectRatio = AspectRatio.of(16, 9)
-    private val ratio11x9: AspectRatio = AspectRatio.of(11, 9)
-    private val ratio4x3: AspectRatio = AspectRatio.of(4, 3)
-    private val ratio3x2: AspectRatio = AspectRatio.of(3, 2)
-    private val ratio1x1: AspectRatio = AspectRatio.of(1, 1)
+    @Throws(IllegalStateException::class)
+    fun startMediaRecorder(): Unit = mediaRecorder?.start()?.also { isVideoRecording = true }
+        ?: throw IllegalStateException("Media recorder surface is not available")
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    @Throws(IllegalStateException::class)
+    fun pause(): Unit? = mediaRecorder?.pause()
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    @Throws(IllegalStateException::class)
+    fun resume(): Unit? = mediaRecorder?.resume()
+
+    @Throws(IllegalStateException::class)
+    fun stopVideoRecording() {
+
+        val t: Throwable? = runCatching { mediaRecorder?.stop() }.exceptionOrNull()
+
+        mediaRecorder?.reset()
+        isVideoRecording = false
+
+        t?.let { throw it }
+    }
+
+    fun release() {
+        mediaRecorder?.release()
+        mediaRecorder = null
+    }
+
+    fun addVideoSizes(sizes: Sequence<Size>) {
+        videoSizes.clear()
+        sizes.forEach {
+            videoSizes.add(it)
+            Timber.i("\n$it")
+        }
+    }
+
+    /** Returns the [mediaRecorder] surface */
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @Throws(IllegalStateException::class)
+    fun getRecorderSurface(): Surface = mediaRecorder?.surface
+        ?: throw IllegalStateException("Media recorder surface is null")
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    @Throws(CameraViewException::class)
     fun createVideoRequestBuilder(
         camera: CameraDevice,
         baseRequestBuilder: CaptureRequest.Builder,
@@ -54,25 +93,24 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         isVideoStabilizationSupported: () -> Boolean
     ): CaptureRequest.Builder = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
 
-        set(
-            CaptureRequest.SCALER_CROP_REGION,
-            baseRequestBuilder[CaptureRequest.SCALER_CROP_REGION]
-        )
+        baseRequestBuilder[CaptureRequest.SCALER_CROP_REGION]
+            ?.let { set(CaptureRequest.SCALER_CROP_REGION, it) }
 
-        val afMode = when (baseRequestBuilder[CaptureRequest.CONTROL_AF_MODE]) {
+        val afMode: Int = when (baseRequestBuilder[CaptureRequest.CONTROL_AF_MODE]) {
             CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE ->
                 CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
             else -> baseRequestBuilder[CaptureRequest.CONTROL_AF_MODE]
+                ?: CaptureRequest.CONTROL_AF_MODE_AUTO
         }
 
         set(CaptureRequest.CONTROL_AF_MODE, afMode)
-        set(CaptureRequest.CONTROL_AWB_MODE, baseRequestBuilder[CaptureRequest.CONTROL_AWB_MODE])
+
+        baseRequestBuilder[CaptureRequest.CONTROL_AWB_MODE]
+            ?.let { set(CaptureRequest.CONTROL_AWB_MODE, it) }
 
         if (config.opticalStabilization.value) {
-            set(
-                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-                baseRequestBuilder[CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
-            )
+            baseRequestBuilder[CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE]
+                ?.let { set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, it) }
         } else if (videoConfig.videoStabilization) {
             if (isVideoStabilizationSupported())
                 set(
@@ -82,23 +120,18 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
             else warn("Video stabilization not supported by selected camera ${camera.id}.")
         }
 
-        set(
-            CaptureRequest.NOISE_REDUCTION_MODE,
-            baseRequestBuilder[CaptureRequest.NOISE_REDUCTION_MODE]
-        )
-        set(
-            CaptureRequest.CONTROL_AE_MODE,
-            baseRequestBuilder[CaptureRequest.CONTROL_AE_MODE]
-        )
-        set(
-            CaptureRequest.FLASH_MODE,
-            baseRequestBuilder[CaptureRequest.FLASH_MODE]
-        )
+        baseRequestBuilder[CaptureRequest.NOISE_REDUCTION_MODE]
+            ?.let { set(CaptureRequest.NOISE_REDUCTION_MODE, it) }
+
+        baseRequestBuilder[CaptureRequest.CONTROL_AE_MODE]
+            ?.let { set(CaptureRequest.CONTROL_AE_MODE, it) }
+
+        baseRequestBuilder[CaptureRequest.FLASH_MODE]
+            ?.let { set(CaptureRequest.FLASH_MODE, it) }
     }
 
-    @Suppress("DEPRECATION")
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    fun setupMediaRecorder(
+    suspend fun setupMediaRecorder(
         camera: Camera,
         cameraId: Int,
         previewSurface: Surface?,
@@ -125,7 +158,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    fun setupMediaRecorder(
+    suspend fun setupMediaRecorder(
         cameraId: Int?,
         outputFile: File,
         videoConfig: VideoConfiguration,
@@ -134,7 +167,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         maxDurationAction: () -> Any
     ) {
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
-            setVideoSource(MediaRecorder.VideoSource.DEFAULT)
+            setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setupInternal(
                 cameraId,
                 outputFile,
@@ -147,7 +180,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    private fun MediaRecorder.setupInternal(
+    private suspend fun MediaRecorder.setupInternal(
         cameraId: Int?,
         outputFile: File,
         videoConfig: VideoConfiguration,
@@ -160,25 +193,9 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
 
         setAudioSource(videoConfig.audioSource.value)
 
-        val manualSetup: (AspectRatio) -> Unit = {
-            setOutputFormat(videoConfig.outputFormat.value)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            videoConfig.videoSize.parseSize(it)
-                .run {
-                    setVideoSize(width, height)
-                    setVideoEncodingBitRate(calculateVideoBitRate())
-                }
-            setVideoFrameRate(videoConfig.videoFrameRate)
+        if (!setCamcorderProfile(cameraId, videoConfig.videoSize)) {
+            manualProfileSetup(videoConfig, previewAspectRatio)
         }
-
-        val profile: Int = parseCamcorderProfile(
-            cameraId,
-            videoConfig.videoSize,
-            previewAspectRatio,
-            manualSetup
-        )
-        if (profile > -1) cameraId?.let { setProfile(CamcorderProfile.get(it, profile)) }
 
         setOutputFile(outputFile.absolutePath)
 
@@ -201,24 +218,9 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         prepare()
     }
 
-    private fun parseCamcorderProfile(
-        cameraId: Int?,
-        videoSize: VideoSize,
-        previewAspectRatio: AspectRatio,
-        manualSetup: (AspectRatio) -> Unit
-    ): Int {
+    private fun MediaRecorder.setCamcorderProfile(cameraId: Int?, videoSize: VideoSize): Boolean {
 
-        val manualSetupTrigger: () -> Unit = {
-            when (videoSize) {
-                VideoSize.Min, VideoSize.Max -> manualSetup(previewAspectRatio)
-                VideoSize.Min16x9, VideoSize.Max16x9 -> manualSetup(ratio16x9)
-                VideoSize.Min11x9 -> manualSetup(ratio11x9)
-                VideoSize.Min4x3, VideoSize.Max4x3 -> manualSetup(ratio4x3)
-                VideoSize.Min3x2, VideoSize.Max3x2 -> manualSetup(ratio3x2)
-                VideoSize.Min1x1, VideoSize.Max1x1 -> manualSetup(ratio1x1)
-            }
-        }
-
+        @SuppressLint("InlinedApi")
         val profile: Int = when (videoSize) {
 
             VideoSize.P2160 -> CamcorderProfile.QUALITY_2160P
@@ -229,40 +231,62 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
             VideoSize.QVGA -> CamcorderProfile.QUALITY_QVGA
             VideoSize.QCIF -> CamcorderProfile.QUALITY_QCIF
 
-            VideoSize.Min, VideoSize.Min16x9, VideoSize.Min11x9,
-            VideoSize.Min4x3, VideoSize.Min3x2, VideoSize.Min1x1,
-            VideoSize.Max, VideoSize.Max16x9, VideoSize.Max4x3,
-            VideoSize.Max3x2, VideoSize.Max1x1 -> {
-                manualSetupTrigger()
-                return -1
+            else -> return false
+        }
+
+        if (cameraId == null || !CamcorderProfile.hasProfile(cameraId, profile)) return false
+
+        setProfile(CamcorderProfile.get(cameraId, profile))
+
+        return true
+    }
+
+    private suspend fun MediaRecorder.manualProfileSetup(
+        videoConfig: VideoConfiguration,
+        previewAspectRatio: AspectRatio
+    ) {
+        setOutputFormat(videoConfig.outputFormat.value)
+        setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+        setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+        videoConfig.videoSize.parseSize(previewAspectRatio)
+            .run {
+                setVideoSize(width, height)
+                setVideoEncodingBitRate(calculateVideoBitRate())
             }
-        }
-
-        if (cameraId == null || !CamcorderProfile.hasProfile(cameraId, profile)) {
-            manualSetupTrigger()
-            return -1
-        }
-
-        return profile
+        setVideoFrameRate(videoConfig.videoFrameRate)
     }
 
     /**
      * Parse the video size from popular [VideoSize] choices. If the [VideoSize]
      * is not supported then an optimal size sill be chosen.
      */
-    private fun VideoSize.parseSize(aspectRatio: AspectRatio): Size = when (this) {
+    private suspend fun VideoSize.parseSize(previewAspectRatio: AspectRatio): Size = when (this) {
 
-        VideoSize.Min, VideoSize.Min16x9, VideoSize.Min11x9,
-        VideoSize.Min4x3, VideoSize.Min3x2, VideoSize.Min1x1 ->
-            chooseOptimalVideoSize(aspectRatio, chooseSmallest = true)
+        VideoSize.Min -> chooseOptimalVideoSize(previewAspectRatio, chooseSmallest = true)
 
-        VideoSize.P2160, VideoSize.P1080, VideoSize.P720, VideoSize.P480,
-        VideoSize.CIF, VideoSize.QVGA, VideoSize.QCIF -> {
+        VideoSize.Min16x9,
+        VideoSize.Min11x9,
+        VideoSize.Min4x3,
+        VideoSize.Min3x2,
+        VideoSize.Min1x1 -> chooseOptimalVideoSize(aspectRatio, chooseSmallest = true)
+
+        VideoSize.Max -> chooseOptimalVideoSize(previewAspectRatio)
+
+        VideoSize.Max16x9,
+        VideoSize.Max11x9,
+        VideoSize.Max4x3,
+        VideoSize.Max3x2,
+        VideoSize.Max1x1 -> chooseOptimalVideoSize(aspectRatio)
+
+        VideoSize.P2160, VideoSize.P1440, VideoSize.P1080, VideoSize.P720, VideoSize.P480 -> {
             if (videoSizes.containsSize(size)) size
             else chooseOptimalVideoSize(aspectRatio)
         }
 
-        else -> chooseOptimalVideoSize(aspectRatio)
+        VideoSize.CIF, VideoSize.QVGA, VideoSize.QCIF -> {
+            if (videoSizes.containsSize(size)) size
+            else chooseOptimalVideoSize(aspectRatio, chooseSmallest = true)
+        }
     }
 
     /**
@@ -279,62 +303,23 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         )
     }
 
-    /** Returns the [mediaRecorder] surface */
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    @Throws(IllegalStateException::class)
-    fun getRecorderSurface(): Surface = mediaRecorder?.surface
-        ?: throw IllegalStateException("Media recorder surface is not available")
+    private suspend fun chooseOptimalVideoSize(
+        aspectRatio: AspectRatio,
+        chooseSmallest: Boolean = false
+    ): Size = videoSizes.sizes(aspectRatio).run {
 
-    fun addVideoSizes(sizes: List<Size>) {
-        videoSizes.clear()
-        sizes.forEach { videoSizes.add(it) }
-    }
-
-    private fun chooseOptimalVideoSize(aspectRatio: AspectRatio, chooseSmallest: Boolean = false): Size {
-
-        return videoSizes.sizes(aspectRatio).run {
-
-            if (chooseSmallest) firstOrNull { size ->
-
-                val (surfaceLonger: Int, surfaceShorter: Int) =
-                    if (size.width < size.height) size.height to size.width
-                    else size.width to size.height
-
-                surfaceLonger == surfaceShorter * aspectRatio.x / aspectRatio.y && surfaceLonger <= 2160
-            } ?: first()
-            // Pick the largest of those big enough
-            // If no size is big enough, pick the largest one.
-            else lastOrNull { size ->
-
-                val (surfaceLonger: Int, surfaceShorter: Int) =
-                    if (size.width < size.height) size.height to size.width
-                    else size.width to size.height
-
-                surfaceLonger == surfaceShorter * aspectRatio.x / aspectRatio.y && surfaceLonger <= 2160
-            } ?: last()
+        val sort: (size: Size) -> Pair<Int, Int> = { size ->
+            if (size.width < size.height) size.height to size.width
+            else size.width to size.height
         }
-    }
 
-    @Throws(IllegalStateException::class)
-    fun startMediaRecorder() = mediaRecorder?.start()?.also { isVideoRecording = true }
-        ?: throw IllegalStateException("Media recorder surface is not available")
-
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun pause() = mediaRecorder?.pause()
-
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun resume() = mediaRecorder?.resume()
-
-    @Throws(IllegalStateException::class)
-    fun stopVideoRecording(): Boolean {
-        mediaRecorder?.stop()
-        mediaRecorder?.reset()
-        isVideoRecording = false
-        return true
-    }
-
-    fun release() {
-        mediaRecorder?.release()
-        mediaRecorder = null
+        return@run if (chooseSmallest) firstOrNull { size: Size ->
+            val (surfaceLonger: Int, surfaceShorter: Int) = sort(size)
+            return@firstOrNull surfaceLonger == surfaceShorter * aspectRatio.x / aspectRatio.y
+        } ?: first()
+        else lastOrNull { size: Size ->
+            val (surfaceLonger: Int, surfaceShorter: Int) = sort(size)
+            return@lastOrNull surfaceLonger == surfaceShorter * aspectRatio.x / aspectRatio.y
+        } ?: last()
     }
 }

@@ -23,7 +23,7 @@ import kotlinx.coroutines.Job
 
 @TargetApi(Build.VERSION_CODES.N)
 internal open class Camera2Api24(
-    override val listener: CameraInterface.Listener,
+    listener: CameraInterface.Listener,
     preview: PreviewImpl,
     config: CameraConfiguration,
     job: Job,

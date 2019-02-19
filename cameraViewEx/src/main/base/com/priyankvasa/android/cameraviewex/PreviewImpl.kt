@@ -53,6 +53,8 @@ internal abstract class PreviewImpl {
 
     internal val context: Context get() = view.context
 
+    val displaySize: Size by lazy { view.resources.displayMetrics.run { Size(widthPixels, heightPixels) } }
+
     private val overlayView: PreviewOverlayView by lazy { PreviewOverlayView(view.context) }
 
     internal val shutterView: ShutterView by lazy { ShutterView(view.context) }

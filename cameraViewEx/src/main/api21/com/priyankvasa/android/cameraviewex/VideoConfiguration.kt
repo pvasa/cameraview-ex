@@ -309,6 +309,9 @@ sealed class VideoSize(
     /** Video size 3840 x 2160 */
     object P2160 : VideoSize(Size.P2160)
 
+    /** Video size 2560 x 1440 */
+    object P1440 : VideoSize(Size.P1440)
+
     /**
      * Video size 1920 x 1080
      * Note that the vertical resolution for 1080p can also be 1088,
