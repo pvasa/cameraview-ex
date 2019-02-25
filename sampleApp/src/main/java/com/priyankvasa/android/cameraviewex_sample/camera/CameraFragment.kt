@@ -28,28 +28,17 @@ import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewex_sample.R
 import com.priyankvasa.android.cameraviewex_sample.extensions.hide
-import com.priyankvasa.android.cameraviewex_sample.extensions.hideSystemUI
+import com.priyankvasa.android.cameraviewex_sample.extensions.hideSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.show
-import com.priyankvasa.android.cameraviewex_sample.extensions.showSystemUI
+import com.priyankvasa.android.cameraviewex_sample.extensions.showSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.BufferedOutputStream
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.coroutines.CoroutineContext
 
-open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.ConfigListener {
-
-    private val job: Job = SupervisorJob()
-
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + job
+open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
 
     private val imageOutputDirectory by lazy {
         "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
@@ -97,18 +86,16 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
     @SuppressLint("SetTextI18n")
     private val decodeSuccessListener: (MutableList<FirebaseVisionBarcode>) -> Unit =
         listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
-            launch {
-                if (barcodes.isEmpty()) {
-                    tvBarcodes.text = "Barcodes"
-                    return@launch
-                }
-                val barcodesStr = "Barcodes\n${barcodes.joinToString(
-                    "\n",
-                    transform = { it.rawValue as? CharSequence ?: "" }
-                )}"
-                Timber.i("Barcodes: $barcodesStr")
-                tvBarcodes.text = barcodesStr
+            if (barcodes.isEmpty()) {
+                tvBarcodes?.text = "Barcodes"
+                return@listener
             }
+            val barcodesStr = "Barcodes\n${barcodes.joinToString(
+                "\n",
+                transform = { it.rawValue as? CharSequence ?: "" }
+            )}"
+            Timber.i("Barcodes: $barcodesStr")
+            tvBarcodes?.text = barcodesStr
         }
 
     override fun onCreateView(
@@ -126,7 +113,7 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
     @SuppressLint("MissingPermission")
     override fun onResume() {
         super.onResume()
-        activity?.hideSystemUI()
+        activity?.hideSystemUi()
         updateViewState()
         checkPermissions().let { if (it.isEmpty()) camera.start() else requestPermissions(it, 1) }
     }
@@ -141,16 +128,15 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
     }
 
     override fun onPause() {
-        camera.stop()
         super.onPause()
+        camera.stop()
     }
 
     override fun onDestroyView() {
-        camera.destroy()
-        barcodeDetector.close()
-        job.cancel()
-        activity?.showSystemUI()
         super.onDestroyView()
+        barcodeDetector.close()
+        camera.destroy()
+        activity?.showSystemUi()
     }
 
     @SuppressLint("SetTextI18n")
@@ -179,7 +165,7 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
                 }
             }
 
-            addPictureTakenListener { imageData: ByteArray -> launch { saveDataToFile(imageData) } }
+            addPictureTakenListener { imageData: ByteArray -> saveDataToFile(imageData) }
 
             addCameraErrorListener { t, errorLevel ->
                 when (errorLevel) {
@@ -215,16 +201,14 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
             .addOnFailureListener { e -> Timber.e(e) }
     }
 
-    private suspend fun saveDataToFile(data: ByteArray): File = withContext(Dispatchers.IO) {
-        nextImageFile.apply {
-            createNewFile()
-            runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
-                .onFailure {
-                    withContext(Dispatchers.Main) { context?.toast("Unable to save image to file.") }
-                    Timber.e(it)
-                }
-                .onSuccess { withContext(Dispatchers.Main) { context?.toast("Saved image to file $absolutePath") } }
-        }
+    private fun saveDataToFile(data: ByteArray): File = nextImageFile.apply {
+        createNewFile()
+        runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
+            .onFailure {
+                context?.toast("Unable to save image to file.")
+                Timber.e(it)
+            }
+            .onSuccess { context?.toast("Saved image to file $absolutePath") }
     }
 
     private fun setupView() {
@@ -336,6 +320,6 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
             Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
 
-        val newInstance: CameraFragment get() = CameraFragment()
+        fun newInstance(): CameraFragment = CameraFragment()
     }
 }

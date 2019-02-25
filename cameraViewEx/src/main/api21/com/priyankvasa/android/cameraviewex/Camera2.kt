@@ -489,19 +489,19 @@ internal open class Camera2(
     private fun addObservers(): Unit = config.run {
         cameraMode.observe(this@Camera2) {
             config.currentDigitalZoom.value = 1f
-            if (isCameraOpened) launch {
+            if (isCameraOpened) runBlocking(coroutineContext) {
                 stop()
                 start()
             }
         }
         outputFormat.observe(this@Camera2) {
-            if (isCameraOpened) launch {
+            if (isCameraOpened) runBlocking(coroutineContext) {
                 stop()
                 start()
             }
         }
         facing.observe(this@Camera2) {
-            if (isCameraOpened) launch {
+            if (isCameraOpened) runBlocking(coroutineContext) {
                 stop()
                 start()
             }
@@ -612,7 +612,7 @@ internal open class Camera2(
             }
         }
         zsl.observe(this@Camera2) {
-            if (isCameraOpened) launch {
+            if (isCameraOpened) runBlocking(coroutineContext) {
                 stop()
                 start()
             }
