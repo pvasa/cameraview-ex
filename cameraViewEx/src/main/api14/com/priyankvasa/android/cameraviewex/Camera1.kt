@@ -303,7 +303,7 @@ internal class Camera1(
                 preview.surface,
                 outputFile,
                 videoConfig,
-                config.aspectRatio,
+                config.aspectRatio.value,
                 calcCameraRotation(deviceRotation)
             ) { launch { stopVideoRecording() } }
             videoManager.startMediaRecorder()
@@ -387,10 +387,10 @@ internal class Camera1(
 
         if (!preview.isReady) return
 
-        val sizes: SortedSet<Size> = previewSizes.sizes(config.aspectRatio)
+        val sizes: SortedSet<Size> = previewSizes.sizes(config.aspectRatio.value)
 
         if (sizes.isEmpty()) { // Not supported
-            config.aspectRatio = chooseAspectRatio()
+            config.aspectRatio.value = chooseAspectRatio()
             return
         }
 
@@ -398,7 +398,7 @@ internal class Camera1(
 
         // Always re-apply camera parameters
         // Largest picture size in this ratio
-        val pictureSize: Size = pictureSizes.sizes(config.aspectRatio)
+        val pictureSize: Size = pictureSizes.sizes(config.aspectRatio.value)
             .takeIf { it.isNotEmpty() }
             ?.last()
             ?: size

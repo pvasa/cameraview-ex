@@ -324,9 +324,7 @@ open class CameraFragment : Fragment(), CoroutineScope, SettingsDialogFragment.C
     }
 
     override fun onNewAspectRatio(aspectRatio: AspectRatio) {
-        camera.config {
-            this.aspectRatio = aspectRatio
-        }
+        camera.aspectRatio = aspectRatio
     }
 
     companion object {
