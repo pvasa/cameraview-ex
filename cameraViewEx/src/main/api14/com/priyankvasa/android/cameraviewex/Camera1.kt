@@ -30,6 +30,7 @@ import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
 import java.util.SortedSet
@@ -145,7 +146,7 @@ internal class Camera1(
 
     private fun addObservers(): Unit = config.run {
         facing.observe(this@Camera1) {
-            if (isCameraOpened) launch {
+            if (isCameraOpened) runBlocking(coroutineContext) {
                 stop()
                 start()
             }
@@ -226,13 +227,13 @@ internal class Camera1(
         runCatching {
             camera?.parameters = camera?.parameters?.apply(func)
                 ?: throw IllegalStateException("Camera not opened or already closed!")
-            true
+            return@runCatching true
         }.getOrElse {
             listener.onCameraError(
                 CameraViewException("Unable to update camera parameters.", it),
                 ErrorLevel.Warning
             )
-            false
+            return@getOrElse false
         }
 
     override suspend fun setAspectRatio(ratio: AspectRatio): Boolean {
