@@ -17,7 +17,7 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.hardware.camera2.CameraCharacteristics
-import androidx.collection.ArrayMap
+import android.support.v4.util.ArrayMap
 
 /**
  * A collection class that groups cameraIds by their facing [Modes.Facing] direction and also
