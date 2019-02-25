@@ -105,6 +105,8 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
             isCritical: Boolean = false
         )
 
+        fun onLegacyPreviewFrame(image: LegacyImage)
+
         @RequiresApi(Build.VERSION_CODES.KITKAT)
         fun onPreviewFrame(reader: ImageReader)
     }

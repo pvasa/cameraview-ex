@@ -27,7 +27,8 @@ import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
 import android.support.annotation.RequiresApi
-import timber.log.Timber
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 /**
@@ -39,13 +40,14 @@ import java.io.ByteArrayOutputStream
  */
 @Throws(IllegalStateException::class, IllegalArgumentException::class)
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
-
-    Timber.d("Thread: decode -> ${Thread.currentThread().name}")
+internal suspend fun Image.decode(
+    outputFormat: Int,
+    rs: RenderScript
+): ByteArray = withContext(Dispatchers.Default) {
 
     val image = this@decode
 
-    return when (image.format) {
+    return@withContext when (image.format) {
 
         ImageFormat.JPEG -> with(image.planes[0].buffer) {
             rewind()
@@ -58,7 +60,7 @@ internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArra
             else -> throw IllegalArgumentException("Output format $outputFormat is invalid.")
         }
 
-        else -> throw IllegalArgumentException("${image.format} is not supported.")
+        else -> throw IllegalArgumentException("Image format ${image.format} is not supported.")
     }
 }
 

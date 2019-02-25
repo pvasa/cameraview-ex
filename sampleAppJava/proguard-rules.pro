@@ -19,3 +19,27 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Glide
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep public class * extends com.bumptech.glide.module.AppGlideModule
+-keep class com.bumptech.glide.GeneratedAppGlideModuleImpl
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
+    **[] $VALUES;
+    public *;
+}
+-dontnote com.bumptech.glide.**
+
+-dontwarn com.google.android.gms.**
+-dontnote com.google.android.gms.**
+
+-dontnote kotlin.internal.**
+-dontnote kotlin.jvm.internal.**
+-dontnote .R
+-dontnote android.os.Build.VERSION.**
+
+# Project
+-dontnote com.priyankvasa.android.cameraviewex_sample.**
+
+# Sample app
+-dontwarn com.priyankvasa.android.cameraviewex_sample.camera.**

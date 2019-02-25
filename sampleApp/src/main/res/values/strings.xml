@@ -1,3 +1,13 @@
 <resources>
+
     <string name="app_name">CameraViewExSample</string>
+
+    <string-array name="aspect_ratio_array">
+        <item>4:3</item>
+        <item>16:9</item>
+        <item>1:1</item>
+        <item>3:2</item>
+        <item>18:9</item>
+    </string-array>
+
 </resources>
