@@ -675,7 +675,7 @@ internal open class Camera2(
     override suspend fun setAspectRatio(ratio: AspectRatio): Boolean {
 
         if (!ratio.isValid()) {
-            config.revertAspectRatio()
+            config.aspectRatio.revert()
             return false
         }
 
@@ -687,29 +687,15 @@ internal open class Camera2(
 
     private suspend fun AspectRatio.isValid(): Boolean = withContext(coroutineContext) {
 
-        /*var isRatioValid = false
-        val sbRatios = StringBuilder()
-
-        run {
-            supportedAspectRatios.forEachIndexed { i, ratio ->
-                if (ratio == this@isValid) {
-                    isRatioValid = true
-                    return@run
-                }
-                sbRatios.append(ratio)
-                if (i < supportedAspectRatios.size - 1) sbRatios.append(", ")
-            }
-        }*/
-
         if (supportedAspectRatios.contains(this@isValid)) return@withContext true
-        else {
-            listener.onCameraError(
-                CameraViewException("Aspect ratio $this is not supported by this device." +
-                    " Valid ratios are $supportedAspectRatios. Refer CameraView.supportedAspectRatios"),
-                isCritical = true
-            )
-            return@withContext false
-        }
+
+        listener.onCameraError(
+            CameraViewException("Aspect ratio $this is not supported by this device." +
+                " Valid ratios are $supportedAspectRatios. Refer CameraView.supportedAspectRatios"),
+            isCritical = true
+        )
+
+        return@withContext false
     }
 
     override suspend fun takePicture(): Unit =
@@ -778,7 +764,7 @@ internal open class Camera2(
      * Collects some information from [cameraCharacteristics].
      *
      * This rewrites [previewSizes], [pictureSizes], and optionally,
-     * [CameraConfiguration.aspectRatioI] in [config].
+     * [CameraConfiguration.aspectRatio] in [config].
      */
     private suspend fun collectCameraInfo(): Unit = withContext(coroutineContext) {
 
@@ -808,8 +794,8 @@ internal open class Camera2(
             if (!pictureSizes.ratios().contains(it)) previewSizes.remove(it)
         }
 
-        if (!supportedAspectRatios.contains(config.aspectRatio)) {
-            config.aspectRatio = supportedAspectRatios.iterator().next()
+        if (!supportedAspectRatios.contains(config.aspectRatio.value)) {
+            config.aspectRatio.value = supportedAspectRatios.iterator().next()
         }
 
         map.getOutputSizes(MediaRecorder::class.java)
@@ -842,7 +828,7 @@ internal open class Camera2(
         captureImageReader?.close()
 
         captureImageReader = run {
-            val largestPicture: Size = pictureSizes.sizes(config.aspectRatio).last()
+            val largestPicture: Size = pictureSizes.sizes(config.aspectRatio.value).last()
             ImageReader.newInstance(
                 largestPicture.width,
                 largestPicture.height,
@@ -877,7 +863,7 @@ internal open class Camera2(
         }
 
         val (width: Int, height: Int) =
-            previewSizes.sizes(config.aspectRatio).chooseOptimalPreviewSize(preview.width, preview.height)
+            previewSizes.sizes(config.aspectRatio.value).chooseOptimalPreviewSize(preview.width, preview.height)
 
         preview.setBufferSize(width, height)
 
@@ -1136,7 +1122,7 @@ internal open class Camera2(
                 camera?.id?.toIntOrNull(),
                 outputFile,
                 videoConfig,
-                config.aspectRatio,
+                config.aspectRatio.value,
                 outputOrientation
             ) { launch { stopVideoRecording() } }
         }.onFailure {

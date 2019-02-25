@@ -16,7 +16,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
-import com.priyankvasa.android.cameraviewex.AspectRatio;
 import com.priyankvasa.android.cameraviewex.CameraView;
 import com.priyankvasa.android.cameraviewex.ErrorLevel;
 import com.priyankvasa.android.cameraviewex.Modes;
@@ -140,11 +139,6 @@ public class CameraFragment extends Fragment {
 
         camera.addCameraClosedListener(() -> {
             Timber.i("Camera closed.");
-            return Unit.INSTANCE;
-        });
-
-        camera.config(config -> {
-            config.setAspectRatio(AspectRatio.of(4, 3));
             return Unit.INSTANCE;
         });
     }

@@ -22,7 +22,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.media.Image
-import android.media.ImageReader
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -41,7 +40,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.File
@@ -68,95 +66,8 @@ class CameraView @JvmOverloads constructor(
 
     private val preview: PreviewImpl = createPreview(context)
 
-    private val cameraOpenedListeners: HashSet<() -> Unit> by lazy { HashSet<() -> Unit>() }
-
-    private val pictureTakenListeners: HashSet<(imageData: ByteArray) -> Unit>
-        by lazy { HashSet<(imageData: ByteArray) -> Unit>() }
-
-    private var legacyPreviewFrameListener: ((image: LegacyImage) -> Unit)? = null
-
-    private var previewFrameListener: ((image: Image) -> Unit)? = null
-
-    private val cameraErrorListeners: HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>
-        by lazy { HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>() }
-
-    private val cameraClosedListeners: HashSet<() -> Unit>
-        by lazy { HashSet<() -> Unit>() }
-
-    private val videoRecordStartedListeners: HashSet<() -> Unit>
-        by lazy { HashSet<() -> Unit>() }
-
-    private val videoRecordStoppedListeners: HashSet<(isSuccess: Boolean) -> Unit>
-        by lazy { HashSet<(isSuccess: Boolean) -> Unit>() }
-
-    private val listener = object : CameraInterface.Listener {
-
-        private var requestLayoutOnOpen: Boolean = false
-
-        var isEnabled: Boolean = true
-            private set
-
-        fun reserveRequestLayoutOnOpen() {
-            requestLayoutOnOpen = true
-        }
-
-        fun disable() {
-            isEnabled = false
-            clear()
-        }
-
-        fun clear() {
-            cameraOpenedListeners.clear()
-            legacyPreviewFrameListener = null
-            previewFrameListener = null
-            pictureTakenListeners.clear()
-            cameraErrorListeners.clear()
-            cameraClosedListeners.clear()
-            videoRecordStartedListeners.clear()
-            videoRecordStoppedListeners.clear()
-        }
-
-        override fun onCameraOpened() {
-            launchOnUi {
-                if (requestLayoutOnOpen) {
-                    requestLayoutOnOpen = false
-                    requestLayout()
-                }
-                cameraOpenedListeners.forEach { it() }
-            }
-        }
-
-        override fun onLegacyPreviewFrame(image: LegacyImage) {
-            legacyPreviewFrameListener?.invoke(image)
-        }
-
-        @RequiresApi(Build.VERSION_CODES.KITKAT)
-        override fun onPreviewFrame(reader: ImageReader) {
-            reader.acquireLatestImage()?.use { previewFrameListener?.invoke(it) }
-        }
-
-        override fun onPictureTaken(imageData: ByteArray) {
-            launchOnUi { pictureTakenListeners.forEach { it(imageData) } }
-        }
-
-        override fun onCameraError(e: Exception, errorLevel: ErrorLevel, isCritical: Boolean) {
-            if (isCritical && cameraErrorListeners.isEmpty()) throw e
-            if (errorLevel == ErrorLevel.Debug) Timber.d(e)
-            else launchOnUi { cameraErrorListeners.forEach { it(e, errorLevel) } }
-        }
-
-        override fun onCameraClosed() {
-            launchOnUi { cameraClosedListeners.forEach { it.invoke() } }
-        }
-
-        override fun onVideoRecordStarted() {
-            launchOnUi { videoRecordStartedListeners.forEach { it.invoke() } }
-        }
-
-        override fun onVideoRecordStopped(isSuccess: Boolean) {
-            launchOnUi { videoRecordStoppedListeners.forEach { it.invoke(isSuccess) } }
-        }
-    }
+    private val listenerManager: CameraListenerManager = CameraListenerManager(SupervisorJob(parentJob))
+        .apply { cameraOpenedListeners.add { requestLayout() } }
 
     /** Display orientation detector */
     private val orientationDetector: OrientationDetector = object : OrientationDetector(context) {
@@ -178,75 +89,35 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    private val config: CameraConfiguration = if (isInEditMode) {
-        listener.disable()
-        orientationDetector.disable()
-        CameraConfiguration()
-    } else {
-
-        // Add shutter view
-        addView(preview.shutterView)
-        preview.shutterView.layoutParams = preview.view.layoutParams
-
-        // Attributes
-        context.obtainStyledAttributes(
+    private val config: CameraConfiguration =
+        if (checkInEditMode()) CameraConfiguration.defaultConfig
+        else CameraConfiguration.newInstance(
+            context,
             attrs,
-            R.styleable.CameraView,
             defStyleAttr,
-            R.style.Widget_CameraView
-        ).run {
-
-            adjustViewBounds = getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS)
-
-            CameraConfiguration().apply {
-
-                facing.value = getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
-                aspectRatio = getString(R.styleable.CameraView_aspectRatio)
-                    .runCatching ar@{
-                        if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
-                        else AspectRatio.parse(this@ar)
-                    }
-                    .getOrElse {
-                        listener.onCameraError(CameraViewException(
-                            "Invalid aspect ratio." +
-                                " Reverting to default ${Modes.DEFAULT_ASPECT_RATIO}",
-                            it
-                        ))
-                        Modes.DEFAULT_ASPECT_RATIO
-                    }
-                autoFocus.value = getInt(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
-                flash.value = getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
-                cameraMode.value = getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
-                outputFormat.value = getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
-                shutter.value = getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
-
-                // API 21+
-                jpegQuality.value = getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
-                touchToFocus.value = getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
-                pinchToZoom.value = getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
-                awb.value = getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
-                opticalStabilization.value = getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
-                noiseReduction.value = getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
-                zsl.value = getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
-                this@run.recycle()
+            { adjustViewBounds = it },
+            { message: String, cause: Throwable ->
+                listenerManager.onCameraError(CameraViewException(message, cause), ErrorLevel.Warning)
             }
-        }
-    }
+        )
 
-    private var camera: CameraInterface = run {
+    private var camera: CameraInterface = runBlocking(coroutineContext) {
 
         val cameraJob: Job = SupervisorJob(parentJob)
 
-        return@run when {
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Camera1(listener, preview, config, cameraJob)
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.M -> Camera2(listener, preview, config, cameraJob, context)
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.N -> Camera2Api23(listener, preview, config, cameraJob, context)
-            else -> Camera2Api24(listener, preview, config, cameraJob, context)
+        return@runBlocking when {
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
+                Camera1(listenerManager, preview, config, cameraJob)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.M ->
+                Camera2(listenerManager, preview, config, cameraJob, context)
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.N ->
+                Camera2Api23(listenerManager, preview, config, cameraJob, context)
+            else -> Camera2Api24(listenerManager, preview, config, cameraJob, context)
         }
     }
 
     init {
-        config.observeAspectRatio(camera) {
+        config.aspectRatio.observe(camera) {
             if (runBlocking(coroutineContext) { camera.setAspectRatio(it) }) requestLayout()
         }
         config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
@@ -276,12 +147,6 @@ class CameraView @JvmOverloads constructor(
     /** Check if [Modes.CameraMode.VIDEO_CAPTURE] is enabled */
     val isVideoCaptureModeEnabled: Boolean get() = config.isVideoCaptureModeEnabled
 
-    /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
-    fun setCameraMode(@Modes.CameraMode mode: Int) {
-        if (!requireInUiThread()) return
-        config.cameraMode.value = mode
-    }
-
     /**
      * True when this CameraView is adjusting its bounds to preserve the aspect ratio of
      * camera.
@@ -294,7 +159,7 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio by config::aspectRatio
+    var aspectRatio: AspectRatio by config.aspectRatio::value
 
     /**
      * Set format of the output of image data produced from the camera for [Modes.CameraMode.SINGLE_CAPTURE] mode.
@@ -422,16 +287,14 @@ class CameraView @JvmOverloads constructor(
             config.zsl.value = value
         }
 
-    private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)
-
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         if (!isInEditMode) ViewCompat.getDisplay(this)?.let { orientationDetector.enable(it) }
     }
 
     override fun onDetachedFromWindow() {
-        if (!isInEditMode) orientationDetector.disable()
         super.onDetachedFromWindow()
+        if (!isInEditMode) orientationDetector.disable()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -443,7 +306,7 @@ class CameraView @JvmOverloads constructor(
         if (adjustViewBounds) {
 
             if (!isCameraOpened) {
-                listener.reserveRequestLayoutOnOpen()
+                listenerManager.reserveRequestLayoutOnOpen()
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
                 return
             }
@@ -452,7 +315,7 @@ class CameraView @JvmOverloads constructor(
             val heightMode: Int = View.MeasureSpec.getMode(heightMeasureSpec)
 
             if (widthMode == View.MeasureSpec.EXACTLY && heightMode != View.MeasureSpec.EXACTLY) {
-                val ratio: AspectRatio = config.aspectRatio
+                val ratio: AspectRatio = config.aspectRatio.value
                 var height: Int = (View.MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
                 if (heightMode == View.MeasureSpec.AT_MOST) {
                     height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
@@ -462,7 +325,7 @@ class CameraView @JvmOverloads constructor(
                     View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
                 )
             } else if (widthMode != View.MeasureSpec.EXACTLY && heightMode == View.MeasureSpec.EXACTLY) {
-                val ratio: AspectRatio = config.aspectRatio
+                val ratio: AspectRatio = config.aspectRatio.value
                 var width: Int = (View.MeasureSpec.getSize(heightMeasureSpec) * ratio.toFloat()).toInt()
                 if (widthMode == View.MeasureSpec.AT_MOST) {
                     width = Math.min(width, View.MeasureSpec.getSize(widthMeasureSpec))
@@ -479,7 +342,7 @@ class CameraView @JvmOverloads constructor(
         // Measure the TextureView
         val width: Int = measuredWidth
         val height: Int = measuredHeight
-        var ratio: AspectRatio = config.aspectRatio
+        var ratio: AspectRatio = config.aspectRatio.value
 
         if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
 
@@ -508,7 +371,7 @@ class CameraView @JvmOverloads constructor(
             outputFormat,
             jpegQuality,
             facing,
-            config.aspectRatio,
+            config.aspectRatio.value,
             autoFocus,
             touchToFocus,
             pinchToZoom,
@@ -521,50 +384,68 @@ class CameraView @JvmOverloads constructor(
             zsl
         )
 
-    override fun onRestoreInstanceState(state: Parcelable?): Unit = when (state) {
-        is SavedState -> {
-            super.onRestoreInstanceState(state.superState)
-            adjustViewBounds = state.adjustViewBounds
-            config.apply {
-                facing.value = state.facing
-                cameraMode.value = state.cameraMode
-                outputFormat.value = state.outputFormat
-                jpegQuality.value = state.jpegQuality
-                aspectRatio = state.ratio
-                autoFocus.value = state.autoFocus
-                touchToFocus.value = state.touchToFocus
-                pinchToZoom.value = state.pinchToZoom
-                currentDigitalZoom.value = state.currentDigitalZoom
-                awb.value = state.awb
-                flash.value = state.flash
-                opticalStabilization.value = state.opticalStabilization
-                noiseReduction.value = state.noiseReduction
-                shutter.value = state.shutter
-                zsl.value = state.zsl
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        when (state) {
+            is SavedState -> {
+                super.onRestoreInstanceState(state.superState)
+                adjustViewBounds = state.adjustViewBounds
+                config.apply {
+                    facing.value = state.facing
+                    cameraMode.value = state.cameraMode
+                    outputFormat.value = state.outputFormat
+                    jpegQuality.value = state.jpegQuality
+                    aspectRatio.value = state.ratio
+                    autoFocus.value = state.autoFocus
+                    touchToFocus.value = state.touchToFocus
+                    pinchToZoom.value = state.pinchToZoom
+                    currentDigitalZoom.value = state.currentDigitalZoom
+                    awb.value = state.awb
+                    flash.value = state.flash
+                    opticalStabilization.value = state.opticalStabilization
+                    noiseReduction.value = state.noiseReduction
+                    shutter.value = state.shutter
+                    zsl.value = state.zsl
+                }
             }
-            Unit
+            else -> super.onRestoreInstanceState(state)
         }
-        else -> super.onRestoreInstanceState(state)
     }
 
+    /**
+     * Set camera mode of operation. Supported values are [Modes.CameraMode].
+     * Valid format is "height:width" eg. "4:3".
+     */
+    fun setCameraMode(@Modes.CameraMode mode: Int) {
+        if (!requireInUiThread()) return
+        config.cameraMode.value = mode
+    }
+
+    private fun checkInEditMode(): Boolean = if (isInEditMode) {
+        listenerManager.disable()
+        orientationDetector.disable()
+        true
+    } else {
+        // Add shutter view
+        addView(preview.shutterView)
+        preview.shutterView.layoutParams = preview.view.layoutParams
+        false
+    }
+
+    private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)
+
     private fun requireActive(): Boolean = isActive.also {
-        if (!it) listener.onCameraError(
+        if (!it) listenerManager.onCameraError(
             CameraViewException("CameraView instance is destroyed and cannot be used further. Please create a new instance."),
             isCritical = true
         )
     }
 
     private fun requireCameraOpened(): Boolean = isCameraOpened.also {
-        if (!it) listener.onCameraError(
+        if (!it) listenerManager.onCameraError(
             CameraViewException("Camera is not open. Call start() first."),
             errorLevel = ErrorLevel.Warning
         )
     }
-
-    /**
-     * TODO: Add docs
-     */
-    fun config(configBlock: CameraConfiguration.() -> Unit = {}): CameraConfiguration = config.apply(configBlock)
 
     /**
      * Open a camera device and start showing camera preview. This is typically called from
@@ -577,7 +458,7 @@ class CameraView @JvmOverloads constructor(
         if (!requireActive()) return@runBlocking
 
         if (isCameraOpened) {
-            listener.onCameraError(
+            listenerManager.onCameraError(
                 CameraViewException("Camera is already open. Call stop() first."),
                 errorLevel = ErrorLevel.Warning
             )
@@ -597,7 +478,7 @@ class CameraView @JvmOverloads constructor(
         if (camera is Camera1) return@runBlocking
 
         // Device uses legacy hardware layer; fall back to Camera1
-        camera = Camera1(listener, preview, config, SupervisorJob(parentJob))
+        camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
 
         // Restore original state
         onRestoreInstanceState(state)
@@ -607,7 +488,7 @@ class CameraView @JvmOverloads constructor(
         if (camera.start()) return@runBlocking
 
         // Unable to start camera using any api. Post a critical error.
-        listener.onCameraError(
+        listenerManager.onCameraError(
             CameraViewException("Unable to use camera or camera2 api." +
                 " Please check if the camera hardware is usable and CameraView is correctly configured."),
             isCritical = true
@@ -620,7 +501,7 @@ class CameraView @JvmOverloads constructor(
 
         !requireActive() || !requireCameraOpened() -> Unit
 
-        !config.isSingleCaptureModeEnabled -> listener.onCameraError(
+        !config.isSingleCaptureModeEnabled -> listenerManager.onCameraError(
             CameraViewException("Single capture mode is disabled." +
                 " Update camera mode by" +
                 " `CameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE`" +
@@ -646,7 +527,7 @@ class CameraView @JvmOverloads constructor(
 
         !requireActive() || !requireCameraOpened() -> Unit
 
-        !config.isVideoCaptureModeEnabled -> listener.onCameraError(
+        !config.isVideoCaptureModeEnabled -> listenerManager.onCameraError(
             CameraViewException("Video capture mode is disabled." +
                 " Update camera mode by" +
                 " `CameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE`" +
@@ -654,7 +535,7 @@ class CameraView @JvmOverloads constructor(
             isCritical = true
         )
 
-        isVideoRecording -> listener.onCameraError(
+        isVideoRecording -> listenerManager.onCameraError(
             CameraViewException("Video recording already in progress." +
                 " Call CameraView.stopVideoRecording() before calling start."),
             ErrorLevel.Warning
@@ -701,7 +582,7 @@ class CameraView @JvmOverloads constructor(
      */
     fun destroy() {
         runBlocking(coroutineContext) {
-            removeAllListeners()
+            listenerManager.destroy()
             camera.destroy()
         }
         parentJob.cancel()
@@ -713,7 +594,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun addCameraOpenedListener(listener: () -> Unit): CameraView {
-        if (this.listener.isEnabled) cameraOpenedListeners.add(listener)
+        if (listenerManager.isEnabled) listenerManager.cameraOpenedListeners.add(listener)
         return this
     }
 
@@ -723,7 +604,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun removeCameraOpenedListener(listener: () -> Unit): CameraView {
-        cameraOpenedListeners.remove(listener)
+        listenerManager.cameraOpenedListeners.remove(listener)
         return this
     }
 
@@ -736,21 +617,21 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun setLegacyPreviewFrameListener(listener: (image: LegacyImage) -> Unit): CameraView {
-        if (this.listener.isEnabled) legacyPreviewFrameListener = listener
+        if (listenerManager.isEnabled) listenerManager.legacyPreviewFrameListener = listener
         return this
     }
 
     /**
-     * Remove legacy (camera1) preview frame [listener].
+     * Remove legacy (camera1) preview frame [listenerManager].
      * @return instance of [CameraView] it is called on
      */
     fun removeLegacyPreviewFrameListener(): CameraView {
-        legacyPreviewFrameListener = null
+        listenerManager.legacyPreviewFrameListener = null
         return this
     }
 
     /**
-     * Set preview frame [listener]. Be careful while using this listener as it is invoked on each frame,
+     * Set preview frame [listener]. Be careful while using this listenerManager as it is invoked on each frame,
      * which could be 60 times per second if frame rate is 60 fps.
      * Ideally, next frame should only be processed once current frame is done processing.
      * Continuously launching background tasks for each frame is is not memory efficient,
@@ -763,16 +644,16 @@ class CameraView @JvmOverloads constructor(
      */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
-        if (this.listener.isEnabled) previewFrameListener = listener
+        if (listenerManager.isEnabled) listenerManager.previewFrameListener = listener
         return this
     }
 
     /**
-     * Remove preview frame [listener].
+     * Remove preview frame [listenerManager].
      * @return instance of [CameraView] it is called on
      */
     fun removePreviewFrameListener(): CameraView {
-        previewFrameListener = null
+        listenerManager.previewFrameListener = null
         return this
     }
 
@@ -783,7 +664,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun addPictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
-        if (this.listener.isEnabled) pictureTakenListeners.add(listener)
+        if (listenerManager.isEnabled) listenerManager.pictureTakenListeners.add(listener)
         return this
     }
 
@@ -792,7 +673,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun removePictureTakenListener(listener: (ByteArray) -> Unit): CameraView {
-        pictureTakenListeners.remove(listener)
+        listenerManager.pictureTakenListeners.remove(listener)
         return this
     }
 
@@ -805,7 +686,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun addCameraErrorListener(listener: (t: Throwable, errorLevel: ErrorLevel) -> Unit): CameraView {
-        cameraErrorListeners.add(listener)
+        listenerManager.cameraErrorListeners.add(listener)
         return this
     }
 
@@ -815,7 +696,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun removeCameraErrorListener(listener: (Throwable, ErrorLevel) -> Unit): CameraView {
-        cameraErrorListeners.remove(listener)
+        listenerManager.cameraErrorListeners.remove(listener)
         return this
     }
 
@@ -825,7 +706,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun addCameraClosedListener(listener: () -> Unit): CameraView {
-        if (this.listener.isEnabled) cameraClosedListeners.add(listener)
+        if (listenerManager.isEnabled) listenerManager.cameraClosedListeners.add(listener)
         return this
     }
 
@@ -835,7 +716,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun removeCameraClosedListener(listener: () -> Unit): CameraView {
-        cameraClosedListeners.remove(listener)
+        listenerManager.cameraClosedListeners.remove(listener)
         return this
     }
 
@@ -845,7 +726,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it was called on
      */
     fun addVideoRecordStartedListener(listener: () -> Unit): CameraView {
-        videoRecordStartedListeners.add(listener)
+        listenerManager.videoRecordStartedListeners.add(listener)
         return this
     }
 
@@ -855,7 +736,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun removeVideoRecordStartedListener(listener: () -> Unit): CameraView {
-        videoRecordStartedListeners.remove(listener)
+        listenerManager.videoRecordStartedListeners.remove(listener)
         return this
     }
 
@@ -865,7 +746,7 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it was called on
      */
     fun addVideoRecordStoppedListener(listener: (isSuccess: Boolean) -> Unit): CameraView {
-        videoRecordStoppedListeners.add(listener)
+        listenerManager.videoRecordStoppedListeners.add(listener)
         return this
     }
 
@@ -875,17 +756,14 @@ class CameraView @JvmOverloads constructor(
      * @return instance of [CameraView] it is called on
      */
     fun removeVideoRecordStoppedListener(listener: (isSuccess: Boolean) -> Unit): CameraView {
-        videoRecordStoppedListeners.remove(listener)
+        listenerManager.videoRecordStoppedListeners.remove(listener)
         return this
     }
 
     /** Remove all listeners previously set. */
     fun removeAllListeners() {
-        listener.clear()
+        listenerManager.clear()
     }
-
-    private inline fun launchOnUi(crossinline block: suspend () -> Unit): Job =
-        coroutineScope.launch(Dispatchers.Main) { block() }
 
     @Parcelize
     internal data class SavedState(

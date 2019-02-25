@@ -16,21 +16,13 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.arch.lifecycle.LifecycleOwner
+import android.content.Context
+import android.content.res.TypedArray
+import android.util.AttributeSet
 
-class CameraConfiguration {
+class CameraConfiguration private constructor() {
 
-    private val aspectRatioI: CameraConfigLiveData<AspectRatio> = CameraConfigLiveData(Modes.DEFAULT_ASPECT_RATIO)
-
-    /** Set aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio
-        get() = aspectRatioI.value
-        set(value) {
-            TODO("Confirm if require ui thread")
-//            if (!requireInUiThread()) return
-            aspectRatioI.value = value
-        }
-
+    internal val aspectRatio: CameraConfigLiveData<AspectRatio> = CameraConfigLiveData(Modes.DEFAULT_ASPECT_RATIO)
     internal val cameraMode: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_CAMERA_MODE)
     internal val outputFormat: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_OUTPUT_FORMAT)
     internal val jpegQuality: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_JPEG_QUALITY)
@@ -50,12 +42,58 @@ class CameraConfiguration {
     internal val isContinuousFrameModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.CONTINUOUS_FRAME != 0
     internal val isVideoCaptureModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.VIDEO_CAPTURE != 0
 
-    @JvmSynthetic
-    internal fun observeAspectRatio(
-        owner: LifecycleOwner,
-        observer: (AspectRatio) -> Unit
-    ): Unit = aspectRatioI.observe(owner, observer)
+    companion object {
 
-    @JvmSynthetic
-    internal fun revertAspectRatio(): Unit = aspectRatioI.revert()
+        val defaultConfig: CameraConfiguration by lazy { CameraConfiguration() }
+
+        fun newInstance(
+            context: Context,
+            attributeSet: AttributeSet?,
+            defStyleAttr: Int,
+            setAdjustViewBounds: (Boolean) -> Unit,
+            warn: (message: String, cause: Throwable) -> Unit
+        ): CameraConfiguration = CameraConfiguration().apply {
+
+            // Attributes
+            val attrs: TypedArray = context.obtainStyledAttributes(
+                attributeSet,
+                R.styleable.CameraView,
+                defStyleAttr,
+                R.style.Widget_CameraView
+            )
+
+            setAdjustViewBounds(attrs.getBoolean(R.styleable.CameraView_android_adjustViewBounds, Modes.DEFAULT_ADJUST_VIEW_BOUNDS))
+
+            facing.value = attrs.getInt(R.styleable.CameraView_facing, Modes.DEFAULT_FACING)
+            aspectRatio.value = attrs.getString(R.styleable.CameraView_aspectRatio)
+                .runCatching ar@{
+                    if (this@ar.isNullOrBlank()) Modes.DEFAULT_ASPECT_RATIO
+                    else AspectRatio.parse(this@ar)
+                }
+                .getOrElse {
+                    warn(
+                        "Invalid aspect ratio." +
+                            " Reverting to default ${Modes.DEFAULT_ASPECT_RATIO}",
+                        it
+                    )
+                    Modes.DEFAULT_ASPECT_RATIO
+                }
+            autoFocus.value = attrs.getInt(R.styleable.CameraView_autoFocus, Modes.DEFAULT_AUTO_FOCUS)
+            flash.value = attrs.getInt(R.styleable.CameraView_flash, Modes.DEFAULT_FLASH)
+            cameraMode.value = attrs.getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
+            outputFormat.value = attrs.getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
+            shutter.value = attrs.getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
+
+            // API 21+
+            jpegQuality.value = attrs.getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
+            touchToFocus.value = attrs.getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
+            pinchToZoom.value = attrs.getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
+            awb.value = attrs.getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)
+            opticalStabilization.value = attrs.getBoolean(R.styleable.CameraView_opticalStabilization, Modes.DEFAULT_OPTICAL_STABILIZATION)
+            noiseReduction.value = attrs.getInt(R.styleable.CameraView_noiseReduction, Modes.DEFAULT_NOISE_REDUCTION)
+            zsl.value = attrs.getBoolean(R.styleable.CameraView_zsl, Modes.DEFAULT_ZSL)
+
+            attrs.recycle()
+        }
+    }
 }
