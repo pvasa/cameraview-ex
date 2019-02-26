@@ -83,7 +83,7 @@ internal open class Camera2(
     }
 
     /** A [Semaphore] to prevent the app from exiting before closing the camera. */
-    private val cameraOpenCloseLock: Semaphore by lazy { Semaphore(1) }
+    private val cameraOpenCloseLock: Semaphore by lazy { Semaphore(1, true) }
 
     private val rs: RenderScript by lazy { RenderScript.create(context) }
 
@@ -629,14 +629,23 @@ internal open class Camera2(
         }
     }
 
-    override suspend fun start(): Boolean {
+    @SuppressLint("MissingPermission")
+    override suspend fun start(): Boolean = runCatching {
         cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
-        if (!chooseCameraIdByFacing()) return false
+        chooseCameraIdByFacing()
         collectCameraInfo()
         prepareCaptureImageReader()
-        startOpeningCamera()
-        return true
+        cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler)
+        return@runCatching true
     }
+        .getOrElse {
+            cameraOpenCloseLock.release()
+            when (it) {
+                is SecurityException -> listener.onCameraError(CameraViewException("Camera permissions not granted", it))
+                else -> listener.onCameraError(CameraViewException("Failed to open camera with id $cameraId", it))
+            }
+            return@getOrElse false
+        }
 
     override suspend fun stop() {
         super.stop()
@@ -708,71 +717,66 @@ internal open class Camera2(
      * This rewrites [cameraId], [cameraCharacteristics], and optionally
      * [CameraConfiguration.facing].
      */
-    private suspend fun chooseCameraIdByFacing(): Boolean = runCatching {
+    @Throws(IllegalStateException::class, NullPointerException::class, UnsupportedOperationException::class)
+    private suspend fun chooseCameraIdByFacing(): Unit = withContext(coroutineContext) {
 
-        withContext(coroutineContext) {
-
-            cameraManager.cameraIdList.run {
-                ifEmpty { throw IllegalStateException("No camera available.") }
-                forEach { id ->
-                    val characteristics = cameraManager.getCameraCharacteristics(id)
-                    val level = characteristics.get(
-                        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
-                    if (level == null ||
-                        level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) return@forEach
-                    val internal: Int? = characteristics.get(CameraCharacteristics.LENS_FACING)
-                        ?: throw NullPointerException("Unexpected state: LENS_FACING null")
-                    if (internal == internalFacing) {
-                        cameraId = id
-                        cameraCharacteristics = characteristics
-                        return@withContext true
-                    }
+        cameraManager.cameraIdList.run {
+            ifEmpty { throw IllegalStateException("No camera available.") }
+            forEach { id: String ->
+                val characteristics: CameraCharacteristics = cameraManager.getCameraCharacteristics(id)
+                val level: Int? = characteristics.get(
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+                if (level == null ||
+                    level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) return@forEach
+                val internal: Int? = characteristics.get(CameraCharacteristics.LENS_FACING)
+                    ?: throw NullPointerException("Unexpected state: LENS_FACING null")
+                if (internal == internalFacing) {
+                    cameraId = id
+                    cameraCharacteristics = characteristics
+                    return@withContext
                 }
-                // Not found
-                cameraId = get(0)
             }
-
-            cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
-
-            val level: Int? = cameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
-
-            if (level == null || level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
-                return@withContext false
-            }
-
-            val internal = cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)
-                ?: throw NullPointerException("Unexpected state: LENS_FACING null")
-
-            for (i in 0 until internalFacings.size())
-                if (internalFacings.valueAt(i) == internal) {
-                    config.facing.value = internalFacings.keyAt(i)
-                    return@withContext true
-                }
-
-            // The operation can reach here when the only camera device is an external one.
-            // We treat it as facing back.
-            config.facing.value = Modes.Facing.FACING_BACK
-            return@withContext true
+            // Not found
+            cameraId = get(0)
         }
+
+        cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+
+        val level: Int? = cameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+
+        if (level == null || level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY)
+            throw UnsupportedOperationException(
+                "Camera with id $cameraId has hardware level $level," +
+                    " which is not supported by ${this@Camera2} implementation."
+            )
+
+        val internal: Int = cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)
+            ?: throw NullPointerException("Unexpected state: LENS_FACING null")
+
+        for (i in 0 until internalFacings.size())
+            if (internalFacings.valueAt(i) == internal) {
+                config.facing.value = internalFacings.keyAt(i)
+                return@withContext
+            }
+
+        // The operation can reach here when the only camera device is an external one.
+        // We treat it as facing back.
+        config.facing.value = Modes.Facing.FACING_BACK
     }
-        .getOrElse {
-            listener.onCameraError(CameraViewException("Failed to get a list of camera devices", it))
-            return@getOrElse false
-        }
 
     /**
      * Collects some information from [cameraCharacteristics].
      *
      * This rewrites [previewSizes], [pictureSizes], and optionally,
      * [CameraConfiguration.aspectRatio] in [config].
+     *
+     * @throws IllegalStateException when camera configuration map is null
      */
-    private suspend fun collectCameraInfo(): Unit = withContext(coroutineContext) {
+    @Throws(IllegalStateException::class)
+    private suspend fun collectCameraInfo() {
 
         val map: StreamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            ?: run {
-                listener.onCameraError(CameraViewException("Failed to get configuration map for camera id $cameraId"))
-                return@withContext
-            }
+            ?: throw IllegalStateException("Failed to get configuration map for camera id $cameraId")
 
         previewSizes.clear()
 
@@ -836,18 +840,6 @@ internal open class Camera2(
                 2 // maxImages
             ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
         }
-    }
-
-    /** Starts opening a camera device. The result will be processed in [cameraDeviceCallback]. */
-    @SuppressLint("MissingPermission")
-    private suspend fun startOpeningCamera(): Unit = withContext(coroutineContext) {
-        runCatching { cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler) }
-            .getOrElse { t ->
-                when (t) {
-                    is SecurityException -> listener.onCameraError(CameraViewException("Camera permissions not granted", t))
-                    else -> listener.onCameraError(CameraViewException("Failed to open camera with id $cameraId", t))
-                }
-            }
     }
 
     /**

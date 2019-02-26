@@ -68,7 +68,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
         } else {
             videoFile = nextVideoFile
             camera.startVideoRecording(videoFile) {
-                videoFrameRate = 60
+                videoFrameRate = 30
                 videoStabilization = true
                 videoSize = VideoSize.Max
             }
