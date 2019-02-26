@@ -27,7 +27,8 @@ import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
 import android.support.annotation.RequiresApi
-import timber.log.Timber
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 /**
@@ -39,13 +40,14 @@ import java.io.ByteArrayOutputStream
  */
 @Throws(IllegalStateException::class, IllegalArgumentException::class)
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
-
-    Timber.d("Thread: decode -> ${Thread.currentThread().name}")
+internal suspend fun Image.decode(
+    outputFormat: Int,
+    rs: RenderScript
+): ByteArray = withContext(Dispatchers.Default) {
 
     val image = this@decode
 
-    return when (image.format) {
+    return@withContext when (image.format) {
 
         ImageFormat.JPEG -> with(image.planes[0].buffer) {
             rewind()
@@ -58,14 +60,14 @@ internal suspend fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArra
             else -> throw IllegalArgumentException("Output format $outputFormat is invalid.")
         }
 
-        else -> throw IllegalArgumentException("${image.format} is not supported.")
+        else -> throw IllegalArgumentException("Image format ${image.format} is not supported.")
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-internal object ImageProcessor {
+object ImageProcessor {
 
-    fun yuvImageData(image: Image): ByteArray {
+    suspend fun yuvImageData(image: Image): ByteArray = withContext(Dispatchers.Default) {
 
         val imageWidth = image.width
         val imageHeight = image.height
@@ -86,9 +88,9 @@ internal object ImageProcessor {
         val v = ByteArray(vBuffer.remaining())
         vBuffer.get(v)
 
-        val size = imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8
+        val size: Int = imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8
 
-        return ByteArrayOutputStream(size).apply {
+        return@withContext ByteArrayOutputStream(size).apply {
             write(y)
             write(u)
             write(v)
@@ -131,7 +133,7 @@ internal object ImageProcessor {
         return@async imageData*/
     }
 
-    fun yuvToN21(image: Image): ByteArray {
+    suspend fun yuvToN21(image: Image): ByteArray = withContext(Dispatchers.Default) {
 
         val width = image.width
         val ySize = width * image.height
@@ -177,10 +179,10 @@ internal object ImageProcessor {
             }
         }
 
-        return nv21
+        return@withContext nv21
     }
 
-    fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
+    suspend fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray = withContext(Dispatchers.Default) {
 
         val width = image.width
         val height = image.height
@@ -249,10 +251,10 @@ internal object ImageProcessor {
         outAlloc.copyTo(rgbData)
         outAlloc.copyTo(outBitmap)
 
-        return rgbData
+        return@withContext rgbData
     }
 
-    fun yuvToRgb(image: Image, rs: RenderScript): ByteArray {
+    suspend fun yuvToRgb(image: Image, rs: RenderScript): ByteArray = withContext(Dispatchers.Default) {
 
         val imageWidth = image.width
         val imageHeight = image.height
@@ -299,6 +301,6 @@ internal object ImageProcessor {
         yuvType.destroy()
         rgbType.destroy()
 
-        return rgbData
+        return@withContext rgbData
     }
 }

@@ -16,7 +16,6 @@ plugins {
     id("com.android.application")
     kotlin("android")
     kotlin("android.extensions")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -83,10 +82,6 @@ dependencies {
     // Android support
     implementation(Config.Libs.appcompatV7)
     implementation(Config.Libs.constraintLayout)
-
-    // Firebase
-    implementation(Config.Libs.firebaseCore)
-    implementation(Config.Libs.firebaseMlVision)
 
     // Glide
     implementation(Config.Libs.glide) { exclude("com.android.support") }

@@ -30,6 +30,6 @@ class CameraInitFragment : Fragment() {
     }
 
     companion object {
-        val newInstance: CameraInitFragment get() = CameraInitFragment()
+        fun newInstance(): CameraInitFragment = CameraInitFragment()
     }
 }

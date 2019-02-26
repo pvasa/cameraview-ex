@@ -31,13 +31,10 @@ internal open class Camera2Api23(
     context: Context
 ) : Camera2(listener, preview, config, job, context) {
 
-    override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
+    override suspend fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         // Try to get hi-res output sizes
-        val outputSizes = map.getHighResolutionOutputSizes(internalOutputFormat)
-        if (outputSizes != null) {
-            for (size in map.getHighResolutionOutputSizes(internalOutputFormat)) {
-                sizes.add(Size(size.width, size.height))
-            }
+        map.getHighResolutionOutputSizes(internalOutputFormat)?.forEach {
+            sizes.add(it.width, it.height)
         }
         if (sizes.isEmpty) super.collectPictureSizes(sizes, map)
     }

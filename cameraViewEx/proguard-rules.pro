@@ -23,6 +23,7 @@
 -keepattributes *Annotation*, Signature, Exception
 
 -keep class com.priyankvasa.android.cameraviewex.** { *; }
+-dontnote com.priyankvasa.android.cameraviewex.**
 
 -keepclasseswithmembernames class * { native <methods>; }
 
@@ -32,3 +33,10 @@
 
 # Most of volatile fields are updated with AFU and should not be mangled
 -keepclassmembernames class kotlinx.** { volatile <fields>; }
+
+-dontnote android.arch.lifecycle.**
+
+-dontnote kotlin.jvm.**
+
+-dontnote kotlinx.coroutines.**
+-dontnote kotlin.coroutines.**

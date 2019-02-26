@@ -20,9 +20,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.support.v4.util.SparseArrayCompat
 
-/**
- * Immutable class for describing proportional relationship between width and height.
- */
+/** Immutable class for describing proportional relationship between width and height. */
 class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<AspectRatio>, Parcelable {
 
     fun matches(size: Size): Boolean {
@@ -60,19 +58,17 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
 
     companion object {
 
-        val Ratio16x9 = AspectRatio(16, 9)
-        val Ratio4x3 = AspectRatio(4, 3)
-
         private val cache = SparseArrayCompat<SparseArrayCompat<AspectRatio>>(16)
 
         /**
-         * Returns an instance of [AspectRatio] specified by `x` and `y` values.
+         * Returns an instance of [AspectRatio] specified by [x] and [y] values.
          * The values `x` and `y` will be reduced by their greatest common divider.
          *
          * @param x The width
          * @param y The height
          * @return An instance of [AspectRatio]
          */
+        @JvmStatic
         fun of(x: Int, y: Int): AspectRatio {
             var a = x
             var b = y
@@ -88,14 +84,25 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
         }
 
         /**
+         * Returns an instance of [AspectRatio] specified by [Size.width] and [Size.height] of [size].
+         * The values `width` and `height` will be reduced by their greatest common divider.
+         *
+         * @param size
+         * @return An instance of [AspectRatio]
+         */
+        @JvmStatic
+        fun of(size: Size): AspectRatio = of(size.width, size.height)
+
+        /**
          * Parse an [AspectRatio] from a [String] formatted like "4:3".
          *
          * @param s The string representation of the aspect ratio
          * @return The aspect ratio
          * @throws IllegalArgumentException when the format is incorrect.
          */
+        @JvmSynthetic
         @Throws(IllegalArgumentException::class)
-        fun parse(s: String): AspectRatio = try {
+        internal fun parse(s: String): AspectRatio = try {
             s.split(':').let { AspectRatio.of(it[0].trim().toInt(), it[1].trim().toInt()) }
         } catch (e: NumberFormatException) {
             throw IllegalArgumentException("Malformed aspect ratio: $s", e)
@@ -113,7 +120,7 @@ class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<Aspec
         }
 
         @JvmField
-        val CREATOR = object : Parcelable.Creator<AspectRatio> {
+        val CREATOR: Parcelable.Creator<AspectRatio> = object : Parcelable.Creator<AspectRatio> {
             override fun createFromParcel(parcel: Parcel): AspectRatio =
                 AspectRatio.of(parcel.readInt(), parcel.readInt())
 
