@@ -436,7 +436,7 @@ class CameraView @JvmOverloads constructor(
     private fun requireActive(): Boolean = isActive.also {
         if (!it) listenerManager.onCameraError(
             CameraViewException("CameraView instance is destroyed and cannot be used further. Please create a new instance."),
-            isCritical = true
+            ErrorLevel.ErrorCritical
         )
     }
 
@@ -491,7 +491,7 @@ class CameraView @JvmOverloads constructor(
         listenerManager.onCameraError(
             CameraViewException("Unable to use camera or camera2 api." +
                 " Please check if the camera hardware is usable and CameraView is correctly configured."),
-            isCritical = true
+            ErrorLevel.ErrorCritical
         )
     }
 
@@ -506,7 +506,7 @@ class CameraView @JvmOverloads constructor(
                 " Update camera mode by" +
                 " `CameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE`" +
                 " to enable and capture images."),
-            isCritical = true
+            ErrorLevel.ErrorCritical
         )
 
         else -> runBlocking(coroutineContext) { camera.takePicture() }
@@ -532,7 +532,7 @@ class CameraView @JvmOverloads constructor(
                 " Update camera mode by" +
                 " `CameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE`" +
                 " to enable and capture videos."),
-            isCritical = true
+            ErrorLevel.ErrorCritical
         )
 
         isVideoRecording -> listenerManager.onCameraError(

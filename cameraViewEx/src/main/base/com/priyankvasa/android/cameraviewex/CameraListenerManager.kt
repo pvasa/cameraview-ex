@@ -73,10 +73,10 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
         pictureTakenListeners.forEach { launchOnUi { it(imageData) } }
     }
 
-    override fun onCameraError(e: Exception, errorLevel: ErrorLevel, isCritical: Boolean) {
-        if (isCritical && cameraErrorListeners.isEmpty()) throw e
-        if (errorLevel == ErrorLevel.Debug) Timber.d(e)
-        else cameraErrorListeners.forEach { launchOnUi { it(e, errorLevel) } }
+    override fun onCameraError(e: Exception, errorLevel: ErrorLevel): Unit = when {
+        errorLevel == ErrorLevel.ErrorCritical && cameraErrorListeners.isEmpty() -> throw e
+        errorLevel == ErrorLevel.Debug -> Timber.d(e)
+        else -> cameraErrorListeners.forEach { launchOnUi { it(e, errorLevel) } }
     }
 
     override fun onCameraClosed() {

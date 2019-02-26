@@ -31,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.util.SortedSet
@@ -166,7 +167,10 @@ internal class Camera1(
         chooseCamera()
         runCatching { openCamera() }
             .onFailure {
-                listener.onCameraError(CameraViewException("Unable to open camera.", it), isCritical = true)
+                listener.onCameraError(
+                    CameraViewException("Unable to open camera.", it),
+                    ErrorLevel.ErrorCritical
+                )
                 return false
             }
         if (preview.isReady) runCatching { setUpPreview() }
@@ -375,13 +379,13 @@ internal class Camera1(
         listener.onCameraOpened()
     }
 
-    private suspend fun chooseAspectRatio(): AspectRatio {
+    private suspend fun chooseAspectRatio(): AspectRatio = withContext(coroutineContext) {
         var r: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
         previewSizes.ratios().forEach { ratio: AspectRatio ->
             r = ratio
-            if (ratio == Modes.DEFAULT_ASPECT_RATIO) return ratio
+            if (ratio == Modes.DEFAULT_ASPECT_RATIO) return@withContext ratio
         }
-        return r
+        return@withContext r
     }
 
     private suspend fun adjustCameraParameters() {

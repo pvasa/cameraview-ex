@@ -142,7 +142,7 @@ internal open class Camera2(
                 cameraOpenCloseLock.release()
                 listener.onCameraError(
                     CameraViewException("Error opening camera with id ${camera.id} (error: $error)"),
-                    isCritical = true
+                    ErrorLevel.ErrorCritical
                 )
                 this@Camera2.camera = null
             }
@@ -692,7 +692,7 @@ internal open class Camera2(
         listener.onCameraError(
             CameraViewException("Aspect ratio $this is not supported by this device." +
                 " Valid ratios are $supportedAspectRatios. Refer CameraView.supportedAspectRatios"),
-            isCritical = true
+            ErrorLevel.ErrorCritical
         )
 
         return@withContext false

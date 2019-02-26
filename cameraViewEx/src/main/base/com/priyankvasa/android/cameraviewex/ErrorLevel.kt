@@ -17,6 +17,7 @@
 package com.priyankvasa.android.cameraviewex
 
 sealed class ErrorLevel {
+    object ErrorCritical : ErrorLevel()
     object Error : ErrorLevel()
     object Warning : ErrorLevel()
     internal object Debug : ErrorLevel()

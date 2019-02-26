@@ -46,14 +46,21 @@
 <p><a href="-audio-encoder/index.html">AudioEncoder</a></p>
 </td>
 <td>
-<code><span class="keyword">class </span><span class="identifier">AudioEncoder</span></code></td>
+<code><span class="keyword">sealed</span> <span class="keyword">class </span><span class="identifier">AudioEncoder</span></code></td>
 </tr>
 <tr>
 <td>
 <p><a href="-audio-source/index.html">AudioSource</a></p>
 </td>
 <td>
-<code><span class="keyword">class </span><span class="identifier">AudioSource</span></code></td>
+<code><span class="keyword">sealed</span> <span class="keyword">class </span><span class="identifier">AudioSource</span></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="-camera-configuration/index.html">CameraConfiguration</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">CameraConfiguration</span></code></td>
 </tr>
 <tr>
 <td>
@@ -92,17 +99,22 @@
 </tr>
 <tr>
 <td>
-    <p><a href="-legacy-image/index.html">LegacyImage</a></p>
+<p><a href="-image-processor/index.html">ImageProcessor</a></p>
 </td>
-    <td>
-        <code><span class="keyword">data</span> <span class="keyword">class </span><span
-                class="identifier">LegacyImage</span></code>
-        <p>Data class to wrap frame data generated from preview frame listener for <a href="#">Camera1</a>.
-        </p>
-    </td>
+<td>
+<code><span class="keyword">object </span><span class="identifier">ImageProcessor</span></code></td>
 </tr>
 <tr>
-    <td>
+<td>
+<p><a href="-legacy-image/index.html">LegacyImage</a></p>
+</td>
+<td>
+<code><span class="keyword">data</span> <span class="keyword">class </span><span class="identifier">LegacyImage</span></code>
+<p>Data class to wrap frame data generated from preview frame listener for <a href="#">Camera1</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="-modes/index.html">Modes</a></p>
 </td>
 <td>
@@ -120,7 +132,7 @@
 <p><a href="-size/index.html">Size</a></p>
 </td>
 <td>
-<code><span class="keyword">class </span><span class="identifier">Size</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-comparable/index.html"><span class="identifier">Comparable</span></a><span class="symbol">&lt;</span><a href="-size/index.html"><span class="identifier">Size</span></a><span class="symbol">&gt;</span></code>
+<code><span class="keyword">data</span> <span class="keyword">class </span><span class="identifier">Size</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-comparable/index.html"><span class="identifier">Comparable</span></a><span class="symbol">&lt;</span><a href="-size/index.html"><span class="identifier">Size</span></a><span class="symbol">&gt;</span></code>
 <p>Immutable class for describing width and height dimensions in pixels.</p>
 </td>
 </tr>
@@ -152,14 +164,14 @@
 <p><a href="-video-encoder/index.html">VideoEncoder</a></p>
 </td>
 <td>
-<code><span class="keyword">class </span><span class="identifier">VideoEncoder</span></code></td>
+<code><span class="keyword">sealed</span> <span class="keyword">class </span><span class="identifier">VideoEncoder</span></code></td>
 </tr>
 <tr>
 <td>
 <p><a href="-video-output-format/index.html">VideoOutputFormat</a></p>
 </td>
 <td>
-<code><span class="keyword">class </span><span class="identifier">VideoOutputFormat</span></code></td>
+<code><span class="keyword">sealed</span> <span class="keyword">class </span><span class="identifier">VideoOutputFormat</span></code></td>
 </tr>
 <tr>
 <td>
@@ -167,7 +179,7 @@
 </td>
 <td>
 <code><span class="keyword">sealed</span> <span class="keyword">class </span><span class="identifier">VideoSize</span></code>
-<p>Class for common video resolutions</p>
+<p>Common video resolutions</p>
 </td>
 </tr>
 </tbody>

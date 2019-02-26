@@ -19,9 +19,9 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 3
-    private const val minorVersion = 0
-    private const val patchVersion = 1
-    private const val versionClassifier = "beta"
+    private const val minorVersion = 1
+    private const val patchVersion = 0
+    private const val versionClassifier = ""
 
     val versionName: String
         get() = "$majorVersion.$minorVersion.$patchVersion${if (versionClassifier.isNotBlank()) "-" else ""}$versionClassifier"

@@ -74,14 +74,8 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
         fun onPictureTaken(imageData: ByteArray)
         fun onVideoRecordStarted()
         fun onVideoRecordStopped(isSuccess: Boolean)
-        fun onCameraError(
-            e: Exception,
-            errorLevel: ErrorLevel = ErrorLevel.Error,
-            isCritical: Boolean = false
-        )
-
+        fun onCameraError(e: Exception, errorLevel: ErrorLevel = ErrorLevel.Error)
         fun onLegacyPreviewFrame(image: LegacyImage)
-
         @RequiresApi(Build.VERSION_CODES.KITKAT)
         fun onPreviewFrame(reader: ImageReader)
     }
