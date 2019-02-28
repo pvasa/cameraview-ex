@@ -101,11 +101,11 @@ class CameraView @JvmOverloads constructor(
             }
         )
 
-    private var camera: CameraInterface = runBlocking(coroutineContext) {
+    private var camera: CameraInterface = run {
 
         val cameraJob: Job = SupervisorJob(parentJob)
 
-        return@runBlocking when {
+        return@run when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
                 Camera1(listenerManager, preview, config, cameraJob)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.M ->
@@ -581,6 +581,13 @@ class CameraView @JvmOverloads constructor(
      * This is typically called from fragment's onDestroyView callback.
      */
     fun destroy() {
+        if (!isActive) {
+            listenerManager.onCameraError(
+                CameraViewException("CameraView instance already destroyed."),
+                ErrorLevel.Warning
+            )
+            return
+        }
         runBlocking(coroutineContext) {
             listenerManager.destroy()
             camera.destroy()
