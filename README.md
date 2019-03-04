@@ -6,7 +6,7 @@
 
 _This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) with better stability and many more features._
 
-CameraViewEx highly simplifies integration of camera implementation and various camera features into any Android project. It uses new camera2 api with advanced features on API level 21 and higher and smartly switches to camera1 on older devices (API < 21).
+CameraViewEx highly simplifies the integration of a camera implementation and various camera features into any Android project. It uses the new camera2 API with advanced features on API level 21 and higher and is smart enough to switch to camera1 on older devices (API < 21).
 
 Minimum API 14 is required to use CameraViewEx.
 <br><br>
@@ -17,11 +17,11 @@ Minimum API 14 is required to use CameraViewEx.
 | 21+       | Camera2    | TextureView  |
 
 #### Why another camera library?
-Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
+Every camera library out there has some issues. Some good ones only use the camera1 API which doesn't provide the best performance possible with today's devices. Some are not updated anymore. Some do not have all the features needed. While some have a lot of features but use a complex API. CameraViewEx tries to solve all these issues while providing a simpler API while supplying more features.
 
 ## Features
 - High quality image capture
-- Multiple camera modes like single capture, continuous frame, and video capture
+- Multiple camera modes like: single capture, continuous frame, and video capture
 - Ability to enable all or multiple modes simultaneously
 - Preview frame listener
 - Support multiple formats for output images like jpeg, yuv_420_888, rgba_8888
