@@ -26,7 +26,6 @@ before_install:
 - openssl aes-256-cbc -K $encrypted_22c643d0471b_key -iv $encrypted_22c643d0471b_iv
   -in ./sampleApp/google-services.json.enc -out ./sampleApp/google-services.json -d
 - yes | sdkmanager "platforms;android-28"
-- yes | sdkmanager --licenses --sdk_root=${ANDROID_HOME}
 
 env:
   global:
