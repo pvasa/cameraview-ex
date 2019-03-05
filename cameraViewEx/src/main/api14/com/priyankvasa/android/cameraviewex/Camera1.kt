@@ -60,8 +60,8 @@ internal class Camera1(
         by lazy { VideoManager { listener.onCameraError(CameraViewException(it), ErrorLevel.Warning) } }
 
     private val previewCallback: Camera.PreviewCallback by lazy {
-        Camera.PreviewCallback { data, camera ->
-            if (!isCameraOpened) return@PreviewCallback
+        Camera.PreviewCallback { data: ByteArray?, camera: Camera? ->
+            if (camera == null || data == null) return@PreviewCallback
             val image = LegacyImage(
                 data,
                 camera.parameters.previewSize.width,
