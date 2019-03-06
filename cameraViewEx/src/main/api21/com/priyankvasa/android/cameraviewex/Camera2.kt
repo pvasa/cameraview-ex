@@ -631,7 +631,7 @@ internal open class Camera2(
 
     @SuppressLint("MissingPermission")
     override suspend fun start(): Boolean = runCatching {
-        cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)
+        if (!tryAcquireCameraLock(3000)) return@runCatching false
         chooseCameraIdByFacing()
         collectCameraInfo()
         prepareCaptureImageReader()
@@ -650,7 +650,7 @@ internal open class Camera2(
     override suspend fun stop() {
         super.stop()
         try {
-            cameraOpenCloseLock.acquire()
+            if (!tryAcquireCameraLock(1000)) return
             stopPreview()
             camera?.close()
             camera = null
@@ -680,6 +680,13 @@ internal open class Camera2(
         stopBackgroundThread()
         cameraJob.cancel()
     }
+
+    /**
+     * Try acquiring [cameraOpenCloseLock] for [timeout] milliseconds.
+     * @return true if acquired successfully within [timeout] milliseconds, false if not acquired until timeout
+     */
+    private suspend fun tryAcquireCameraLock(timeout: Long) =
+        withContext(coroutineContext) { cameraOpenCloseLock.tryAcquire(timeout, TimeUnit.MILLISECONDS) }
 
     override suspend fun setAspectRatio(ratio: AspectRatio): Boolean {
 
@@ -1109,48 +1116,31 @@ internal open class Camera2(
 
     override suspend fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) {
 
-        runCatching {
-            videoManager.setupMediaRecorder(
-                camera?.id?.toIntOrNull(),
-                outputFile,
-                videoConfig,
-                config.aspectRatio.value,
-                outputOrientation
-            ) { launch { stopVideoRecording() } }
-        }.onFailure {
-            listener.onCameraError(CameraViewException("Unable to start video recording.", it))
-            return
-        }
+        videoManager.setupMediaRecorder(
+            camera?.id?.toIntOrNull(),
+            outputFile,
+            videoConfig,
+            config.aspectRatio.value,
+            outputOrientation
+        ) { runBlocking(coroutineContext) { stopVideoRecording() } }
 
         if (!isCameraOpened || !preview.isReady) {
-            listener.onCameraError(CameraViewException("Camera not started or already stopped"))
-            return
+            throw IllegalStateException("Camera not started or already stopped")
         }
 
-        runCatching {
-            videoRequestBuilder = videoManager.createVideoRequestBuilder(
-                camera ?: throw IllegalStateException("Camera not initialized or already stopped"),
-                previewRequestBuilder,
-                config,
-                videoConfig
-            ) { cameraCharacteristics.isVideoStabilizationSupported() }
-        }.onFailure {
-            listener.onCameraError(CameraViewException("Unable to start video recording.", it))
-            return
-        }
+        videoRequestBuilder = videoManager.createVideoRequestBuilder(
+            camera ?: throw IllegalStateException("Camera not initialized or already stopped"),
+            previewRequestBuilder,
+            config,
+            videoConfig
+        ) { cameraCharacteristics.isVideoStabilizationSupported() }
 
-        val surfaces: MutableList<Surface> = runCatching {
-            setupSurfaces(
-                videoRequestBuilder,
-                shouldAddMediaRecorderSurface = true
-            )
-        }.getOrElse {
-            listener.onCameraError(CameraViewException("Unable to setup surfaces", it))
-            return
-        }
+        val surfaces: MutableList<Surface> = setupSurfaces(
+            videoRequestBuilder,
+            shouldAddMediaRecorderSurface = true
+        )
 
-        runCatching { camera?.createCaptureSession(surfaces, videoSessionStateCallback, backgroundHandler) }
-            .onFailure { listener.onCameraError(CameraViewException("Unable to start video recording.", it)) }
+        camera?.createCaptureSession(surfaces, videoSessionStateCallback, backgroundHandler)
     }
 
     override fun pauseVideoRecording(): Boolean {

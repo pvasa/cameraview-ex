@@ -53,7 +53,7 @@ class CameraView @JvmOverloads constructor(
 
     init {
         if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
+            Timber.forest().find { it is Timber.DebugTree } ?: Timber.plant(Timber.DebugTree())
             System.setProperty("kotlinx.coroutines.debug", "on")
         }
     }
@@ -542,7 +542,8 @@ class CameraView @JvmOverloads constructor(
         )
 
         else -> runBlocking(coroutineContext) {
-            camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig))
+            runCatching { camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig)) }
+                .getOrElse { listenerManager.onCameraError(CameraViewException("Unable to start video recording.")) }
         }
     }
 

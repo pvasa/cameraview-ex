@@ -295,8 +295,7 @@ internal class Camera1(
     override suspend fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) {
 
         if (!isCameraOpened || !preview.isReady) {
-            listener.onCameraError(CameraViewException("Camera not started or already stopped"))
-            return
+            throw IllegalStateException("Camera not started or already stopped")
         }
 
         camera?.unlock()
@@ -310,12 +309,12 @@ internal class Camera1(
                 videoConfig,
                 config.aspectRatio.value,
                 calcCameraRotation(deviceRotation)
-            ) { launch { stopVideoRecording() } }
+            ) { runBlocking(coroutineContext) { stopVideoRecording() } }
             videoManager.startMediaRecorder()
             listener.onVideoRecordStarted()
         }.onFailure {
-            listener.onCameraError(CameraViewException("Unable to start video recording", it))
             camera?.lock()
+            throw it
         }
     }
 
