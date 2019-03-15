@@ -35,9 +35,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.BufferedOutputStream
@@ -152,7 +150,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
     override fun onDestroyView() {
         cameraPreviewFrameHandler.release()
         camera.destroy()
-        runBlocking { job.cancelAndJoin() }
+        job.cancel()
         activity?.showSystemUi()
         super.onDestroyView()
     }
