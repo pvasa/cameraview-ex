@@ -610,7 +610,7 @@ class CameraView @JvmOverloads constructor(
      *
      * @return instance of [CameraView] it is called on
      *
-     * @sample setupCameraSample
+     * @sample com.priyankvasa.android.cameraviewex_sample.camera.CameraPreviewFrameHandler.listener
      */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {

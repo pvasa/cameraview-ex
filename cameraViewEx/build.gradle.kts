@@ -98,7 +98,7 @@ android {
     )
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
+        setSourceCompatibility(JavaVersion.VERSION_1_8)
         setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
 }
@@ -176,7 +176,7 @@ tasks.getByName<DokkaAndroidTask>("dokka") {
     includes = listOf("../README.md")
 
     // The list of files or directories containing sample code (referenced with @sample tags)
-    samples = listOf("src/main/sample")
+    // samples = listOf("src/main/sample")
 
     jdkVersion = 8 // Used for linking to JDK
 
