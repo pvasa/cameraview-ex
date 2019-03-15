@@ -30,11 +30,22 @@ import com.priyankvasa.android.cameraviewex_sample.extensions.show
 import com.priyankvasa.android.cameraviewex_sample.extensions.showSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.BufferedOutputStream
 import java.io.File
+import kotlin.coroutines.CoroutineContext
 
-open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
+open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, CoroutineScope {
+
+    private val job: Job = SupervisorJob()
+
+    override val coroutineContext: CoroutineContext get() = job + Dispatchers.Main
 
     private val imageOutputDirectory by lazy {
         "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
@@ -135,6 +146,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
     override fun onDestroyView() {
         cameraPreviewFrameListener.release()
         camera.destroy()
+        job.cancel()
         activity?.showSystemUi()
         super.onDestroyView()
     }
@@ -148,7 +160,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
 
             setPreviewFrameListener(cameraPreviewFrameListener.listener)
 
-            addPictureTakenListener { image: Image -> saveDataToFile(image) }
+            addPictureTakenListener { image: Image -> launch { saveDataToFile(image) } }
 
             addCameraErrorListener { t, errorLevel ->
                 when (errorLevel) {
@@ -180,14 +192,16 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
         }
     }
 
-    private fun saveDataToFile(image: Image): File = nextImageFile.apply {
-        createNewFile()
-        runCatching { BufferedOutputStream(outputStream()).use { it.write(image.data) } }
+    private suspend fun saveDataToFile(image: Image): File {
+        val output = nextImageFile.apply { createNewFile() }
+        val os = BufferedOutputStream(output.outputStream())
+        runCatching { withContext(Dispatchers.IO) { os.use { it.write(image.data) } } }
             .onFailure {
                 context?.toast("Unable to save image to file.")
                 Timber.e(it)
             }
-            .onSuccess { context?.toast("Saved image to file $absolutePath") }
+            .onSuccess { context?.toast("Saved image to file ${output.absolutePath}") }
+        return output
     }
 
     private fun setupView() {
