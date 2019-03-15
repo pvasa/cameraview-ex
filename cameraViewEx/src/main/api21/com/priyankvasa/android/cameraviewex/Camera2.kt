@@ -264,38 +264,31 @@ internal open class Camera2(
 
         ImageReader.OnImageAvailableListener { reader ->
 
-            val internalImage: android.media.Image =
-                runCatching { reader.acquireNextImage() }
-                    .getOrNull()
-                    ?: return@OnImageAvailableListener
-
             launch {
+
+                val internalImage: android.media.Image =
+                    runCatching { reader.acquireNextImage() }
+                        .getOrNull()
+                        ?: return@launch
 
                 val imageData: ByteArray =
                     runCatching { internalImage.decode(Modes.OutputFormat.YUV_420_888, rs) }
                         .getOrElse { return@launch }
 
-                val exif: ExifInterface = ExifInterface(imageData.inputStream())
-                    .apply {
-                        setAttribute(
-                            ExifInterface.TAG_ORIENTATION,
-                            rotationToExifOrientationMap
-                                .get(outputOrientation, ExifInterface.ORIENTATION_UNDEFINED)
-                                .toString()
-                        )
-                    }
+                val exif = ExifInterface(imageData.inputStream())
 
-                val image = Image(
-                    imageData,
-                    internalImage.width,
-                    internalImage.height,
-                    exif,
-                    ImageFormat.YUV_420_888
+                exif.setAttribute(
+                    ExifInterface.TAG_ORIENTATION,
+                    rotationToExifOrientationMap
+                        .get(outputOrientation, ExifInterface.ORIENTATION_UNDEFINED)
+                        .toString()
                 )
 
-                internalImage.close()
+                internalImage
+                    .runCatching { Image(imageData, width, height, exif, ImageFormat.YUV_420_888) }
+                    .onSuccess { image -> listener.onPreviewFrame(image) }
 
-                listener.onPreviewFrame(image)
+                internalImage.close()
             }
         }
     }
