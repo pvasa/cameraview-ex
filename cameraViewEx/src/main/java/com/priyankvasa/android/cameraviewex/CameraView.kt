@@ -21,7 +21,6 @@ package com.priyankvasa.android.cameraviewex
 import android.Manifest
 import android.app.Activity
 import android.content.Context
-import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -36,14 +35,10 @@ import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.File
-import kotlin.coroutines.CoroutineContext
 
 class CameraView @JvmOverloads constructor(
     context: Context,
@@ -59,10 +54,6 @@ class CameraView @JvmOverloads constructor(
     }
 
     private val parentJob: Job = SupervisorJob()
-
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default + parentJob)
-
-    private val coroutineContext: CoroutineContext get() = coroutineScope.coroutineContext
 
     private val preview: PreviewImpl = createPreview(context)
 
@@ -117,9 +108,7 @@ class CameraView @JvmOverloads constructor(
     }
 
     init {
-        config.aspectRatio.observe(camera) {
-            if (runBlocking(coroutineContext) { camera.setAspectRatio(it) }) requestLayout()
-        }
+        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
         config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
     }
 
@@ -453,29 +442,29 @@ class CameraView @JvmOverloads constructor(
      * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
      */
     @RequiresPermission(Manifest.permission.CAMERA)
-    fun start(): Unit = runBlocking(coroutineContext) {
+    fun start() {
 
-        if (!requireActive()) return@runBlocking
+        if (!requireActive()) return
 
         if (isCameraOpened) {
             listenerManager.onCameraError(
                 CameraViewException("Camera is already open. Call stop() first."),
                 errorLevel = ErrorLevel.Warning
             )
-            return@runBlocking
+            return
         }
 
         // Save original state and restore later if camera falls back to using Camera1
         val state: Parcelable? = onSaveInstanceState()
 
-        if (camera.start()) return@runBlocking // Camera started successfully, return.
+        if (camera.start()) return // Camera started successfully, return.
 
         // This camera instance is no longer useful, destroy it.
         camera.destroy()
 
         // Already tried using Camera1 api, return.
         // Errors leading to this situation are already posted from Camera1 api
-        if (camera is Camera1) return@runBlocking
+        if (camera is Camera1) return
 
         // Device uses legacy hardware layer; fall back to Camera1
         camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
@@ -485,7 +474,7 @@ class CameraView @JvmOverloads constructor(
 
         // Try to start camera again using Camera1 api
         // Return if successful
-        if (camera.start()) return@runBlocking
+        if (camera.start()) return
 
         // Unable to start camera using any api. Post a critical error.
         listenerManager.onCameraError(
@@ -509,7 +498,7 @@ class CameraView @JvmOverloads constructor(
             ErrorLevel.ErrorCritical
         )
 
-        else -> runBlocking(coroutineContext) { camera.takePicture() }
+        else -> camera.takePicture()
     }
 
     /**
@@ -541,10 +530,8 @@ class CameraView @JvmOverloads constructor(
             ErrorLevel.Warning
         )
 
-        else -> runBlocking(coroutineContext) {
-            runCatching { camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig)) }
-                .getOrElse { listenerManager.onCameraError(CameraViewException("Unable to start video recording.")) }
-        }
+        else -> runCatching { camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig)) }
+            .getOrElse { listenerManager.onCameraError(CameraViewException("Unable to start video recording.")) }
     }
 
     /**
@@ -567,13 +554,13 @@ class CameraView @JvmOverloads constructor(
      * Stop video recording
      * @return true if video was stopped and saved to given outputFile, false otherwise
      */
-    fun stopVideoRecording(): Boolean = runBlocking(coroutineContext) { camera.stopVideoRecording() }
+    fun stopVideoRecording(): Boolean = camera.stopVideoRecording()
 
     /**
      * Stop camera preview and close the device.
      * This is typically called from fragment's onPause callback.
      */
-    fun stop(): Unit = runBlocking(coroutineContext) { camera.stop() }
+    fun stop(): Unit = camera.stop()
 
     /**
      * Clear all listeners, [stop] camera, and kill background threads.
@@ -589,10 +576,8 @@ class CameraView @JvmOverloads constructor(
             )
             return
         }
-        runBlocking(coroutineContext) {
-            listenerManager.destroy()
-            camera.destroy()
-        }
+        listenerManager.destroy()
+        camera.destroy()
         parentJob.cancel()
     }
 
@@ -617,37 +602,13 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * Set legacy (camera1) preview frame [listener].
+     * Set preview frame [listener].
      *
-     * @param listener lambda with image of type [LegacyImage] as its argument
-     * which contains the preview frame from camera1 and its metadata.
-     * The image data format stated by [LegacyImage.format] is [android.graphics.ImageFormat]
-     * @return instance of [CameraView] it is called on
-     */
-    fun setLegacyPreviewFrameListener(listener: (image: LegacyImage) -> Unit): CameraView {
-        if (listenerManager.isEnabled) listenerManager.legacyPreviewFrameListener = listener
-        return this
-    }
-
-    /**
-     * Remove legacy (camera1) preview frame [listenerManager].
-     * @return instance of [CameraView] it is called on
-     */
-    fun removeLegacyPreviewFrameListener(): CameraView {
-        listenerManager.legacyPreviewFrameListener = null
-        return this
-    }
-
-    /**
-     * Set preview frame [listener]. Be careful while using this listenerManager as it is invoked on each frame,
-     * which could be 60 times per second if frame rate is 60 fps.
-     * Ideally, next frame should only be processed once current frame is done processing.
-     * Continuously launching background tasks for each frame is is not memory efficient,
-     * the device will run out of memory very quickly and force close the app.
+     * @param listener lambda with image of type [Image] as its argument
+     * which contains the preview frame from camera and its metadata in form of [android.support.media.ExifInterface].
      *
-     * @param listener lambda with image of type [Image] as its argument which is the preview frame.
-     * It is always of type [android.graphics.ImageFormat.YUV_420_888]
      * @return instance of [CameraView] it is called on
+     *
      * @sample setupCameraSample
      */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -657,7 +618,7 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * Remove preview frame [listenerManager].
+     * Remove preview frame listener.
      * @return instance of [CameraView] it is called on
      */
     fun removePreviewFrameListener(): CameraView {
@@ -671,7 +632,7 @@ class CameraView @JvmOverloads constructor(
      * which is image data of the captured image, of format set with [CameraView.outputFormat]
      * @return instance of [CameraView] it is called on
      */
-    fun addPictureTakenListener(listener: (imageData: ByteArray) -> Unit): CameraView {
+    fun addPictureTakenListener(listener: (image: Image) -> Unit): CameraView {
         if (listenerManager.isEnabled) listenerManager.pictureTakenListeners.add(listener)
         return this
     }
@@ -680,7 +641,7 @@ class CameraView @JvmOverloads constructor(
      * Remove picture taken [listener].
      * @return instance of [CameraView] it is called on
      */
-    fun removePictureTakenListener(listener: (ByteArray) -> Unit): CameraView {
+    fun removePictureTakenListener(listener: (Image) -> Unit): CameraView {
         listenerManager.pictureTakenListeners.remove(listener)
         return this
     }

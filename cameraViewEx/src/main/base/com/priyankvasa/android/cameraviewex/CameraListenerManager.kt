@@ -16,10 +16,6 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.media.Image
-import android.media.ImageReader
-import android.os.Build
-import android.support.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,10 +29,7 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
 
     val cameraOpenedListeners: HashSet<() -> Unit> by lazy { HashSet<() -> Unit>() }
 
-    val pictureTakenListeners: HashSet<(imageData: ByteArray) -> Unit>
-        by lazy { HashSet<(imageData: ByteArray) -> Unit>() }
-
-    var legacyPreviewFrameListener: ((image: LegacyImage) -> Unit)? = null
+    val pictureTakenListeners: HashSet<(image: Image) -> Unit> by lazy { HashSet<(image: Image) -> Unit>() }
 
     var previewFrameListener: ((image: Image) -> Unit)? = null
 
@@ -60,17 +53,12 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
         cameraOpenedListeners.forEach { launchOnUi { it() } }
     }
 
-    override fun onLegacyPreviewFrame(image: LegacyImage) {
-        legacyPreviewFrameListener?.invoke(image)
+    override fun onPreviewFrame(image: Image) {
+        previewFrameListener?.invoke(image)
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
-    override fun onPreviewFrame(reader: ImageReader) {
-        reader.acquireLatestImage()?.use { previewFrameListener?.invoke(it) }
-    }
-
-    override fun onPictureTaken(imageData: ByteArray) {
-        pictureTakenListeners.forEach { launchOnUi { it(imageData) } }
+    override fun onPictureTaken(image: Image) {
+        pictureTakenListeners.forEach { launchOnUi { it(image) } }
     }
 
     override fun onCameraError(e: Exception, errorLevel: ErrorLevel): Unit = when {
@@ -102,7 +90,6 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
 
     fun clear() {
         cameraOpenedListeners.clear()
-        legacyPreviewFrameListener = null
         previewFrameListener = null
         pictureTakenListeners.clear()
         cameraErrorListeners.clear()

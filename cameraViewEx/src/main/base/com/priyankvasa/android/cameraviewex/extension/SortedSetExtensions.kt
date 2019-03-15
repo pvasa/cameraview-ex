@@ -17,8 +17,6 @@
 package com.priyankvasa.android.cameraviewex.extension
 
 import com.priyankvasa.android.cameraviewex.Size
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.util.SortedSet
 
 /**
@@ -27,16 +25,13 @@ import java.util.SortedSet
  *
  * @return The picked optimal size.
  */
-internal suspend fun SortedSet<Size>.chooseOptimalPreviewSize(
-    viewWidth: Int,
-    viewHeight: Int
-): Size = withContext(Dispatchers.Default) {
+internal fun SortedSet<Size>.chooseOptimalPreviewSize(viewWidth: Int, viewHeight: Int): Size {
 
     val (maxWidth: Int, maxHeight: Int) =
         if (viewHeight > viewWidth) viewHeight to viewWidth
         else viewWidth to viewHeight
 
-    return@withContext asSequence()
+    return asSequence()
         .filter { it.width <= maxWidth && it.height <= maxHeight }
         .run {
             firstOrNull { it.width >= viewWidth && it.height >= viewHeight }

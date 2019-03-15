@@ -28,7 +28,6 @@ import android.os.Build
 import android.support.annotation.RequiresApi
 import android.support.v4.math.MathUtils
 import android.view.Surface
-import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import kotlin.math.roundToInt
@@ -72,10 +71,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
 
     fun addVideoSizes(sizes: Sequence<Size>) {
         videoSizes.clear()
-        sizes.forEach {
-            videoSizes.add(it)
-            Timber.i("\n$it")
-        }
+        sizes.forEach { videoSizes.add(it) }
     }
 
     /** Returns the [mediaRecorder] surface */
@@ -131,7 +127,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    suspend fun setupMediaRecorder(
+    fun setupMediaRecorder(
         camera: Camera,
         cameraId: Int,
         previewSurface: Surface?,
@@ -158,7 +154,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    suspend fun setupMediaRecorder(
+    fun setupMediaRecorder(
         cameraId: Int?,
         outputFile: File,
         videoConfig: VideoConfiguration,
@@ -180,7 +176,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    private suspend fun MediaRecorder.setupInternal(
+    private fun MediaRecorder.setupInternal(
         cameraId: Int?,
         outputFile: File,
         videoConfig: VideoConfiguration,
@@ -241,7 +237,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         return true
     }
 
-    private suspend fun MediaRecorder.manualProfileSetup(
+    private fun MediaRecorder.manualProfileSetup(
         videoConfig: VideoConfiguration,
         previewAspectRatio: AspectRatio
     ) {
@@ -260,7 +256,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
      * Parse the video size from popular [VideoSize] choices. If the [VideoSize]
      * is not supported then an optimal size sill be chosen.
      */
-    private suspend fun VideoSize.parseSize(previewAspectRatio: AspectRatio): Size = when (this) {
+    private fun VideoSize.parseSize(previewAspectRatio: AspectRatio): Size = when (this) {
 
         VideoSize.Min -> chooseOptimalVideoSize(previewAspectRatio, chooseSmallest = true)
 
@@ -303,7 +299,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         )
     }
 
-    private suspend fun chooseOptimalVideoSize(
+    private fun chooseOptimalVideoSize(
         aspectRatio: AspectRatio,
         chooseSmallest: Boolean = false
     ): Size = videoSizes.sizes(aspectRatio).run {

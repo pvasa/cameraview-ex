@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -15,18 +14,16 @@ import android.support.v4.app.FragmentManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.google.firebase.ml.vision.FirebaseVision
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions
-import com.google.firebase.ml.vision.common.FirebaseVisionImage
-import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
 import com.priyankvasa.android.cameraviewex.AspectRatio
 import com.priyankvasa.android.cameraviewex.ErrorLevel
-import com.priyankvasa.android.cameraviewex.LegacyImage
+import com.priyankvasa.android.cameraviewex.Image
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewex_sample.R
+import com.priyankvasa.android.cameraviewex_sample.RotateTransformation
 import com.priyankvasa.android.cameraviewex_sample.extensions.hide
 import com.priyankvasa.android.cameraviewex_sample.extensions.hideSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.show
@@ -36,7 +33,6 @@ import kotlinx.android.synthetic.main.fragment_camera.*
 import timber.log.Timber
 import java.io.BufferedOutputStream
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
 
@@ -59,7 +55,18 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
     @SuppressLint("MissingPermission")
     private val imageCaptureListener = View.OnClickListener { camera.capture() }
 
-    private val decoding = AtomicBoolean(false)
+    private val cameraPreviewFrameListener: CameraPreviewFrameListener by lazy {
+        CameraPreviewFrameListener(
+            decodeSuccessListener,
+            { previewFrame: ByteArray, rotation: Int ->
+                Glide.with(this@CameraFragment)
+                    .asBitmap()
+                    .load(previewFrame)
+                    .apply(RequestOptions.bitmapTransform(RotateTransformation(rotation)))
+                    .into(ivOutputPreview)
+            }
+        )
+    }
 
     @SuppressLint("MissingPermission")
     private val videoCaptureListener = View.OnClickListener {
@@ -69,19 +76,12 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
             videoFile = nextVideoFile
             camera.startVideoRecording(videoFile) {
                 videoFrameRate = 30
+                // maxDuration = 4000
                 videoStabilization = true
                 videoSize = VideoSize.Max
             }
         }
     }
-
-    private val barcodeDetectorOptions: FirebaseVisionBarcodeDetectorOptions =
-        FirebaseVisionBarcodeDetectorOptions.Builder()
-            .setBarcodeFormats(FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
-            .build()
-
-    private val barcodeDetector: FirebaseVisionBarcodeDetector =
-        FirebaseVision.getInstance().getVisionBarcodeDetector(barcodeDetectorOptions)
 
     @SuppressLint("SetTextI18n")
     private val decodeSuccessListener: (MutableList<FirebaseVisionBarcode>) -> Unit =
@@ -133,10 +133,10 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
-        barcodeDetector.close()
+        cameraPreviewFrameListener.release()
         camera.destroy()
         activity?.showSystemUi()
+        super.onDestroyView()
     }
 
     @SuppressLint("SetTextI18n")
@@ -146,26 +146,9 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
 
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
-            setPreviewFrameListener { image: Image ->
-                if (decoding.compareAndSet(false, true))
-                    FirebaseVisionImage.fromMediaImage(image, 0).detectBarcodes()
-            }
+            setPreviewFrameListener(cameraPreviewFrameListener.listener)
 
-            setLegacyPreviewFrameListener { image: LegacyImage ->
-
-                if (decoding.compareAndSet(false, true)) {
-
-                    val metadata = FirebaseVisionImageMetadata.Builder()
-                        .setFormat(image.format)
-                        .setWidth(image.width)
-                        .setHeight(image.height)
-                        .build()
-
-                    FirebaseVisionImage.fromByteArray(image.data, metadata).detectBarcodes()
-                }
-            }
-
-            addPictureTakenListener { imageData: ByteArray -> saveDataToFile(imageData) }
+            addPictureTakenListener { image: Image -> saveDataToFile(image) }
 
             addCameraErrorListener { t, errorLevel ->
                 when (errorLevel) {
@@ -175,6 +158,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
             }
 
             addVideoRecordStartedListener {
+                Timber.i("Video recording started.")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     ivPlayPause.show()
                     ivPlayPause.isActivated = true
@@ -188,22 +172,17 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
                 ivVideoCaptureButton.isActivated = false
                 if (isSuccess) context?.toast("Video saved to ${videoFile.absolutePath}")
                 else context?.toast("Failed to save video!")
+                // To test an edge case where there was a crash upon exiting frag right after video recording
+                // activity?.supportFragmentManager?.popBackStack()
             }
 
             addCameraClosedListener { Timber.i("Camera closed.") }
         }
     }
 
-    private fun FirebaseVisionImage.detectBarcodes() {
-        barcodeDetector.detectInImage(this)
-            .addOnCompleteListener { decoding.set(false) }
-            .addOnSuccessListener(decodeSuccessListener)
-            .addOnFailureListener { e -> Timber.e(e) }
-    }
-
-    private fun saveDataToFile(data: ByteArray): File = nextImageFile.apply {
+    private fun saveDataToFile(image: Image): File = nextImageFile.apply {
         createNewFile()
-        runCatching { BufferedOutputStream(outputStream()).use { it.write(data) } }
+        runCatching { BufferedOutputStream(outputStream()).use { it.write(image.data) } }
             .onFailure {
                 context?.toast("Unable to save image to file.")
                 Timber.e(it)
@@ -257,7 +236,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
         }
 
         ivBarcodeScanner.setOnClickListener {
-            camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME or Modes.CameraMode.VIDEO_CAPTURE)
+            camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
             camera.facing = Modes.Facing.FACING_BACK
             updateViewState()
         }
@@ -312,6 +291,8 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener {
     }
 
     companion object {
+
+        val TAG: String = CameraFragment::class.java.run { canonicalName ?: name }
 
         private val permissions: Array<String> = arrayOf(
             Manifest.permission.CAMERA,

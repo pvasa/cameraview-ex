@@ -3,7 +3,6 @@ package com.priyankvasa.android.cameraviewex_sample.camera;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
-import android.media.Image;
 import android.os.Bundle;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
@@ -18,6 +17,7 @@ import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.priyankvasa.android.cameraviewex.CameraView;
 import com.priyankvasa.android.cameraviewex.ErrorLevel;
+import com.priyankvasa.android.cameraviewex.Image;
 import com.priyankvasa.android.cameraviewex.Modes;
 import com.priyankvasa.android.cameraviewex_sample.R;
 
@@ -118,10 +118,10 @@ public class CameraFragment extends Fragment {
             return Unit.INSTANCE;
         });
 
-        camera.addPictureTakenListener((byte[] imageData) -> {
+        camera.addPictureTakenListener((Image image) -> {
             ivPhoto.setVisibility(View.VISIBLE);
             Glide.with(requireContext())
-                .load(imageData)
+                .load(image.getData())
                 .into(ivPhoto);
             return Unit.INSTANCE;
         });

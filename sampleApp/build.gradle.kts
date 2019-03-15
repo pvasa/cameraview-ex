@@ -72,7 +72,7 @@ android {
     }
 
     compileOptions {
-        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        sourceCompatibility = JavaVersion.VERSION_1_8
         setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
 }
@@ -99,6 +99,9 @@ dependencies {
     // Firebase
     implementation(Config.Libs.firebaseCore)
     implementation(Config.Libs.firebaseMlVision)
+
+    // Glide
+    implementation(Config.Libs.glide) { exclude("com.android.support") }
 
     // Timber
     implementation(Config.Libs.timber)

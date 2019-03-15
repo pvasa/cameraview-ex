@@ -73,6 +73,7 @@ object Config {
         const val supportAnnotations = "com.android.support:support-annotations:${Versions.support}"
         const val appcompatV7 = "com.android.support:appcompat-v7:${Versions.support}"
         const val supportTransition = "com.android.support:transition:${Versions.support}"
+        const val supportExifInterface = "com.android.support:exifinterface:${Versions.support}"
         const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
         const val lifecycleLivedata = "android.arch.lifecycle:livedata-core:${Versions.lifecycle}"

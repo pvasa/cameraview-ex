@@ -16,19 +16,27 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import android.support.media.ExifInterface
+
 /**
- * Data class to wrap frame data generated from preview frame listener for [Camera1].
+ * Data class to wrap frame data generated from preview frame listener.
  *
  * @param data preview frame data [ByteArray]
  * @param width of the preview frame
  * @param height of the preview frame
- * @param format image format of preview frame [android.graphics.ImageFormat]. Usually this would be [android.graphics.ImageFormat.NV21]
+ * @param format image format of preview frame from [android.graphics.ImageFormat]. Usually this would be [android.graphics.ImageFormat.NV21]
  */
-data class LegacyImage(val data: ByteArray, val width: Int, val height: Int, val format: Int) {
+data class Image(
+    val data: ByteArray,
+    val width: Int,
+    val height: Int,
+    val exifInterface: ExifInterface,
+    val format: Int
+) {
 
     override fun equals(other: Any?): Boolean = this === other ||
         (javaClass == other?.javaClass &&
-            data.contentEquals((other as LegacyImage).data) &&
+            data.contentEquals((other as Image).data) &&
             width == other.width &&
             height == other.height &&
             format == other.format)
