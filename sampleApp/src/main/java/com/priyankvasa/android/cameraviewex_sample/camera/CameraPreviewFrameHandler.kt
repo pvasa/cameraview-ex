@@ -43,13 +43,12 @@ class CameraPreviewFrameHandler(
         // Uncomment to print stats to logcat
         // printStats()
         detectBarcodes(image)
-        // Uncomment to show a small preview of continuous frames
-        // showPreview(image)
+        // Comment to stop showing the small preview of continuous frames
+        showPreview(image)
     }
 
     /**
-     * This code is commented because [java.time.LocalTime] is not available on some old devices (mysteriously..)
-     * Uncomment it to print preview frame listener stats like
+     * It prints preview frame listener stats like
      * time between each frame and max and min times between frames.
      */
     /*private var min: Int = Int.MAX_VALUE

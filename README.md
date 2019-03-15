@@ -42,7 +42,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.1.3"
+    implementation "com.priyankvasa.android:cameraview-ex:3.2.0"
 }
 ```
 
@@ -102,7 +102,7 @@ override fun onDestroyView() {
 camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
 // Output format is whatever set for [app:outputFormat] parameter
 // Callback on UI thread
-camera.addPictureTakenListener { imageData: ByteArray -> /* Picture taken. */ }
+camera.addPictureTakenListener { image: Image -> /* Picture taken. */ }
 camera.capture()
 ```
 
@@ -130,7 +130,7 @@ camera.addVideoRecordStoppedListener { isSuccess ->
 camera.startVideoRecording(outputFile) {
     // Configure video (MediaRecorder) parameters
     audioEncoder = AudioEncoder.Aac
-    videoFrameRate = 60
+    videoFrameRate = 30
     videoStabilization = true
 }
 // When done recording

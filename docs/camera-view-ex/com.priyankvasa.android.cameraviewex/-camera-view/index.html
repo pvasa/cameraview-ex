@@ -282,8 +282,8 @@ The only critical error thrown for now is for invalid aspect ratio.</p>
 <p><a href="add-picture-taken-listener.html">addPictureTakenListener</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">addPictureTakenListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$addPictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">imageData</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html"><span class="identifier">ByteArray</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Add a new picture taken <a href="add-picture-taken-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addPictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</a>.</p>
+<code><span class="keyword">fun </span><span class="identifier">addPictureTakenListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$addPictureTakenListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.Image, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">image</span><span class="symbol">:</span>&nbsp;<a href="../-image/index.html"><span class="identifier">Image</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+<p>Add a new picture taken <a href="add-picture-taken-listener.html#com.priyankvasa.android.cameraviewex.CameraView$addPictureTakenListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.Image, kotlin.Unit)))/listener">listener</a>.</p>
 </td>
 </tr>
 <tr>
@@ -407,20 +407,11 @@ This is typically called from fragment's onDestroyView callback.</p>
 </tr>
 <tr>
 <td>
-<p><a href="remove-legacy-preview-frame-listener.html">removeLegacyPreviewFrameListener</a></p>
-</td>
-<td>
-<code><span class="keyword">fun </span><span class="identifier">removeLegacyPreviewFrameListener</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Remove legacy (camera1) preview frame <a href="#">listenerManager</a>.</p>
-</td>
-</tr>
-<tr>
-<td>
 <p><a href="remove-picture-taken-listener.html">removePictureTakenListener</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">removePictureTakenListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$removePictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-byte-array/index.html"><span class="identifier">ByteArray</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Remove picture taken <a href="remove-picture-taken-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removePictureTakenListener(kotlin.Function1((kotlin.ByteArray, kotlin.Unit)))/listener">listener</a>.</p>
+<code><span class="keyword">fun </span><span class="identifier">removePictureTakenListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$removePictureTakenListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.Image, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><a href="../-image/index.html"><span class="identifier">Image</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+<p>Remove picture taken <a href="remove-picture-taken-listener.html#com.priyankvasa.android.cameraviewex.CameraView$removePictureTakenListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.Image, kotlin.Unit)))/listener">listener</a>.</p>
 </td>
 </tr>
 <tr>
@@ -429,7 +420,7 @@ This is typically called from fragment's onDestroyView callback.</p>
 </td>
 <td>
 <code><span class="keyword">fun </span><span class="identifier">removePreviewFrameListener</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Remove preview frame <a href="#">listenerManager</a>.</p>
+<p>Remove preview frame listener.</p>
 </td>
 </tr>
 <tr>
@@ -471,24 +462,11 @@ Valid format is "height:width" eg. "4:3".</p>
 </tr>
 <tr>
 <td>
-<p><a href="set-legacy-preview-frame-listener.html">setLegacyPreviewFrameListener</a></p>
-</td>
-<td>
-<code><span class="keyword">fun </span><span class="identifier">setLegacyPreviewFrameListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setLegacyPreviewFrameListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.LegacyImage, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">image</span><span class="symbol">:</span>&nbsp;<a href="../-legacy-image/index.html"><span class="identifier">LegacyImage</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Set legacy (camera1) preview frame <a href="set-legacy-preview-frame-listener.html#com.priyankvasa.android.cameraviewex.CameraView$setLegacyPreviewFrameListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.LegacyImage, kotlin.Unit)))/listener">listener</a>.</p>
-</td>
-</tr>
-<tr>
-<td>
 <p><a href="set-preview-frame-listener.html">setPreviewFrameListener</a></p>
 </td>
 <td>
-<code><span class="keyword">fun </span><span class="identifier">setPreviewFrameListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">&lt;ERROR CLASS&gt;</span><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
-<p>Set preview frame <a href="set-preview-frame-listener.html#com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((, kotlin.Unit)))/listener">listener</a>. Be careful while using this listenerManager as it is invoked on each frame,
-which could be 60 times per second if frame rate is 60 fps.
-Ideally, next frame should only be processed once current frame is done processing.
-Continuously launching background tasks for each frame is is not memory efficient,
-the device will run out of memory very quickly and force close the app.</p>
+<code><span class="keyword">fun </span><span class="identifier">setPreviewFrameListener</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.Image, kotlin.Unit)))/listener">listener</span><span class="symbol">:</span>&nbsp;<span class="symbol">(</span><span class="identifier">image</span><span class="symbol">:</span>&nbsp;<a href="../-image/index.html"><span class="identifier">Image</span></a><span class="symbol">)</span>&nbsp;<span class="symbol">-&gt;</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">CameraView</span></a></code>
+<p>Set preview frame <a href="set-preview-frame-listener.html#com.priyankvasa.android.cameraviewex.CameraView$setPreviewFrameListener(kotlin.Function1((com.priyankvasa.android.cameraviewex.Image, kotlin.Unit)))/listener">listener</a>.</p>
 </td>
 </tr>
 <tr>
