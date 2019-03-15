@@ -96,6 +96,7 @@ class CameraView @JvmOverloads constructor(
 
         val cameraJob: Job = SupervisorJob(parentJob)
 
+        // Based on OS version select the best camera implementation
         return@run when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
                 Camera1(listenerManager, preview, config, cameraJob)

@@ -15,6 +15,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.priyankvasa.android.cameraviewex.AspectRatio
@@ -34,7 +35,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.BufferedOutputStream
@@ -66,19 +69,6 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
     @SuppressLint("MissingPermission")
     private val imageCaptureListener = View.OnClickListener { camera.capture() }
 
-    private val cameraPreviewFrameListener: CameraPreviewFrameListener by lazy {
-        CameraPreviewFrameListener(
-            decodeSuccessListener,
-            { previewFrame: ByteArray, rotation: Int ->
-                Glide.with(this@CameraFragment)
-                    .asBitmap()
-                    .load(previewFrame)
-                    .apply(RequestOptions.bitmapTransform(RotateTransformation(rotation)))
-                    .into(ivOutputPreview)
-            }
-        )
-    }
-
     @SuppressLint("MissingPermission")
     private val videoCaptureListener = View.OnClickListener {
         if (camera.isVideoRecording) {
@@ -106,8 +96,24 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
                 transform = { it.rawValue as? CharSequence ?: "" }
             )}"
             Timber.i("Barcodes: $barcodesStr")
-            tvBarcodes?.text = barcodesStr
+            launch { tvBarcodes?.text = barcodesStr }
         }
+
+    private val glideManager: RequestManager by lazy { Glide.with(this) }
+
+    private val previewFrameInflater: (ByteArray, Int) -> Unit = { previewFrame: ByteArray, rotation: Int ->
+        launch {
+            glideManager
+                .asBitmap()
+                .load(previewFrame)
+                .apply(RequestOptions.bitmapTransform(RotateTransformation(rotation)))
+                .into(ivOutputPreview)
+        }
+    }
+
+    private val cameraPreviewFrameHandler: CameraPreviewFrameHandler by lazy {
+        CameraPreviewFrameHandler(decodeSuccessListener, previewFrameInflater)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -144,9 +150,9 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
     }
 
     override fun onDestroyView() {
-        cameraPreviewFrameListener.release()
+        cameraPreviewFrameHandler.release()
         camera.destroy()
-        job.cancel()
+        runBlocking { job.cancelAndJoin() }
         activity?.showSystemUi()
         super.onDestroyView()
     }
@@ -156,12 +162,16 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
 
         with(camera) {
 
+            // Callback on main (UI) thread
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
-            setPreviewFrameListener(cameraPreviewFrameListener.listener)
+            // Callback on background thread
+            setPreviewFrameListener(cameraPreviewFrameHandler.listener)
 
+            // Callback on main (UI) thread
             addPictureTakenListener { image: Image -> launch { saveDataToFile(image) } }
 
+            // Callback on main (UI) thread
             addCameraErrorListener { t, errorLevel ->
                 when (errorLevel) {
                     ErrorLevel.Error -> Timber.e(t)
@@ -169,6 +179,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
                 }
             }
 
+            // Callback on main (UI) thread
             addVideoRecordStartedListener {
                 Timber.i("Video recording started.")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -178,6 +189,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
                 ivVideoCaptureButton.isActivated = true
             }
 
+            // Callback on main (UI) thread
             addVideoRecordStoppedListener { isSuccess: Boolean ->
                 ivPlayPause.hide()
                 ivPlayPause.isActivated = false
@@ -188,6 +200,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
                 // activity?.supportFragmentManager?.popBackStack()
             }
 
+            // Callback on main (UI) thread
             addCameraClosedListener { Timber.i("Camera closed.") }
         }
     }
