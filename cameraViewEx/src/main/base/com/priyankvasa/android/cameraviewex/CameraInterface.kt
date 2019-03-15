@@ -20,7 +20,6 @@ package com.priyankvasa.android.cameraviewex
 
 import android.arch.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
 import java.io.File
 
 internal interface CameraInterface : LifecycleOwner, CoroutineScope {
@@ -46,7 +45,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
         if (isVideoRecording) stopVideoRecording()
     }
 
-    fun destroy() = runBlocking { stop() }
+    fun destroy() = stop()
 
     /**
      * @return `true` if the aspect ratio was changed.

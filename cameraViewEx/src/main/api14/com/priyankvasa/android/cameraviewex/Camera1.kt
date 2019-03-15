@@ -317,9 +317,9 @@ internal class Camera1(
     }
 
     @Throws(RuntimeException::class)
-    private fun takePictureInternal() = launch {
+    private fun takePictureInternal() {
 
-        if (!isPictureCaptureInProgress.compareAndSet(false, true)) return@launch
+        if (!isPictureCaptureInProgress.compareAndSet(false, true)) return
 
         val outputFormat = when (config.outputFormat.value) {
             Modes.OutputFormat.YUV_420_888 -> ImageFormat.NV21
@@ -336,7 +336,7 @@ internal class Camera1(
         )
     }
 
-    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) = runBlocking(coroutineContext) {
+    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) {
 
         if (!isCameraOpened || !preview.isReady) {
             throw IllegalStateException("Camera not started or already stopped")
@@ -346,7 +346,7 @@ internal class Camera1(
 
         runCatching {
             videoManager.setupMediaRecorder(
-                camera ?: return@runBlocking,
+                camera ?: return,
                 cameraId,
                 preview.surface,
                 outputFile,
