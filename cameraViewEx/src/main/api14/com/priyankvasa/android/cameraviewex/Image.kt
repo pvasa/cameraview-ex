@@ -19,12 +19,17 @@ package com.priyankvasa.android.cameraviewex
 import android.support.media.ExifInterface
 
 /**
- * Data class to wrap frame data generated from preview frame listener.
+ * Data class to wrap preview frames or captured image data.
  *
- * @param data preview frame data [ByteArray]
- * @param width of the preview frame
- * @param height of the preview frame
- * @param format image format of preview frame from [android.graphics.ImageFormat]. Usually this would be [android.graphics.ImageFormat.NV21]
+ * @param data preview/capture frame data [ByteArray]
+ * @param width of the frame
+ * @param height of the frame
+ * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated
+ *                      The orientation ExifInterface.TAG_ORIENTATION would be one of
+ *                      ExifInterface.ORIENTATION_NORMAL // does not need rotation
+ *                      ExifInterface.ORIENTATION_ROTATE_90 // needs 90 degree rotation
+ *                      ExifInterface.ORIENTATION_ROTATE_180 // needs 180 degree rotation
+ *                      ExifInterface.ORIENTATION_ROTATE_270 // needs 270 degree rotation
  */
 data class Image(
     val data: ByteArray,
