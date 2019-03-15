@@ -27,27 +27,22 @@ import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
 import android.support.annotation.RequiresApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 
 /**
  * Decode receiver [Image] to a byte array based on format of the image
  *
- * @param outputFormat pair of internal and actual output format
+ * @param outputFormat from [Modes.OutputFormat]
  * @param rs [RenderScript] instance to be used for native decoding
  * @return [ByteArray] image data
  */
 @Throws(IllegalStateException::class, IllegalArgumentException::class)
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-internal suspend fun Image.decode(
-    outputFormat: Int,
-    rs: RenderScript
-): ByteArray = withContext(Dispatchers.Default) {
+internal fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
 
     val image = this@decode
 
-    return@withContext when (image.format) {
+    return when (image.format) {
 
         ImageFormat.JPEG -> with(image.planes[0].buffer) {
             rewind()
@@ -67,122 +62,59 @@ internal suspend fun Image.decode(
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 object ImageProcessor {
 
-    suspend fun yuvImageData(image: Image): ByteArray = withContext(Dispatchers.Default) {
-
-        val imageWidth = image.width
-        val imageHeight = image.height
-
-        val planes = image.planes
-
-        val yBuffer = planes[0].buffer.apply { rewind() }
-        val uBuffer = planes[1].buffer.apply { rewind() }
-        val vBuffer = planes[2].buffer.apply { rewind() }
-
-        /** Simple planes array */
-        val y = ByteArray(yBuffer.remaining())
-        yBuffer.get(y)
-
-        val u = ByteArray(uBuffer.remaining())
-        uBuffer.get(u)
-
-        val v = ByteArray(vBuffer.remaining())
-        vBuffer.get(v)
-
-        val size: Int = imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8
-
-        return@withContext ByteArrayOutputStream(size).apply {
-            write(y)
-            write(u)
-            write(v)
-        }.toByteArray()
-
-        /** Uncomment below block for stride calculations */
-        // get the relevant RowStrides and PixelStrides
-        // (we know from documentation that PixelStride is 1 for y)
-        /*val yRowStride = planes[0].rowStride
-        assert(yRowStride == 1)
-        val uvRowStride = planes[1].rowStride // we know from documentation that RowStride is the same for u and v.
-        assert(uvRowStride == planes[2].rowStride)
-        val uvPixelStride = planes[1].pixelStride // we know from documentation that PixelStride is the same for u and v.
-        assert(uvPixelStride == planes[2].pixelStride)
-
-        val imageData = ByteArray(imageWidth * imageHeight * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8)
-
-        if (yRowStride == imageWidth) yBuffer.get(imageData, 0, imageWidth)
-        else for (row in 0 until imageHeight) {
-            yBuffer.position(row * yRowStride)
-            yBuffer.get(imageData, row * imageWidth, imageWidth)
-        }
-
-        val rowBytesCb = ByteArray(uvRowStride)
-        val rowBytesCr = ByteArray(uvRowStride)
-
-        for (row in 0 until imageHeight / 2) {
-            val rowOffset = (imageWidth * imageHeight) + (imageWidth / 2 * row)
-            uBuffer.position(row * uvRowStride)
-            uBuffer.get(rowBytesCb, 0, imageWidth / 2)
-            vBuffer.position(row * uvRowStride)
-            vBuffer.get(rowBytesCr, 0, imageWidth / 2)
-
-            for (col in 0 until imageWidth / 2) {
-                imageData[rowOffset + (col * 2)] = rowBytesCr[col]
-                imageData[rowOffset + (col * 2) + 1] = rowBytesCb[col]
-            }
-        }
-
-        return@async imageData*/
-    }
-
-    suspend fun yuvToN21(image: Image): ByteArray = withContext(Dispatchers.Default) {
-
-        val width = image.width
-        val ySize = width * image.height
-        val uvSize = width * image.height / 4
-
-        val nv21 = ByteArray(ySize + uvSize * 2)
-
-        val yBuffer = image.planes[0].buffer // Y
-        val uBuffer = image.planes[1].buffer // U
-        val vBuffer = image.planes[2].buffer // V
-
-        var rowStride = image.planes[0].rowStride
-        assert(image.planes[0].pixelStride == 1)
-
-        var pos = 0
-
-        if (rowStride == width) { // likely
-            yBuffer.get(nv21, 0, ySize)
-            pos += ySize
+    fun yuvImageData(image: Image): ByteArray {
+        val planes: Array<Image.Plane> = image.planes
+        val var3: Int = image.width * image.height
+        val imageData = ByteArray(var3 + 2 * (var3 / 4))
+        val uBuffer: ByteBuffer = planes[1].buffer
+        val vBuffer: ByteBuffer = planes[2].buffer
+        val vPos = vBuffer.position()
+        val uLimit = uBuffer.limit()
+        vBuffer.position(vPos + 1)
+        uBuffer.limit(uLimit - 1)
+        val var14 = vBuffer.remaining() == 2 * var3 / 4 - 2 && vBuffer.compareTo(uBuffer) == 0
+        vBuffer.position(vPos)
+        uBuffer.limit(uLimit)
+        if (var14) {
+            planes[0].buffer.get(imageData, 0, var3)
+            vBuffer.get(imageData, var3, 1)
+            uBuffer.get(imageData, var3 + 1, 2 * var3 / 4 - 1)
         } else {
-            while (pos < ySize) {
-                yBuffer.get(nv21, pos, width)
-                yBuffer.position(yBuffer.position() + rowStride - width) // skip
-                pos += width
-            }
+            zza(planes[0], image.width, image.height, imageData, 0, 1)
+            zza(planes[1], image.width, image.height, imageData, var3 + 1, 2)
+            zza(planes[2], image.width, image.height, imageData, var3, 2)
         }
 
-        rowStride = image.planes[2].rowStride
-        val pixelStride = image.planes[2].pixelStride
-
-        assert(rowStride == image.planes[1].rowStride)
-        assert(pixelStride == image.planes[1].pixelStride)
-
-        for (row in 0 until image.height / 2) {
-            for (col in 0 until width / 2) {
-                nv21[pos++] = vBuffer.get()
-                nv21[pos++] = uBuffer.get()
-
-                if (pixelStride > 1) { // likely
-                    vBuffer.position(vBuffer.position() + pixelStride - 1) // skip
-                    uBuffer.position(uBuffer.position() + pixelStride - 1) // skip
-                }
-            }
-        }
-
-        return@withContext nv21
+        return imageData
     }
 
-    suspend fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray = withContext(Dispatchers.Default) {
+    private fun zza(plane: Image.Plane, width: Int, height: Int, imageData: ByteArray, var4: Int, var5: Int) {
+
+        val buffer: ByteBuffer = plane.buffer
+        val pos = buffer.position()
+        val var8 = (buffer.remaining() + plane.rowStride - 1) / plane.rowStride
+        val var9 = height / var8
+        val var10 = width / var9
+        var var11 = var4
+        var var12 = 0
+
+        repeat(var8) {
+
+            var var14 = var12
+
+            repeat(var10) {
+                imageData[var11] = buffer.get(var14)
+                var11 += var5
+                var14 += plane.pixelStride
+            }
+
+            var12 += plane.rowStride
+        }
+
+        buffer.position(pos)
+    }
+
+    fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
 
         val width = image.width
         val height = image.height
@@ -251,10 +183,10 @@ object ImageProcessor {
         outAlloc.copyTo(rgbData)
         outAlloc.copyTo(outBitmap)
 
-        return@withContext rgbData
+        return rgbData
     }
 
-    suspend fun yuvToRgb(image: Image, rs: RenderScript): ByteArray = withContext(Dispatchers.Default) {
+    fun yuvToRgb(image: Image, rs: RenderScript): ByteArray {
 
         val imageWidth = image.width
         val imageHeight = image.height
@@ -301,6 +233,6 @@ object ImageProcessor {
         yuvType.destroy()
         rgbType.destroy()
 
-        return@withContext rgbData
+        return rgbData
     }
 }

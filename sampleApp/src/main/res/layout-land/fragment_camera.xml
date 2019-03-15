@@ -70,7 +70,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="continuous_picture"
         app:awb="auto"
-        app:cameraMode="single_capture"
+        app:cameraMode="single_capture|video_capture|continuous_frame"
         app:facing="back"
         app:flash="auto"
         app:jpegQuality="high"
@@ -83,13 +83,15 @@
         app:pinchToZoom="true"
         app:shutter="short_time"
         app:touchToFocus="true"
-        app:zsl="true" />
+        app:zsl="true"
+        tools:layout_height="match_parent"
+        tools:layout_width="480dp" />
 
     <TextView
         android:id="@+id/tvBarcodes"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="48dp"
+        android:layout_margin="24dp"
         android:background="@color/black_transparent_40_percent"
         android:lineSpacingExtra="2dp"
         android:maxLines="20"
@@ -100,6 +102,15 @@
         app:layout_constraintEnd_toEndOf="@id/camera"
         app:layout_constraintTop_toTopOf="@id/camera"
         tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivOutputPreview"
+        android:layout_width="160dp"
+        android:layout_height="120dp"
+        android:layout_margin="24dp"
+        android:elevation="2dp"
+        app:layout_constraintStart_toStartOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera" />
 
     <ImageView
         android:id="@+id/ivCameraSwitch"

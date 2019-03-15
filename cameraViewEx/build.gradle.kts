@@ -98,7 +98,7 @@ android {
     )
 
     compileOptions {
-        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        sourceCompatibility = JavaVersion.VERSION_1_8
         setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
 }
@@ -133,6 +133,7 @@ dependencies {
     // Android support
     implementation(Config.Libs.supportAnnotations)
     implementation(Config.Libs.supportTransition)
+    implementation(Config.Libs.supportExifInterface)
 
     // Dependency injection
     implementation(Config.Libs.koin)

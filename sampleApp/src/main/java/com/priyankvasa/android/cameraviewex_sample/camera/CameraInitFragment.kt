@@ -10,14 +10,10 @@ import kotlinx.android.synthetic.main.fragment_camera_init.*
 
 class CameraInitFragment : Fragment() {
 
-    interface Navigator {
-        fun openCameraFragment()
-    }
-
-    private val navigator: Navigator
-        get() = context as? Navigator
+    private val navigator: CameraNavigator
+        get() = context as? CameraNavigator
             ?: throw ClassCastException("Either not attached to activity or parent activity" +
-                " has not implemented ${Navigator::class.java.canonicalName}")
+                " has not implemented ${CameraNavigator::class.java.canonicalName}")
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -30,6 +26,9 @@ class CameraInitFragment : Fragment() {
     }
 
     companion object {
+
+        val TAG: String = CameraInitFragment::class.java.run { canonicalName ?: name }
+
         fun newInstance(): CameraInitFragment = CameraInitFragment()
     }
 }

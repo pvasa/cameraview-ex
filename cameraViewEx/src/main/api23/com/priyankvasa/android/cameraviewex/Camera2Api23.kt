@@ -31,7 +31,7 @@ internal open class Camera2Api23(
     context: Context
 ) : Camera2(listener, preview, config, job, context) {
 
-    override suspend fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
+    override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         // Try to get hi-res output sizes
         map.getHighResolutionOutputSizes(internalOutputFormat)?.forEach {
             sizes.add(it.width, it.height)
