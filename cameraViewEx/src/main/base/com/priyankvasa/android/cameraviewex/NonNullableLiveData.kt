@@ -21,11 +21,11 @@ import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
 
-internal class CameraConfigLiveData<T>(private val defaultValue: T) : MutableLiveData<T>() {
+internal class NonNullableLiveData<T>(private val defaultValue: T) : MutableLiveData<T>() {
 
     internal var value: T = defaultValue
         get() = super.getValue() ?: defaultValue
-        set(value) {
+        internal set(value) {
             if (field == value) return
             lastValue = field
             field = value
@@ -38,11 +38,21 @@ internal class CameraConfigLiveData<T>(private val defaultValue: T) : MutableLiv
 
     private var lastValue: T = defaultValue
 
+    override fun getValue(): T = value
+
+    override fun setValue(value: T) {
+        this.value = value
+    }
+
     internal fun revert() {
         value = lastValue
     }
 
-    internal fun observe(owner: LifecycleOwner, observer: (t: T) -> Unit) {
+    fun observe(owner: LifecycleOwner, observer: (t: T) -> Unit) {
         super.observe(owner, Observer { observer(it ?: defaultValue) })
+    }
+
+    fun observeForeverNullSafe(observer: (t: T) -> Unit) {
+        super.observeForever { observer(it ?: defaultValue) }
     }
 }
