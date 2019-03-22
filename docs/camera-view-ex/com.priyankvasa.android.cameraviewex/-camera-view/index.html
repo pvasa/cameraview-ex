@@ -327,6 +327,25 @@ This is typically called from fragment's onDestroyView callback.</p>
 </tr>
 <tr>
 <td>
+<p><a href="disable-camera-mode.html">disableCameraMode</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">disableCameraMode</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$disableCameraMode(kotlin.Int)/mode">mode</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Disable any camera mode from <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>, one at a time</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="enable-camera-mode.html">enableCameraMode</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">enableCameraMode</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$enableCameraMode(kotlin.Int)/mode">mode</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Enable any single camera mode or multiple camera modes by passing <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.
+Multiple modes can be enabled by passing bitwise or'ed value of multiple <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
 <p><a href="on-attached-to-window.html">onAttachedToWindow</a></p>
 </td>
 <td>
@@ -456,8 +475,7 @@ This is typically called from fragment's onDestroyView callback.</p>
 </td>
 <td>
 <code><span class="keyword">fun </span><span class="identifier">setCameraMode</span><span class="symbol">(</span><span class="identifier" id="com.priyankvasa.android.cameraviewex.CameraView$setCameraMode(kotlin.Int)/mode">mode</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
-<p>Set camera mode of operation. Supported values are <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.
-Valid format is "height:width" eg. "4:3".</p>
+<p>Set camera mode of operation. Supported values are <a href="../-modes/-camera-mode/index.html">Modes.CameraMode</a>.</p>
 </td>
 </tr>
 <tr>

@@ -155,7 +155,6 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
         super.onDestroyView()
     }
 
-    @SuppressLint("SetTextI18n")
     private fun setupCamera() {
 
         with(camera) {
@@ -250,19 +249,21 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
             ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(context, flashDrawableId))
         }
 
-        ivCameraMode.setOnClickListener {
-            camera.setCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
+        ivCameraMode.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) camera.enableCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
+            else camera.disableCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
             updateViewState()
         }
 
-        ivVideoMode.setOnClickListener {
-            camera.setCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
+        ivVideoMode.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) camera.enableCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
+            else camera.disableCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
             updateViewState()
         }
 
-        ivBarcodeScanner.setOnClickListener {
-            camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
-            camera.facing = Modes.Facing.FACING_BACK
+        ivBarcodeScanner.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) camera.enableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
+            else camera.disableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
             updateViewState()
         }
 
@@ -297,7 +298,13 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
             ivCaptureButton.hide()
         }
 
-        if (camera.isContinuousFrameModeEnabled) tvBarcodes.show() else tvBarcodes.hide()
+        if (camera.isContinuousFrameModeEnabled) {
+            tvBarcodes.show()
+            ivOutputPreview.show()
+        } else {
+            tvBarcodes.hide()
+            ivOutputPreview.hide()
+        }
 
         if (camera.isVideoCaptureModeEnabled) {
             ivVideoCaptureButton.show()

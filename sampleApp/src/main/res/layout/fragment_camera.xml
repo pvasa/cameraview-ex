@@ -19,6 +19,9 @@
         android:src="@drawable/ic_settings_white"
         app:layout_constraintBottom_toTopOf="@id/camera"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toEndOf="@id/ivFlashSwitch"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
@@ -30,39 +33,57 @@
         android:src="@drawable/ic_flash_auto"
         app:layout_constraintBottom_toTopOf="@id/camera"
         app:layout_constraintEnd_toStartOf="@id/ivSettings"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toEndOf="@id/ivCameraMode"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
+    <ToggleButton
         android:id="@+id/ivCameraMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
-        android:padding="18dp"
-        android:src="@drawable/ic_photo_camera"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_photo_camera_selector"
+        android:button="@null"
+        android:checked="true"
+        android:textOff="@null"
+        android:textOn="@null"
         app:layout_constraintBottom_toTopOf="@id/camera"
         app:layout_constraintEnd_toStartOf="@id/ivFlashSwitch"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toEndOf="@id/ivVideoMode"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
+    <ToggleButton
         android:id="@+id/ivVideoMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
-        android:padding="18dp"
-        android:src="@drawable/ic_video_cam"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_video_cam_selector"
+        android:button="@null"
+        android:checked="true"
+        android:textOff="@null"
+        android:textOn="@null"
         app:layout_constraintBottom_toTopOf="@id/camera"
         app:layout_constraintEnd_toStartOf="@id/ivCameraMode"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toEndOf="@id/ivBarcodeScanner"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
+    <ToggleButton
         android:id="@+id/ivBarcodeScanner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
-        android:padding="18dp"
-        android:src="@drawable/ic_barcode_scan"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="18dp"
+        android:background="@drawable/ic_barcode_scan_selector"
+        android:button="@null"
+        android:checked="true"
+        android:textOff="@null"
+        android:textOn="@null"
         app:layout_constraintBottom_toTopOf="@id/camera"
         app:layout_constraintEnd_toStartOf="@id/ivVideoMode"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.priyankvasa.android.cameraviewex.CameraView

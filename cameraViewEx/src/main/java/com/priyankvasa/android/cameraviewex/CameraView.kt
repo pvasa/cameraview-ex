@@ -401,15 +401,6 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Set camera mode of operation. Supported values are [Modes.CameraMode].
-     * Valid format is "height:width" eg. "4:3".
-     */
-    fun setCameraMode(@Modes.CameraMode mode: Int) {
-        if (!requireInUiThread()) return
-        config.cameraMode.value = mode
-    }
-
     private fun checkInEditMode(): Boolean = if (isInEditMode) {
         listenerManager.disable()
         orientationDetector.disable()
@@ -435,6 +426,50 @@ class CameraView @JvmOverloads constructor(
             CameraViewException("Camera is not open. Call start() first."),
             errorLevel = ErrorLevel.Warning
         )
+    }
+
+    /** Set camera mode of operation. Supported values are [Modes.CameraMode]. */
+    fun setCameraMode(@Modes.CameraMode mode: Int) {
+        if (!requireInUiThread()) return
+        config.cameraMode.value = mode
+    }
+
+    /**
+     * Enable any single camera mode or multiple camera modes by passing [Modes.CameraMode].
+     * Multiple modes can be enabled by passing bitwise or'ed value of multiple [Modes.CameraMode].
+     * @sample enableCameraMode(Modes.CameraMode.SINGLE_CAPTURE or Modes.CameraMode.VIDEO_CAPTURE)
+     */
+    fun enableCameraMode(@Modes.CameraMode mode: Int) {
+        if (!requireInUiThread()) return
+        config.cameraMode.value = config.cameraMode.value or mode
+    }
+
+    /** Disable any camera mode from [Modes.CameraMode], one at a time */
+    fun disableCameraMode(@Modes.CameraMode mode: Int) {
+        if (!requireInUiThread()) return
+        var newMode = 0
+        when (mode) {
+            Modes.CameraMode.CONTINUOUS_FRAME -> {
+                if (isSingleCaptureModeEnabled) newMode = newMode or Modes.CameraMode.SINGLE_CAPTURE
+                if (isVideoCaptureModeEnabled) newMode = newMode or Modes.CameraMode.VIDEO_CAPTURE
+            }
+            Modes.CameraMode.SINGLE_CAPTURE -> {
+                if (isContinuousFrameModeEnabled) newMode = newMode or Modes.CameraMode.CONTINUOUS_FRAME
+                if (isVideoCaptureModeEnabled) newMode = newMode or Modes.CameraMode.VIDEO_CAPTURE
+            }
+            Modes.CameraMode.VIDEO_CAPTURE -> {
+                if (isContinuousFrameModeEnabled) newMode = newMode or Modes.CameraMode.CONTINUOUS_FRAME
+                if (isSingleCaptureModeEnabled) newMode = newMode or Modes.CameraMode.SINGLE_CAPTURE
+            }
+            else -> {
+                listenerManager.onCameraError(
+                    CameraViewException("Invalid camera mode $mode"),
+                    ErrorLevel.Warning
+                )
+                return
+            }
+        }
+        config.cameraMode.value = newMode
     }
 
     /**

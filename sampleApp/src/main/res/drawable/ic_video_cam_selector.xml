@@ -1,0 +1,6 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_background_selector" />
+    <item
+        android:drawable="@drawable/ic_video_cam"
+        android:gravity="center" />
+</layer-list>
