@@ -17,6 +17,7 @@
         android:background="?attr/selectableItemBackground"
         android:padding="18dp"
         android:src="@drawable/ic_settings_white"
+        app:layout_constraintBottom_toTopOf="@id/ivFlashSwitch"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -27,36 +28,46 @@
         android:background="?attr/selectableItemBackground"
         android:padding="18dp"
         android:src="@drawable/ic_flash_auto"
+        app:layout_constraintBottom_toTopOf="@id/ivCameraMode"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivSettings" />
 
-    <ImageView
+    <ToggleButton
         android:id="@+id/ivCameraMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_photo_camera_selector"
+        android:checked="true"
         android:padding="18dp"
-        android:src="@drawable/ic_photo_camera"
+        android:textOff="@null"
+        android:textOn="@null"
+        app:layout_constraintBottom_toTopOf="@id/ivVideoMode"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch" />
 
-    <ImageView
+    <ToggleButton
         android:id="@+id/ivVideoMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_video_cam_selector"
+        android:checked="true"
         android:padding="18dp"
-        android:src="@drawable/ic_video_cam"
+        android:textOff="@null"
+        android:textOn="@null"
+        app:layout_constraintBottom_toTopOf="@id/ivBarcodeScanner"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivCameraMode" />
 
-    <ImageView
+    <ToggleButton
         android:id="@+id/ivBarcodeScanner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_barcode_scan_selector"
+        android:checked="true"
         android:padding="18dp"
-        android:src="@drawable/ic_barcode_scan"
+        android:textOff="@null"
+        android:textOn="@null"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivVideoMode" />
 

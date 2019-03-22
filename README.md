@@ -42,7 +42,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.2.0"
+    implementation "com.priyankvasa.android:cameraview-ex:3.3.0"
 }
 ```
 
@@ -99,27 +99,40 @@ override fun onDestroyView() {
 
 #### Capture still picture
 ```kotlin
-camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+// enable only single capture mode
+camera.setCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
+// OR keep other modes as is and enable single capture mode
+camera.enableCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
 // Output format is whatever set for [app:outputFormat] parameter
 // Callback on UI thread
 camera.addPictureTakenListener { image: Image -> /* Picture taken. */ }
 camera.capture()
+// Disable single capture mode
+camera.disableCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
 ```
 
 #### Process preview frames
 ```kotlin
-camera.cameraMode = Modes.CameraMode.CONTINUOUS_FRAME
+// enable only continuous frame mode
+camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
+// OR keep other modes as is and enable continuous frame mode
+camera.enableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 // Output format is always ImageFormat.YUV_420_888
 // Callback on background thread
 camera.setPreviewFrameListener { image: Image -> /* Preview frame available. */ }
+// Disable continuous frame mode
+camera.disableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 ```
 
 #### Record video
 ```kotlin
-camera.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+// enable only video capture mode
+camera.setCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
+// OR keep other modes as is and enable video capture mode
+camera.enableCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
 
 // Callback on UI thread
-camera.addVideoRecordStartedListener { // Video recording started }
+camera.addVideoRecordStartedListener { /* Video recording started */ }
 
 // Callback on UI thread
 camera.addVideoRecordStoppedListener { isSuccess ->
@@ -139,6 +152,9 @@ camera.stopVideoRecording()
 // On APIs 24 and above video recording can be paused and resumed as well
 camera.pauseVideoRecording()
 camera.resumeVideoRecording()
+
+// Disable video capture mode
+camera.disableCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
 ```
 
 #### Set multiple modes simultaneously
@@ -146,13 +162,11 @@ camera.resumeVideoRecording()
 ```xml
 <com.priyankvasa.android.cameraviewex.CameraView
     android:id="@+id/camera"
-    ...
-    app:cameraMode="single_capture|continuous_frame|video_capture"
-    ... />
+    app:cameraMode="single_capture|continuous_frame|video_capture" />
 ```
 - **Or in code**
 ```kotlin
-camera.cameraMode = Modes.CameraMode.SINGLE_CAPTURE or Modes.CameraMode.CONTINUOUS_FRAME or Modes.CameraMode.VIDEO_CAPTURE
+camera.setCameraMode(Modes.CameraMode.SINGLE_CAPTURE or Modes.CameraMode.CONTINUOUS_FRAME or Modes.CameraMode.VIDEO_CAPTURE)
 
 // Setup all the listeners including preview frame listener
 

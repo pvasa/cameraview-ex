@@ -22,21 +22,21 @@ import android.util.AttributeSet
 
 class CameraConfiguration private constructor() {
 
-    internal val aspectRatio: CameraConfigLiveData<AspectRatio> = CameraConfigLiveData(Modes.DEFAULT_ASPECT_RATIO)
-    internal val cameraMode: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_CAMERA_MODE)
-    internal val outputFormat: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_OUTPUT_FORMAT)
-    internal val jpegQuality: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_JPEG_QUALITY)
-    internal val facing: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_FACING)
-    internal val autoFocus: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_AUTO_FOCUS)
-    internal val touchToFocus: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_TOUCH_TO_FOCUS)
-    internal val pinchToZoom: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_PINCH_TO_ZOOM)
-    internal val currentDigitalZoom: CameraConfigLiveData<Float> = CameraConfigLiveData(1f)
-    internal val awb: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_AWB)
-    internal val flash: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_FLASH)
-    internal val opticalStabilization: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_OPTICAL_STABILIZATION)
-    internal val noiseReduction: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_NOISE_REDUCTION)
-    internal val shutter: CameraConfigLiveData<Int> = CameraConfigLiveData(Modes.DEFAULT_SHUTTER)
-    internal val zsl: CameraConfigLiveData<Boolean> = CameraConfigLiveData(Modes.DEFAULT_ZSL)
+    internal val aspectRatio: NonNullableLiveData<AspectRatio> = NonNullableLiveData(Modes.DEFAULT_ASPECT_RATIO)
+    internal val cameraMode: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_CAMERA_MODE)
+    internal val outputFormat: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_OUTPUT_FORMAT)
+    internal val jpegQuality: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_JPEG_QUALITY)
+    internal val facing: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_FACING)
+    internal val autoFocus: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_AUTO_FOCUS)
+    internal val touchToFocus: NonNullableLiveData<Boolean> = NonNullableLiveData(Modes.DEFAULT_TOUCH_TO_FOCUS)
+    internal val pinchToZoom: NonNullableLiveData<Boolean> = NonNullableLiveData(Modes.DEFAULT_PINCH_TO_ZOOM)
+    internal val currentDigitalZoom: NonNullableLiveData<Float> = NonNullableLiveData(1f)
+    internal val awb: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_AWB)
+    internal val flash: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_FLASH)
+    internal val opticalStabilization: NonNullableLiveData<Boolean> = NonNullableLiveData(Modes.DEFAULT_OPTICAL_STABILIZATION)
+    internal val noiseReduction: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_NOISE_REDUCTION)
+    internal val shutter: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_SHUTTER)
+    internal val zsl: NonNullableLiveData<Boolean> = NonNullableLiveData(Modes.DEFAULT_ZSL)
 
     internal val isSingleCaptureModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.SINGLE_CAPTURE != 0
     internal val isContinuousFrameModeEnabled: Boolean get() = cameraMode.value and Modes.CameraMode.CONTINUOUS_FRAME != 0
