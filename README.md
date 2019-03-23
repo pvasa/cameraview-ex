@@ -207,7 +207,7 @@ You can see a complete usage in the [sampleApp](https://github.com/pvasa/camerav
 | currentDigitalZoom                           | N/A                      | Set camera digital zoom value. Must be between 1.0 and `CameraView.maxDigitalZoom` inclusive.                                   | :x:                            | :heavy_check_mark:          |
 
 ## Documentation
-For detailed documentation, please refer these [docs](https://pvasa.github.io/cameraview-ex/camera-view-ex/com.priyankvasa.android.cameraviewex/-camera-view/index.html).
 
+For detailed documentation, please refer these [docs](https://priyankvasa.dev/cameraviewex).
 ## Contribution Guidelines
 See [CONTRIBUTING.md](https://github.com/pvasa/cameraview-ex/blob/master/CONTRIBUTING.md).
