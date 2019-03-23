@@ -25,11 +25,13 @@ import android.support.media.ExifInterface
  * @param width of the frame
  * @param height of the frame
  * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated
- *                      The orientation ExifInterface.TAG_ORIENTATION would be one of
- *                      ExifInterface.ORIENTATION_NORMAL // does not need rotation
- *                      ExifInterface.ORIENTATION_ROTATE_90 // needs 90 degree rotation
- *                      ExifInterface.ORIENTATION_ROTATE_180 // needs 180 degree rotation
- *                      ExifInterface.ORIENTATION_ROTATE_270 // needs 270 degree rotation
+ *   The orientation [ExifInterface.TAG_ORIENTATION] would be one of
+ *   [ExifInterface.ORIENTATION_NORMAL] // does not need rotation
+ *   [ExifInterface.ORIENTATION_ROTATE_90] // needs 90 degree rotation
+ *   [ExifInterface.ORIENTATION_ROTATE_180] // needs 180 degree rotation
+ *   [ExifInterface.ORIENTATION_ROTATE_270] // needs 270 degree rotation
+ * @param format image format of preview frame from [android.graphics.ImageFormat].
+ *   Usually this would be [android.graphics.ImageFormat.NV21]
  */
 data class Image(
     val data: ByteArray,
@@ -40,11 +42,12 @@ data class Image(
 ) {
 
     override fun equals(other: Any?): Boolean = this === other ||
-        (javaClass == other?.javaClass &&
-            data.contentEquals((other as Image).data) &&
+        (other is Image &&
             width == other.width &&
             height == other.height &&
-            format == other.format)
+            format == other.format &&
+            exifInterface == other.exifInterface &&
+            data.contentEquals(other.data))
 
     override fun hashCode(): Int {
         var result = data.contentHashCode()
