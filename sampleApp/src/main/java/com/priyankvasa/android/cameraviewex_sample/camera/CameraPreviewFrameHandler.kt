@@ -3,7 +3,9 @@ package com.priyankvasa.android.cameraviewex_sample.camera
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
+import android.os.SystemClock
 import android.util.SparseIntArray
+import com.google.android.gms.tasks.Task
 import com.google.firebase.ml.vision.FirebaseVision
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector
@@ -36,6 +38,13 @@ class CameraPreviewFrameHandler(
     private val barcodeDetector: FirebaseVisionBarcodeDetector =
         FirebaseVision.getInstance().getVisionBarcodeDetector(barcodeDetectorOptions)
 
+    private val detectionCompleteListener: (Task<MutableList<FirebaseVisionBarcode>>) -> Unit =
+        { task ->
+            if (task.isSuccessful) task.result?.let { barcodeDecodeSuccessCallback?.invoke(it) }
+            else Timber.e(task.exception)
+            decoding.set(false)
+        }
+
     /** This boolean makes sure only one frame is processed at a time by Firebase barcode detector */
     private val decoding = AtomicBoolean(false)
 
@@ -51,23 +60,22 @@ class CameraPreviewFrameHandler(
      * It prints preview frame listener stats like
      * time between each frame and max and min times between frames.
      */
-    /*private var min: Int = Int.MAX_VALUE
-    private var max: Int = Int.MIN_VALUE
-    @RequiresApi(Build.VERSION_CODES.O)
-    private var last: LocalTime = LocalTime.now().plusMinutes(1)
+    private var min = Long.MAX_VALUE
+    private var max = Long.MIN_VALUE
+    private var last = 0L
 
     private fun printStats() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val now = LocalTime.now()
-        if (last.isAfter(now)) {
+        val now = SystemClock.elapsedRealtime()
+        if (last == 0L) {
             last = now
             return
         }
-        val diff = ((now.toNanoOfDay() - last.toNanoOfDay()) / 1000000).toInt()
+        val diff = now - last
         if (diff > max) max = diff else if (diff < min) min = diff
         last = now
-        Timber.i("Preview frames stats: Diff from last frame: ${diff}ms, Min diff: ${min}ms, Max diff: ${max}ms")
-    }*/
+        // Max diff is not correct after toggling preview frame mode
+        Timber.i("Preview frame stats: Time from last frame: ${diff}ms, Min diff: ${min}ms, Max diff: ${max}ms")
+    }
 
     private fun detectBarcodes(image: Image) {
 
@@ -82,14 +90,9 @@ class CameraPreviewFrameHandler(
             .setHeight(image.height)
             .build()
 
-        detectBarcodes(FirebaseVisionImage.fromByteArray(image.data, metadata))
-    }
+        val visionImage = FirebaseVisionImage.fromByteArray(image.data, metadata)
 
-    private fun detectBarcodes(image: FirebaseVisionImage) {
-        barcodeDetector.detectInImage(image)
-            .addOnCompleteListener { decoding.set(false) }
-            .addOnSuccessListener { barcodeDecodeSuccessCallback?.invoke(it) }
-            .addOnFailureListener { e -> Timber.e(e) }
+        barcodeDetector.detectInImage(visionImage).addOnCompleteListener(detectionCompleteListener)
     }
 
     private fun showPreview(image: Image) {

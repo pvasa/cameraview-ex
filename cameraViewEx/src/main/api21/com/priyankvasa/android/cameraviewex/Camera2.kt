@@ -40,6 +40,7 @@ import android.media.MediaRecorder
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.SystemClock
 import android.renderscript.RenderScript
 import android.support.media.ExifInterface
 import android.util.SparseIntArray
@@ -53,10 +54,11 @@ import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSuppor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.concurrent.Semaphore
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 internal open class Camera2(
@@ -121,6 +123,7 @@ internal open class Camera2(
         by lazy { context.getSystemService(Context.CAMERA_SERVICE) as CameraManager }
 
     private val cameraDeviceCallback: CameraDevice.StateCallback by lazy {
+
         object : CameraDevice.StateCallback() {
 
             override fun onOpened(camera: CameraDevice) {
@@ -152,6 +155,7 @@ internal open class Camera2(
     }
 
     private val previewSessionStateCallback: CameraCaptureSession.StateCallback by lazy {
+
         object : CameraCaptureSession.StateCallback() {
 
             override fun onConfigured(session: CameraCaptureSession) {
@@ -185,6 +189,7 @@ internal open class Camera2(
     }
 
     private val videoSessionStateCallback: CameraCaptureSession.StateCallback by lazy {
+
         object : CameraCaptureSession.StateCallback() {
 
             override fun onConfigured(session: CameraCaptureSession) {
@@ -210,6 +215,7 @@ internal open class Camera2(
     }
 
     private val defaultCaptureCallback: PictureCaptureCallback by lazy {
+
         object : PictureCaptureCallback() {
 
             override fun onPreCaptureRequired() {
@@ -239,6 +245,7 @@ internal open class Camera2(
     }
 
     private val stillCaptureCallback: CameraCaptureSession.CaptureCallback by lazy {
+
         object : CameraCaptureSession.CaptureCallback() {
 
             override fun onCaptureStarted(
@@ -260,20 +267,56 @@ internal open class Camera2(
         }
     }
 
+    private var debounceIntervalMillis: Int = 0
+
+    override var maxPreviewFrameRate: Float = 0f
+        set(value) {
+            field = value
+            debounceIntervalMillis = when {
+                value <= 0 -> 0
+                value < 1 -> ((1 / value) * 1000).roundToInt()
+                else -> (1000 / value).roundToInt()
+            }
+        }
+
     private val onPreviewImageAvailableListener: ImageReader.OnImageAvailableListener by lazy {
 
+        // Timestamp of the last frame processed. Used for de-bouncing purposes.
+        val lastTimeStamp = AtomicLong(0L)
+
         ImageReader.OnImageAvailableListener { reader ->
+
+            // Flag to decide when to debounce a frame
+            var debounce = false
+
+            // Use debounce logic only if interval is > 0. If not, it means user wants max frame rate
+            if (debounceIntervalMillis > 0) {
+                val currentTimeStamp: Long = SystemClock.elapsedRealtime()
+                // Set debounce flag to true if current timestamp is within debounce interval
+                if (debounceIntervalMillis > currentTimeStamp - lastTimeStamp.get()) debounce = true
+                // Otherwise update last frame timestamp to current
+                else lastTimeStamp.set(currentTimeStamp)
+            }
 
             launch {
 
                 val internalImage: android.media.Image =
-                    runCatching { reader.acquireNextImage() }
-                        .getOrNull()
-                        ?: return@launch
+                    runCatching { reader.acquireNextImage() }.getOrElse { return@launch }
+
+                // The reason for using flag instead of de-bouncing right from beginning is because
+                // once this listener is called, image must be acquired from image reader otherwise preview will freeze.
+                // After acquiring image if debounce is true, close the image and return.
+                if (debounce) {
+                    internalImage.close()
+                    return@launch
+                }
 
                 val imageData: ByteArray =
                     runCatching { internalImage.decode(Modes.OutputFormat.YUV_420_888, rs) }
-                        .getOrElse { return@launch }
+                        .getOrElse {
+                            internalImage.close()
+                            return@launch
+                        }
 
                 val exif = ExifInterface(imageData.inputStream())
 
@@ -285,7 +328,7 @@ internal open class Camera2(
                 )
 
                 internalImage
-                    .runCatching { Image(imageData, width, height, exif, ImageFormat.YUV_420_888) }
+                    .runCatching { Image(imageData, width, height, exif, format) }
                     .onSuccess { image -> listener.onPreviewFrame(image) }
 
                 internalImage.close()
@@ -294,6 +337,7 @@ internal open class Camera2(
     }
 
     private val onCaptureImageAvailableListener: ImageReader.OnImageAvailableListener by lazy {
+
         ImageReader.OnImageAvailableListener { reader ->
 
             val internalImage: android.media.Image = reader.runCatching { acquireLatestImage() }
@@ -302,26 +346,30 @@ internal open class Camera2(
                     return@OnImageAvailableListener
                 }
 
-            internalImage.runCatching {
+            if (internalImage.format != internalOutputFormat || internalImage.planes.isEmpty()) {
+                internalImage.close()
+                listener.onCameraError(CameraViewException("Failed to capture image. Invalid format or internal image data."))
+                return@OnImageAvailableListener
+            }
 
-                if (format != internalOutputFormat || planes.isEmpty()) return@runCatching
+            val imageData: ByteArray = runCatching { internalImage.decode(config.outputFormat.value, rs) }
+                .getOrElse { t ->
+                    internalImage.close()
+                    listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                    return@OnImageAvailableListener
+                }
 
-                val imageData: ByteArray =
-                    runBlocking(coroutineContext) { decode(config.outputFormat.value, rs) }
+            val exif = ExifInterface(imageData.inputStream())
 
-                val exif = ExifInterface(imageData.inputStream())
+            val image = Image(
+                imageData,
+                internalImage.width,
+                internalImage.height,
+                exif,
+                internalImage.format
+            )
 
-                val image = Image(
-                    imageData,
-                    internalImage.width,
-                    internalImage.height,
-                    exif,
-                    internalImage.format
-                )
-
-                listener.onPictureTaken(image)
-
-            }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to capture image.", t)) }
+            listener.onPictureTaken(image)
 
             internalImage.close()
         }

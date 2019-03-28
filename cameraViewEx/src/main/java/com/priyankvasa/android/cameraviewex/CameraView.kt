@@ -642,14 +642,23 @@ class CameraView @JvmOverloads constructor(
      *
      * @param listener lambda with image of type [Image] as its argument
      * which contains the preview frame from camera and its metadata in form of [android.support.media.ExifInterface].
+     * @param maxFrameRate is maximum number of frames per second.
+     *   Actual frame rate might be less based on device capabilities but will not be more than this value.
+     *   A float can be set for eg., max frame rate of 0.5f will produce one frame every 2 seconds.
+     *   Any value less than or equal to zero (<= 0f) will produce maximum frames per second supported by device.
+     *   Not providing this value uses the maximum possible frame rate.
      *
      * @return instance of [CameraView] it is called on
      *
      * @sample com.priyankvasa.android.cameraviewex_sample.camera.CameraPreviewFrameHandler.listener
      */
+    @JvmOverloads
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    fun setPreviewFrameListener(listener: (image: Image) -> Unit): CameraView {
-        if (listenerManager.isEnabled) listenerManager.previewFrameListener = listener
+    fun setPreviewFrameListener(maxFrameRate: Float = 0f, listener: (image: Image) -> Unit): CameraView {
+        if (listenerManager.isEnabled) {
+            camera.maxPreviewFrameRate = maxFrameRate
+            listenerManager.previewFrameListener = listener
+        }
         return this
     }
 

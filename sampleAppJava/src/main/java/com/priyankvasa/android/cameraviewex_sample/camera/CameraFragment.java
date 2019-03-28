@@ -126,10 +126,13 @@ public class CameraFragment extends Fragment {
             return Unit.INSTANCE;
         });
 
-        camera.setPreviewFrameListener((Image image) -> {
-            Timber.i("Preview frame available.");
-            return Unit.INSTANCE;
-        });
+        camera.setPreviewFrameListener(
+            10f, // Max frame rate
+            (Image image) -> {
+                Timber.i("Preview frame available.");
+                return Unit.INSTANCE;
+            }
+        );
 
         camera.addCameraErrorListener((Throwable t, ErrorLevel errorLevel) -> {
             if (errorLevel instanceof ErrorLevel.Warning) Timber.w(t);
