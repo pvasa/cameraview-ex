@@ -42,7 +42,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.3.0"
+    implementation "com.priyankvasa.android:cameraview-ex:3.4.0"
 }
 ```
 
@@ -119,7 +119,7 @@ camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 camera.enableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 // Output format is always ImageFormat.YUV_420_888
 // Callback on background thread
-camera.setPreviewFrameListener { image: Image -> /* Preview frame available. */ }
+camera.setPreviewFrameListener(maxFrameRate = 10f /*optional*/) { image: Image -> /* Preview frame available. */ }
 // Disable continuous frame mode
 camera.disableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 ```

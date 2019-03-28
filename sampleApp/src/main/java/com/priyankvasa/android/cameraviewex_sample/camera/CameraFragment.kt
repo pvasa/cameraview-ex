@@ -163,7 +163,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
             // Callback on background thread
-            setPreviewFrameListener(cameraPreviewFrameHandler.listener)
+            setPreviewFrameListener(maxFrameRate = 10f, listener = cameraPreviewFrameHandler.listener)
 
             // Callback on main (UI) thread
             addPictureTakenListener { image: Image -> launch { saveDataToFile(image) } }

@@ -37,6 +37,14 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
     val maxDigitalZoom: Float
 
     /**
+     * Maximum number of frames to generate per second for preview frame listener.
+     * Actual frame rate might be less based on device capabilities but will not be more than this value.
+     * A float can be set for eg., max frame rate of 0.5f will produce one frame every 2 seconds.
+     * Any value less than or equal to zero (<= 0f) will produce maximum frames per second supported by device.
+     */
+    var maxPreviewFrameRate: Float
+
+    /**
      * @return `true` if the implementation was able to start the camera session.
      */
     fun start(): Boolean

@@ -24,6 +24,7 @@ import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.ImageFormat
 import android.hardware.Camera
+import android.os.SystemClock
 import android.support.media.ExifInterface
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
@@ -38,7 +39,9 @@ import java.io.IOException
 import java.util.SortedSet
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 
 internal class Camera1(
     private val listener: CameraInterface.Listener,
@@ -68,21 +71,46 @@ internal class Camera1(
     private val videoManager: VideoManager
         by lazy { VideoManager { listener.onCameraError(CameraViewException(it), ErrorLevel.Warning) } }
 
+    private var debounceIntervalMillis: Int = -1
+
+    override var maxPreviewFrameRate: Float = -1f
+        set(value) {
+            field = value
+            debounceIntervalMillis = when {
+                value <= 0 -> -1
+                value < 1 -> ((1 / value) * 1000).roundToInt()
+                else -> (1000 / value).roundToInt()
+            }
+        }
+
     private val previewCallback: Camera.PreviewCallback by lazy {
+
+        // Timestamp of the last frame processed. Used for de-bouncing purposes.
+        val lastTimeStamp = AtomicLong(0L)
+
         Camera.PreviewCallback { data: ByteArray?, camera: Camera? ->
+
+            // Use debounce logic only if interval is > 0. If not, it means user wants max frame rate
+            if (debounceIntervalMillis > 0) {
+                val currentTimeStamp: Long = SystemClock.elapsedRealtime()
+                // Debounce if current timestamp is within debounce interval
+                if (debounceIntervalMillis > currentTimeStamp - lastTimeStamp.get()) return@PreviewCallback
+                // Otherwise update last frame timestamp to current
+                else lastTimeStamp.set(currentTimeStamp)
+            }
+
+            // Data may be null when Camera api is "catching breath" between frame generation
             if (camera == null || data == null) return@PreviewCallback
-            val exceptionHandler = CoroutineExceptionHandler { _, _ -> }
-            launch(exceptionHandler) {
-                camera.runCatching {
-                    val image = Image(
-                        data,
-                        parameters.previewSize.width,
-                        parameters.previewSize.height,
-                        ExifInterface(data.inputStream()),
-                        parameters.previewFormat
-                    )
-                    listener.onPreviewFrame(image)
-                }
+
+            launch(CoroutineExceptionHandler { _, _ -> }) {
+                val image = Image(
+                    data,
+                    camera.parameters.previewSize.width,
+                    camera.parameters.previewSize.height,
+                    ExifInterface(data.inputStream()),
+                    camera.parameters.previewFormat
+                )
+                listener.onPreviewFrame(image)
             }
         }
     }
