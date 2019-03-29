@@ -33,9 +33,8 @@ internal open class Camera2Api23(
 
     override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         // Try to get hi-res output sizes
-        map.getHighResolutionOutputSizes(internalOutputFormat)?.forEach {
-            sizes.add(it.width, it.height)
-        }
+        map.getHighResolutionOutputSizes(internalOutputFormat)
+            ?.forEach { sizes.add(it.width, it.height) }
         if (sizes.isEmpty) super.collectPictureSizes(sizes, map)
     }
 }

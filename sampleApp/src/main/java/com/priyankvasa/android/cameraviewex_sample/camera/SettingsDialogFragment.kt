@@ -1,7 +1,9 @@
 package com.priyankvasa.android.cameraviewex_sample.camera
 
 import android.app.Dialog
+import android.content.Context
 import android.os.Bundle
+import android.support.annotation.LayoutRes
 import android.support.v4.app.DialogFragment
 import android.support.v4.app.FragmentManager
 import android.view.LayoutInflater
@@ -10,25 +12,28 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.SpinnerAdapter
 import com.priyankvasa.android.cameraviewex.AspectRatio
 import com.priyankvasa.android.cameraviewex_sample.R
 import kotlinx.android.synthetic.main.fragment_dialog_settings.*
 
 class SettingsDialogFragment : DialogFragment() {
 
-    private val spinnerAdapter: SpinnerAdapter by lazy {
-        ArrayAdapter.createFromResource(
+    val configListener: ConfigListener by lazy { targetFragment as ConfigListener }
+
+    private val aspectRatiosRepo: AspectRatiosRepository
+        by lazy { targetFragment as AspectRatiosRepository }
+
+    private val spinnerAdapter: SpinnerAdapter<AspectRatio> by lazy {
+
+        SpinnerAdapter(
             context ?: throw NullPointerException("Null context!"),
-            R.array.aspect_ratio_array,
-            android.R.layout.simple_spinner_item
+            android.R.layout.simple_spinner_item,
+            aspectRatiosRepo.supportedAspectRatios.toTypedArray()
         ).apply {
             // Specify the layout to use when the list of choices appears
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
     }
-
-    val configListener: ConfigListener by lazy { targetFragment as ConfigListener }
 
     override fun show(manager: FragmentManager, tag: String?) {
         super.show(manager, tag)
@@ -65,17 +70,33 @@ class SettingsDialogFragment : DialogFragment() {
     }
 
     private fun setupView() {
-        spinnerAspectRatio.adapter = spinnerAdapter
-        spinnerAspectRatio.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        setupAspectRatioSpinner()
+        buttonCancel.setOnClickListener { dialog.cancel() }
+    }
 
+    private fun setupAspectRatioSpinner(): Unit = with(spinnerAspectRatio) {
+
+        adapter = spinnerAdapter
+
+        setSelection(spinnerAdapter.getItemPosition(aspectRatiosRepo.currentAspectRatio))
+
+        onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
-
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val (x, y) = (spinnerAdapter.getItem(position) as? String)?.split(':') ?: return
-                configListener.onNewAspectRatio(AspectRatio.of(x.toInt(), y.toInt()))
+                configListener.onNewAspectRatio(spinnerAdapter[position] ?: return)
             }
         }
-        buttonCancel.setOnClickListener { dialog.cancel() }
+    }
+
+    private inner class SpinnerAdapter<T>(
+        context: Context,
+        @LayoutRes itemViewResource: Int,
+        private val items: Array<out T>
+    ) : ArrayAdapter<T>(context, itemViewResource, items) {
+
+        operator fun get(position: Int): T? = getItem(position)
+
+        fun getItemPosition(item: T): Int = items.indexOf(item)
     }
 
     interface ConfigListener {
@@ -85,9 +106,9 @@ class SettingsDialogFragment : DialogFragment() {
 
     companion object {
 
-        val TAG: String = SettingsDialogFragment::class.java.canonicalName
-            ?: SettingsDialogFragment::class.java.name
+        val TAG: String =
+            SettingsDialogFragment::class.java.run { canonicalName ?: name ?: simpleName }
 
-        fun newInstance() = SettingsDialogFragment()
+        fun newInstance(): SettingsDialogFragment = SettingsDialogFragment()
     }
 }

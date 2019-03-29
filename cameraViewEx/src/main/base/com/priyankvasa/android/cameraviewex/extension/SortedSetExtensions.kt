@@ -36,6 +36,7 @@ internal fun SortedSet<Size>.chooseOptimalPreviewSize(viewWidth: Int, viewHeight
         .run {
             firstOrNull { it.width >= viewWidth && it.height >= viewHeight }
                 ?: lastOrNull { it.width < viewWidth || it.height < viewHeight }
-                ?: last()
+                ?: lastOrNull()
+                ?: Size.Invalid
         }
 }
