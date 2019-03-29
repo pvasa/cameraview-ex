@@ -42,7 +42,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
-open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, CoroutineScope {
+open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, AspectRatiosRepository, CoroutineScope {
 
     private val job: Job = SupervisorJob()
 
@@ -112,6 +112,12 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, C
     private val cameraPreviewFrameHandler: CameraPreviewFrameHandler by lazy {
         CameraPreviewFrameHandler(decodeSuccessListener, previewFrameInflater)
     }
+
+    override val supportedAspectRatios: Set<AspectRatio>
+        get() = camera?.supportedAspectRatios ?: setOf()
+
+    override val currentAspectRatio: AspectRatio
+        get() = camera?.aspectRatio ?: AspectRatio.Invalid
 
     override fun onCreateView(
         inflater: LayoutInflater,

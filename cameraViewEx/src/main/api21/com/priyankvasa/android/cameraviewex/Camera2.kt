@@ -301,7 +301,8 @@ internal open class Camera2(
             launch {
 
                 val internalImage: android.media.Image =
-                    runCatching { reader.acquireNextImage() }.getOrElse { return@launch }
+                // acquireNextImage() is nullable and throws exception if max images already acquired
+                    runCatching { reader.acquireNextImage() }.getOrNull() ?: return@launch
 
                 // The reason for using flag instead of de-bouncing right from beginning is because
                 // once this listener is called, image must be acquired from image reader otherwise preview will freeze.
@@ -340,11 +341,15 @@ internal open class Camera2(
 
         ImageReader.OnImageAvailableListener { reader ->
 
-            val internalImage: android.media.Image = reader.runCatching { acquireLatestImage() }
-                .getOrElse { t ->
-                    listener.onCameraError(CameraViewException("Failed to capture image.", t))
-                    return@OnImageAvailableListener
+            val internalImage: android.media.Image =
+                runCatching {
+                    reader.acquireLatestImage()
+                        ?: throw NullPointerException("No new image is available.")
                 }
+                    .getOrElse { t ->
+                        listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                        return@OnImageAvailableListener
+                    }
 
             if (internalImage.format != internalOutputFormat || internalImage.planes.isEmpty()) {
                 internalImage.close()

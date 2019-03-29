@@ -1,6 +1,9 @@
 <resources>
 
     <string name="app_name">CameraViewExSample</string>
+    <string name="text_aspect_ratio">Aspect ratio</string>
+    <string name="text_done">Done</string>
+    <string name="text_barcodes">Barcodes</string>
 
     <string-array name="aspect_ratio_array">
         <item>18:9</item>
