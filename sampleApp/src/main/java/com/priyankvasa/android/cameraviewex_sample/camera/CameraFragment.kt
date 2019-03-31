@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -24,7 +25,6 @@ import com.priyankvasa.android.cameraviewex.Image
 import com.priyankvasa.android.cameraviewex.Modes
 import com.priyankvasa.android.cameraviewex.VideoSize
 import com.priyankvasa.android.cameraviewex_sample.R
-import com.priyankvasa.android.cameraviewex_sample.RotateTransformation
 import com.priyankvasa.android.cameraviewex_sample.extensions.hide
 import com.priyankvasa.android.cameraviewex_sample.extensions.hideSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.show
@@ -48,11 +48,11 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
 
     override val coroutineContext: CoroutineContext get() = job + Dispatchers.Main
 
-    private val imageOutputDirectory by lazy {
+    private val imageOutputDirectory: String by lazy {
         "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
     }
 
-    private val videoOutputDirectory by lazy {
+    private val videoOutputDirectory: String by lazy {
         "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
     }
 
@@ -65,10 +65,10 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
         get() = File(videoOutputDirectory, "video_${System.currentTimeMillis()}.mp4")
 
     @SuppressLint("MissingPermission")
-    private val imageCaptureListener = View.OnClickListener { camera.capture() }
+    private val imageCaptureListener: View.OnClickListener = View.OnClickListener { camera.capture() }
 
     @SuppressLint("MissingPermission")
-    private val videoCaptureListener = View.OnClickListener {
+    private val videoCaptureListener: View.OnClickListener = View.OnClickListener {
         if (camera.isVideoRecording) {
             camera.stopVideoRecording()
         } else {
@@ -99,12 +99,10 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
 
     private val glideManager: RequestManager by lazy { Glide.with(this) }
 
-    private val previewFrameInflater: (ByteArray, Int) -> Unit = { previewFrame: ByteArray, rotation: Int ->
+    private val previewFrameInflater: (Bitmap) -> Unit = { bm: Bitmap ->
         launch {
-            glideManager
-                .asBitmap()
-                .load(previewFrame)
-                .apply(RequestOptions.bitmapTransform(RotateTransformation(rotation)))
+            glideManager.load(bm)
+                .apply(RequestOptions().apply { override(bm.width / 3, bm.height / 3) })
                 .into(ivOutputPreview)
         }
     }
@@ -116,8 +114,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
     override val supportedAspectRatios: Set<AspectRatio>
         get() = camera?.supportedAspectRatios ?: setOf()
 
-    override val currentAspectRatio: AspectRatio
-        get() = camera?.aspectRatio ?: AspectRatio.Invalid
+    override val currentAspectRatio: AspectRatio get() = camera?.aspectRatio ?: AspectRatio.Invalid
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -169,7 +166,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
             // Callback on background thread
-            setPreviewFrameListener(maxFrameRate = 10f, listener = cameraPreviewFrameHandler.listener)
+            setPreviewFrameListener(maxFrameRate = 5f, listener = cameraPreviewFrameHandler.listener)
 
             // Callback on main (UI) thread
             addPictureTakenListener { image: Image -> launch { saveDataToFile(image) } }
@@ -255,19 +252,19 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
             ivFlashSwitch.setImageDrawable(ActivityCompat.getDrawable(context, flashDrawableId))
         }
 
-        ivCameraMode.setOnCheckedChangeListener { _, isChecked ->
+        tbSingleCapture.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) camera.enableCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
             else camera.disableCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
             updateViewState()
         }
 
-        ivVideoMode.setOnCheckedChangeListener { _, isChecked ->
+        tbVideoCapture.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) camera.enableCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
             else camera.disableCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
             updateViewState()
         }
 
-        ivBarcodeScanner.setOnCheckedChangeListener { _, isChecked ->
+        tbContinuousFrame.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) camera.enableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
             else camera.disableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
             updateViewState()

@@ -47,41 +47,54 @@ class CameraView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     init {
-        if (BuildConfig.DEBUG) {
+        if (!isInEditMode && BuildConfig.DEBUG) {
             Timber.forest().find { it is Timber.DebugTree } ?: Timber.plant(Timber.DebugTree())
             System.setProperty("kotlinx.coroutines.debug", "on")
         }
     }
 
-    private val parentJob: Job = SupervisorJob()
+    private val parentJob: Job by lazy { SupervisorJob() }
 
-    private val preview: PreviewImpl = createPreview(context)
+    private val preview: PreviewImpl by lazy {
+        createPreview(context)
+            .also {
+                // Add shutter view to CameraView
+                addView(it.shutterView)
+                it.shutterView.layoutParams = it.view.layoutParams
+            }
+    }
 
-    private val listenerManager: CameraListenerManager = CameraListenerManager(SupervisorJob(parentJob))
-        .apply { cameraOpenedListeners.add { requestLayout() } }
+    private val listenerManager: CameraListenerManager by lazy {
+        CameraListenerManager(SupervisorJob(parentJob))
+            .apply { cameraOpenedListeners.add { requestLayout() } }
+            .also { if (isInEditMode) it.disable() }
+    }
 
     /** Display orientation detector */
-    private val orientationDetector: OrientationDetector = object : OrientationDetector(context) {
+    private val orientationDetector: OrientationDetector by lazy {
 
-        override fun onDisplayOrientationChanged(displayOrientation: Int) {
-            preview.setDisplayOrientation(displayOrientation)
-            camera.deviceRotation = displayOrientation
-        }
+        object : OrientationDetector(context) {
 
-        override fun onSensorOrientationChanged(sensorOrientation: Int) {
-            val orientation: Orientation = Orientation.parse(sensorOrientation)
-            val rotation: Int = when (orientation) {
-                Orientation.Portrait, Orientation.PortraitInverted -> orientation.value
-                Orientation.Landscape -> Orientation.LandscapeInverted.value
-                Orientation.LandscapeInverted -> Orientation.Landscape.value
-                Orientation.Unknown -> return
+            override fun onDisplayOrientationChanged(displayOrientation: Int) {
+                preview.setDisplayOrientation(displayOrientation)
+                camera.deviceRotation = displayOrientation
             }
-            if (camera.deviceRotation != rotation) camera.deviceRotation = rotation
+
+            override fun onSensorOrientationChanged(sensorOrientation: Int) {
+                val orientation: Orientation = Orientation.parse(sensorOrientation)
+                val rotation: Int = when (orientation) {
+                    Orientation.Portrait, Orientation.PortraitInverted -> orientation.value
+                    Orientation.Landscape -> Orientation.LandscapeInverted.value
+                    Orientation.LandscapeInverted -> Orientation.Landscape.value
+                    Orientation.Unknown -> return
+                }
+                if (camera.deviceRotation != rotation) camera.deviceRotation = rotation
+            }
         }
     }
 
     private val config: CameraConfiguration =
-        if (checkInEditMode()) CameraConfiguration.defaultConfig
+        if (isInEditMode) CameraConfiguration.defaultConfig
         else CameraConfiguration.newInstance(
             context,
             attrs,
@@ -92,25 +105,23 @@ class CameraView @JvmOverloads constructor(
             }
         )
 
-    private var camera: CameraInterface = run {
-
-        val cameraJob: Job = SupervisorJob(parentJob)
-
-        // Based on OS version select the best camera implementation
-        return@run when {
+    private var camera: CameraInterface =
+    // Based on OS version select the best camera implementation
+        when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
-                Camera1(listenerManager, preview, config, cameraJob)
+                Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
             Build.VERSION.SDK_INT < Build.VERSION_CODES.M ->
-                Camera2(listenerManager, preview, config, cameraJob, context)
+                Camera2(listenerManager, preview, config, SupervisorJob(parentJob), context)
             Build.VERSION.SDK_INT < Build.VERSION_CODES.N ->
-                Camera2Api23(listenerManager, preview, config, cameraJob, context)
-            else -> Camera2Api24(listenerManager, preview, config, cameraJob, context)
+                Camera2Api23(listenerManager, preview, config, SupervisorJob(parentJob), context)
+            else -> Camera2Api24(listenerManager, preview, config, SupervisorJob(parentJob), context)
         }
-    }
 
     init {
-        config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
-        config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
+        if (!isInEditMode) {
+            config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+            config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
+        }
     }
 
     internal val isUiTestCompatible: Boolean get() = camera is Camera2
@@ -288,10 +299,12 @@ class CameraView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+
         if (isInEditMode) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             return
         }
+
         // Handle android:adjustViewBounds
         if (adjustViewBounds) {
 
@@ -399,17 +412,6 @@ class CameraView @JvmOverloads constructor(
             }
             else -> super.onRestoreInstanceState(state)
         }
-    }
-
-    private fun checkInEditMode(): Boolean = if (isInEditMode) {
-        listenerManager.disable()
-        orientationDetector.disable()
-        true
-    } else {
-        // Add shutter view
-        addView(preview.shutterView)
-        preview.shutterView.layoutParams = preview.view.layoutParams
-        false
     }
 
     private fun createPreview(context: Context): PreviewImpl = TextureViewPreview(context, this)

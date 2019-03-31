@@ -1,5 +1,7 @@
 package com.priyankvasa.android.cameraviewex_sample.camera
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
@@ -13,13 +15,14 @@ import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOption
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata
 import com.priyankvasa.android.cameraviewex.Image
+import com.priyankvasa.android.cameraviewex_sample.extensions.rotate
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraPreviewFrameHandler(
     private var barcodeDecodeSuccessCallback: ((MutableList<FirebaseVisionBarcode>) -> Unit)?,
-    private var previewAvailableCallback: ((ByteArray, Int) -> Unit)?
+    private var previewAvailableCallback: ((Bitmap) -> Unit)?
 ) {
 
     private val rotationToFirebaseOrientationMap: SparseIntArray = SparseIntArray()
@@ -97,14 +100,21 @@ class CameraPreviewFrameHandler(
 
     private fun showPreview(image: Image) {
 
-        val rotation = image.exifInterface.rotationDegrees
+        val rotation: Int = image.exifInterface.rotationDegrees
 
         val jpegDataStream = ByteArrayOutputStream()
 
         YuvImage(image.data, ImageFormat.NV21, image.width, image.height, null)
-            .compressToJpeg(Rect(0, 0, image.width, image.height), 60, jpegDataStream)
+            .compressToJpeg(Rect(0, 0, image.width, image.height), 40, jpegDataStream)
 
-        previewAvailableCallback?.invoke(jpegDataStream.toByteArray(), rotation)
+        val jpegData: ByteArray = jpegDataStream.toByteArray()
+
+        val options: BitmapFactory.Options =
+            BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+
+        val bm: Bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.size, options)
+
+        previewAvailableCallback?.invoke(bm.rotate(rotation))
     }
 
     fun release() {
