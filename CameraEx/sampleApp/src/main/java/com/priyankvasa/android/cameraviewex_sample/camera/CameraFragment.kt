@@ -8,35 +8,24 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.support.annotation.DrawableRes
-import android.support.v4.app.ActivityCompat
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.DrawableRes
+import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode
-import com.priyankvasa.android.cameraviewex.AspectRatio
-import com.priyankvasa.android.cameraviewex.ErrorLevel
-import com.priyankvasa.android.cameraviewex.Image
-import com.priyankvasa.android.cameraviewex.Modes
-import com.priyankvasa.android.cameraviewex.VideoSize
+import com.priyankvasa.android.cameraviewex.*
 import com.priyankvasa.android.cameraviewex_sample.R
 import com.priyankvasa.android.cameraviewex_sample.extensions.hide
-import com.priyankvasa.android.cameraviewex_sample.extensions.hideSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.show
-import com.priyankvasa.android.cameraviewex_sample.extensions.showSystemUi
 import com.priyankvasa.android.cameraviewex_sample.extensions.toast
 import kotlinx.android.synthetic.main.fragment_camera.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import timber.log.Timber
 import java.io.BufferedOutputStream
 import java.io.File
@@ -131,7 +120,6 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
     @SuppressLint("MissingPermission")
     override fun onResume() {
         super.onResume()
-        activity?.hideSystemUi()
         updateViewState()
         checkPermissions().let { if (it.isEmpty()) camera.start() else requestPermissions(it, 1) }
     }
@@ -154,7 +142,6 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
         cameraPreviewFrameHandler.release()
         camera.destroy()
         job.cancel()
-        activity?.showSystemUi()
         super.onDestroyView()
     }
 
