@@ -9,15 +9,7 @@ class CameraActivity : AppCompatActivity(), CameraNavigator {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
-        openCameraFragment()
-        /*if (savedInstanceState != null) {
-            val cameraFrag: Fragment = supportFragmentManager
-                .getFragment(savedInstanceState, CameraFragment.TAG)
-                ?: return
-            supportFragmentManager.beginTransaction()
-                .add(R.id.flMainContainer, cameraFrag, CameraFragment.TAG)
-                .commit()
-        }*/
+        if (savedInstanceState == null) openCameraInitFragment()
     }
 
     override fun openCameraInitFragment() {
@@ -28,16 +20,8 @@ class CameraActivity : AppCompatActivity(), CameraNavigator {
 
     override fun openCameraFragment() {
         supportFragmentManager.beginTransaction()
-            .replace(R.id.flMainContainer, CameraFragment.newInstance(), CameraFragment.TAG)
-//            .addToBackStack(CameraFragment.TAG)
+            .add(R.id.flMainContainer, CameraFragment.newInstance(), CameraFragment.TAG)
+            .addToBackStack(CameraFragment.TAG)
             .commit()
     }
-
-    /*override fun onSaveInstanceState(outState: Bundle?) {
-        super.onSaveInstanceState(outState)
-        val state: Bundle = outState ?: Bundle()
-        val cameraFrag: Fragment? =
-            supportFragmentManager.findFragmentByTag(CameraFragment.TAG)
-        cameraFrag?.let { supportFragmentManager.putFragment(state, CameraFragment.TAG, it) }
-    }*/
 }

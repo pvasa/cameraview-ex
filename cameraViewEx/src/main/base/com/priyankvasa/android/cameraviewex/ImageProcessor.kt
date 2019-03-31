@@ -62,53 +62,56 @@ internal fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 object ImageProcessor {
 
+    /** Implementation from [com.google.firebase.ml.vision.common.FirebaseVisionImage.fromMediaImage] */
     fun yuvImageData(image: Image): ByteArray {
         val planes: Array<Image.Plane> = image.planes
-        val var3: Int = image.width * image.height
-        val imageData = ByteArray(var3 + 2 * (var3 / 4))
+        val wh: Int = image.width * image.height
+        val imageData = ByteArray(wh + 2 * (wh / 4))
         val uBuffer: ByteBuffer = planes[1].buffer
         val vBuffer: ByteBuffer = planes[2].buffer
-        val vPos = vBuffer.position()
-        val uLimit = uBuffer.limit()
+        val vPos: Int = vBuffer.position()
+        val uLimit: Int = uBuffer.limit()
         vBuffer.position(vPos + 1)
         uBuffer.limit(uLimit - 1)
-        val var14 = vBuffer.remaining() == 2 * var3 / 4 - 2 && vBuffer.compareTo(uBuffer) == 0
+        val var14: Boolean = vBuffer.remaining() == 2 * wh / 4 - 2 && vBuffer.compareTo(uBuffer) == 0
         vBuffer.position(vPos)
         uBuffer.limit(uLimit)
         if (var14) {
-            planes[0].buffer.get(imageData, 0, var3)
-            vBuffer.get(imageData, var3, 1)
-            uBuffer.get(imageData, var3 + 1, 2 * var3 / 4 - 1)
+            planes[0].buffer.get(imageData, 0, wh)
+            vBuffer.get(imageData, wh, 1)
+            uBuffer.get(imageData, wh + 1, 2 * wh / 4 - 1)
         } else {
-            zza(planes[0], image.width, image.height, imageData, 0, 1)
-            zza(planes[1], image.width, image.height, imageData, var3 + 1, 2)
-            zza(planes[2], image.width, image.height, imageData, var3, 2)
+            planes[0].process(image.width, image.height, imageData, 0, 1)
+            planes[1].process(image.width, image.height, imageData, wh + 1, 2)
+            planes[2].process(image.width, image.height, imageData, wh, 2)
         }
 
         return imageData
     }
 
-    private fun zza(plane: Image.Plane, width: Int, height: Int, imageData: ByteArray, var4: Int, var5: Int) {
+    private fun Image.Plane.process(width: Int, height: Int, imageData: ByteArray, var4: Int, var5: Int) {
+
+        val plane: Image.Plane = this
 
         val buffer: ByteBuffer = plane.buffer
-        val pos = buffer.position()
-        val var8 = (buffer.remaining() + plane.rowStride - 1) / plane.rowStride
-        val var9 = height / var8
-        val var10 = width / var9
+        val pos: Int = buffer.position()
+        val var8: Int = (buffer.remaining() + plane.rowStride - 1) / plane.rowStride
+        val var9: Int = height / var8
+        val var10: Int = width / var9
         var var11 = var4
-        var var12 = 0
+        var row = 0
 
         repeat(var8) {
 
-            var var14 = var12
+            var thisRow = row
 
             repeat(var10) {
-                imageData[var11] = buffer.get(var14)
+                imageData[var11] = buffer.get(thisRow)
                 var11 += var5
-                var14 += plane.pixelStride
+                thisRow += plane.pixelStride
             }
 
-            var12 += plane.rowStride
+            row += plane.rowStride
         }
 
         buffer.position(pos)
