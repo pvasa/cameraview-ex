@@ -42,7 +42,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.4.0"
+    implementation "com.priyankvasa.android:cameraview-ex:3.4.1"
 }
 ```
 
