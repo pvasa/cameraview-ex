@@ -1,1 +1,1 @@
-include(":cameraViewEx", ":sampleApp", ":sampleAppJava")
+include(":cameraViewEx", ":sampleAppJava")
