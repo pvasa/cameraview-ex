@@ -5,13 +5,4 @@
     <string name="text_done">Done</string>
     <string name="text_barcodes">Barcodes</string>
 
-    <string-array name="aspect_ratio_array">
-        <item>18:9</item>
-        <item>16:9</item>
-        <item>3:2</item>
-        <item>4:3</item>
-        <item>11:9</item>
-        <item>1:1</item>
-    </string-array>
-
 </resources>
