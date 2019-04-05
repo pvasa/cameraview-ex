@@ -60,6 +60,7 @@ allprojects {
     }
 }
 
-tasks.create("clean", Delete::class.java) {
+tasks.create<Delete>("clean") {
     delete(rootProject.buildDir)
+    delete("$rootDir/mavenRepo")
 }

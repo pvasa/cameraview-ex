@@ -23,6 +23,7 @@ allprojects {
 
     repositories {
         google()
+        maven { url = uri("file:$rootDir/../mavenRepo/") }
         jcenter()
     }
 
