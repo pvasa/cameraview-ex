@@ -81,8 +81,7 @@ dependencies {
 
     implementation(fileTree(mapOf("include" to arrayOf("*.jar"), "dir" to "libs")))
 
-    // cameraviewex
-//    implementation(project(":cameraViewEx"))
+    // CameraViewEx
     implementation("com.priyankvasa.android:cameraview-ex:3.4.1")
 
     // Kotlin
@@ -106,3 +105,10 @@ dependencies {
     // Timber
     implementation(Config.Libs.timber)
 }
+
+tasks.register<Exec>("cleanBuildCameraLib") {
+    workingDir("$rootDir/../")
+    commandLine("./gradlew cleanBuildCache clean :cameraViewEx:build publish")
+}
+
+tasks.forEach { task -> if (task.name.startsWith("assemble")) task.dependsOn(tasks["cleanBuildCameraLib"]) }
