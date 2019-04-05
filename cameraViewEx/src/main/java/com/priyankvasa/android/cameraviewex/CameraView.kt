@@ -35,8 +35,12 @@ import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import org.koin.android.BuildConfig
 import timber.log.Timber
 import java.io.File
 
@@ -54,6 +58,8 @@ class CameraView @JvmOverloads constructor(
     }
 
     private val parentJob: Job by lazy { SupervisorJob() }
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(parentJob + Dispatchers.Main)
 
     private val preview: PreviewImpl by lazy {
         createPreview(context)
@@ -119,7 +125,9 @@ class CameraView @JvmOverloads constructor(
 
     init {
         if (!isInEditMode) {
-            config.aspectRatio.observe(camera) { if (camera.setAspectRatio(it)) requestLayout() }
+            config.aspectRatio.observe(camera) {
+                if (camera.setAspectRatio(it)) coroutineScope.launch { requestLayout() }
+            }
             config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
         }
     }
