@@ -106,9 +106,7 @@ dependencies {
     implementation(Config.Libs.timber)
 }
 
-tasks.register<Exec>("cleanBuildCameraLib") {
+tasks.register<Exec>("buildCameraLib") {
     workingDir("$rootDir/../")
-    commandLine("./gradlew cleanBuildCache clean :cameraViewEx:build publish")
+    commandLine("sh", "-c", "./gradlew cleanBuildCache clean :cameraViewEx:build publish")
 }
-
-tasks.forEach { task -> if (task.name.startsWith("assemble")) task.dependsOn(tasks["cleanBuildCameraLib"]) }
