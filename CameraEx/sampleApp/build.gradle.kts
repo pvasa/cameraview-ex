@@ -106,7 +106,24 @@ dependencies {
     implementation(Config.Libs.timber)
 }
 
-tasks.register<Exec>("buildCameraLib") {
-    workingDir("$rootDir/../")
-    commandLine("sh", "-c", "./gradlew cleanBuildCache clean :cameraViewEx:build publish")
+afterEvaluate {
+
+    // For each build type, create a buildCameraViewEx task and
+    // make all assemble tasks dependent on respective buildCameraViewEx task
+    arrayOf("Debug", "Stage", "Release").forEach { buildType ->
+
+        val buildCameraViewExTask = "buildCameraViewEx$buildType"
+
+        tasks.create<Exec>(buildCameraViewExTask) {
+            workingDir("$rootDir/../")
+            // Assemble and publish (locally) cameraViewEx module
+            commandLine(
+                "sh",
+                "-c",
+                "./gradlew :cameraViewEx:assemble$buildType :cameraViewEx:publish${buildType}PublicationToMavenRepository"
+            )
+        }
+
+        tasks["assemble$buildType"].dependsOn(tasks[buildCameraViewExTask])
+    }
 }

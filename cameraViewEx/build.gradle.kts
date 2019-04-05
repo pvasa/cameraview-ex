@@ -93,6 +93,7 @@ android {
 
         create("stage").apply {
             initWith(buildTypes["release"])
+            versionNameSuffix = "-stage"
             signingConfig = signingConfigs["stage"]
         }
     }
@@ -267,53 +268,56 @@ publishing {
 
     publications {
 
-        create<MavenPublication>("cameraViewEx") {
+        arrayOf("debug", "stage", "release").forEach { buildType ->
 
-            groupId = project.group.toString()
-            artifactId = "cameraview-ex"
-            version = project.version.toString()
+            create<MavenPublication>(buildType) {
 
-            artifact("$buildDir/outputs/aar/cameraViewEx-release.aar")
-            artifact(tasks["sourcesJar"])
+                groupId = project.group.toString()
+                artifactId = "cameraview-ex"
+                version = project.version.toString()
 
-            pom {
-                packaging = "aar"
-                name.set("CameraViewEx")
-                description.set(project.description)
-                url.set("https://github.com/pvasa/cameraview-ex")
-                inceptionYear.set("2018")
-                licenses {
-                    license {
-                        name.set("The Apache Software License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("pvasa")
-                        name.set("Priyank Vasa")
-                        email.set("pv.ryan14@gmail.com")
-                        organization.set("TradeRev")
-                        organizationUrl.set("https://www.traderev.com/en-ca/")
-                        url.set("https://priyankvasa.dev")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:git://github.com/cameraview-ex.git")
-                    developerConnection.set("scm:git:ssh://github.com/cameraview-ex.git")
-                    url.set("https://github.com/cameraview-ex/")
-                }
-                withXml {
-                    val dependencies: Node = asNode().appendNode("dependencies")
-                    fun appendDependency(dependency: Dependency, scope: String) {
-                        dependencies.appendNode("dependency").apply {
-                            appendNode("groupId", dependency.group)
-                            appendNode("artifactId", dependency.name)
-                            appendNode("version", dependency.version)
-                            appendNode("scope", scope)
+                artifact("$buildDir/outputs/aar/cameraViewEx-$buildType.aar")
+                artifact(tasks["sourcesJar"])
+
+                pom {
+                    packaging = "aar"
+                    name.set("CameraViewEx")
+                    description.set(project.description)
+                    url.set("https://github.com/pvasa/cameraview-ex")
+                    inceptionYear.set("2018")
+                    licenses {
+                        license {
+                            name.set("The Apache Software License, Version 2.0")
+                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
                         }
                     }
-                    configurations.implementation.dependencies.forEach { appendDependency(it, "runtime") }
+                    developers {
+                        developer {
+                            id.set("pvasa")
+                            name.set("Priyank Vasa")
+                            email.set("pv.ryan14@gmail.com")
+                            organization.set("TradeRev")
+                            organizationUrl.set("https://www.traderev.com/en-ca/")
+                            url.set("https://priyankvasa.dev")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:git://github.com/cameraview-ex.git")
+                        developerConnection.set("scm:git:ssh://github.com/cameraview-ex.git")
+                        url.set("https://github.com/cameraview-ex/")
+                    }
+                    withXml {
+                        val dependencies: Node = asNode().appendNode("dependencies")
+                        fun appendDependency(dependency: Dependency, scope: String) {
+                            dependencies.appendNode("dependency").apply {
+                                appendNode("groupId", dependency.group)
+                                appendNode("artifactId", dependency.name)
+                                appendNode("version", dependency.version)
+                                appendNode("scope", scope)
+                            }
+                        }
+                        configurations.implementation.dependencies.forEach { appendDependency(it, "runtime") }
+                    }
                 }
             }
         }

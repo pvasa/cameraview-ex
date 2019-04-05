@@ -45,6 +45,15 @@ allprojects {
     }
 }
 
-tasks.create("clean", Delete::class.java) {
+tasks.create<Delete>("clean") {
+
     delete(rootProject.buildDir)
+
+    doLast {
+        exec {
+            workingDir("$rootDir/../")
+            // Clean cameraViewEx module
+            commandLine("sh", "-c", "./gradlew clean")
+        }
+    }
 }
