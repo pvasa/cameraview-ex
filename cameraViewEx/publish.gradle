@@ -41,7 +41,7 @@ install {
     repositories.mavenInstaller {
         pom.project {
             packaging "aar"
-            groupId group
+            groupId project.group
             artifactId artifact
 
             name libraryName
@@ -91,10 +91,10 @@ bintray {
         publish = true
         publicDownloadNumbers = true
         version {
-            name = version
+            name = project.version
             desc = libraryDescription
             released = new Date()
-            vcsTag = version
+            vcsTag = "v" + project.version
         }
     }
 }
