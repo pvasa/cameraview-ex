@@ -7,7 +7,6 @@ buildscript {
     repositories {
         google()
         jcenter()
-
     }
 
     dependencies {
@@ -46,14 +45,11 @@ allprojects {
 }
 
 tasks.create<Delete>("clean") {
-
     delete(rootProject.buildDir)
+}
 
-    doLast {
-        exec {
-            workingDir("$rootDir/../")
-            // Clean cameraViewEx module
-            commandLine("sh", "-c", "./gradlew clean")
-        }
-    }
+tasks.create<Exec>("cleanCameraViewEx") {
+    workingDir("$rootDir/../")
+    // Clean cameraViewEx module
+    commandLine("sh", "-c", "./gradlew clean")
 }

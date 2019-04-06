@@ -71,7 +71,7 @@ android {
     }
 
     compileOptions {
-        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        sourceCompatibility = JavaVersion.VERSION_1_8
         setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
 }
@@ -82,7 +82,6 @@ dependencies {
 
     // cameraviewex
     implementation(project(":cameraViewEx"))
-//    implementation("com.priyankvasa.android:cameraview-ex:2.2.2")
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)

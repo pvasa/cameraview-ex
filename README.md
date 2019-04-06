@@ -42,7 +42,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.4.1"
+    implementation "com.priyankvasa.android:cameraview-ex:3.4.2"
 }
 ```
 
@@ -176,7 +176,9 @@ camera.capture()
 // The listeners will receive their respective outputs
 ```
 
-You can see a complete usage in the [sampleApp](https://github.com/pvasa/cameraview-ex/tree/development/sampleApp) app module or [sampleAppJava](https://github.com/pvasa/cameraview-ex/tree/development/sampleAppJava) for usage in Java.
+## Sample apps
+- [Kotlin sample app](https://github.com/pvasa/cameraview-ex/tree/master/CameraEx) - Advanced usage
+- [Java sample app](https://github.com/pvasa/cameraview-ex/tree/master/sampleAppJava) - Very simple usage
 
 ## Configuration
 
