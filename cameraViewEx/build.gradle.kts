@@ -274,7 +274,10 @@ publishing {
 
                 groupId = project.group.toString()
                 artifactId = "cameraview-ex"
-                version = project.version.toString()
+
+                val versionSuffix = if (buildType == "release") "" else "-$buildType"
+
+                version = "${project.version}$versionSuffix"
 
                 artifact("$buildDir/outputs/aar/cameraViewEx-$buildType.aar")
                 artifact(tasks["sourcesJar"])

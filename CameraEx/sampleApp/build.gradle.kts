@@ -82,7 +82,8 @@ dependencies {
     implementation(fileTree(mapOf("include" to arrayOf("*.jar"), "dir" to "libs")))
 
     // CameraViewEx
-    implementation("com.priyankvasa.android:cameraview-ex:3.4.1")
+//    implementation("com.priyankvasa.android:cameraview-ex:3.4.2")
+    implementation("com.priyankvasa.android:cameraview-ex:3.4.2-debug")
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)
@@ -108,9 +109,13 @@ dependencies {
 
 afterEvaluate {
 
+    tasks.create("buildCameraViewEx")
+
     // For each build type, create a buildCameraViewEx task and
     // make all assemble tasks dependent on respective buildCameraViewEx task
-    arrayOf("Debug", "Stage", "Release").forEach { buildType ->
+    val buildTypes = arrayOf("Debug", "Stage", "Release")
+
+    buildTypes.forEach { buildType ->
 
         val buildCameraViewExTask = "buildCameraViewEx$buildType"
 
@@ -125,5 +130,6 @@ afterEvaluate {
         }
 
         tasks["assemble$buildType"].dependsOn(tasks[buildCameraViewExTask])
+        tasks["buildCameraViewEx"].dependsOn(tasks[buildCameraViewExTask])
     }
 }
