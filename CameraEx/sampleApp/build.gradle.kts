@@ -109,19 +109,15 @@ dependencies {
 
 afterEvaluate {
 
-    tasks.create("buildCameraViewEx")
+    val buildCameraViewExTask: Task = tasks.create("buildCameraViewEx")
 
-    // For each build type, create a buildCameraViewEx task and
-    // make all assemble tasks dependent on respective buildCameraViewEx task
-    val buildTypes = arrayOf("Debug", "Stage", "Release")
+    // For each build type, create a buildCameraViewEx task
+    arrayOf("Debug", "Stage", "Release").forEach { buildType: String ->
 
-    buildTypes.forEach { buildType ->
-
-        val buildCameraViewExTask = "buildCameraViewEx$buildType"
-
-        tasks.create<Exec>(buildCameraViewExTask) {
+        val taskForType: Task = tasks.create<Exec>("${buildCameraViewExTask.name}$buildType") {
+            // Set working dir to parent `cameraview-ex` project which has library module `cameraViewEx`
             workingDir("$rootDir/../")
-            // Assemble and publish (locally) cameraViewEx module
+            // Assemble and publish `cameraViewEx` module to maven local
             commandLine(
                 "sh",
                 "-c",
@@ -129,7 +125,9 @@ afterEvaluate {
             )
         }
 
-        tasks["assemble$buildType"].dependsOn(tasks[buildCameraViewExTask])
-        tasks["buildCameraViewEx"].dependsOn(tasks[buildCameraViewExTask])
+        buildCameraViewExTask.dependsOn(taskForType)
     }
+
+    // buildCameraViewEx task should always run before preBuild to make sure cameraViewEx dependency is available
+    tasks["preBuild"].dependsOn(buildCameraViewExTask)
 }

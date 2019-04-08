@@ -55,6 +55,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.NavigableSet
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
@@ -279,12 +280,44 @@ internal open class Camera2(
             }
         }
 
+    private fun android.media.Image.setCropRect() {
+
+        // `true` when device orientation is portrait (height > width)
+        // and requested output dimensions are landscape (width > height).
+        val needOutputSizeAdjustment: Boolean =
+            deviceRotation % 180 == 0 && config.aspectRatio.value.run { x > y }
+
+        if (needOutputSizeAdjustment) {
+
+            // The adjustment is required here because when device is held in portrait orientation,
+            // camera can naturally only generate portrait images while requested output dimensions are landscape.
+
+            fun Int.adjust(): Int = times(config.aspectRatio.value.inverse().toFloat()).roundToInt()
+
+            // When size adjustment is needed then based on sensor's rotation
+            // decide which dimension should be adjusted, `width` or `height`
+            val (adjustedWidth: Int, adjustedHeight: Int) =
+                when (outputOrientation) {
+                    deviceRotation -> width to width.adjust()
+                    else -> height.adjust() to height
+                }
+
+            // Set the crop rect with new adjusted dimensions which will be used later to produce final output
+            cropRect = Rect(
+                0, // left
+                0, // top
+                adjustedWidth, // right
+                adjustedHeight // bottom
+            )
+        }
+    }
+
     private val onPreviewImageAvailableListener: ImageReader.OnImageAvailableListener by lazy {
 
         // Timestamp of the last frame processed. Used for de-bouncing purposes.
         val lastTimeStamp = AtomicLong(0L)
 
-        ImageReader.OnImageAvailableListener { reader ->
+        return@lazy ImageReader.OnImageAvailableListener { reader ->
 
             // Flag to decide when to debounce a frame
             var debounce = false
@@ -312,6 +345,8 @@ internal open class Camera2(
                     return@launch
                 }
 
+                internalImage.setCropRect()
+
                 val imageData: ByteArray =
                     runCatching { internalImage.decode(Modes.OutputFormat.YUV_420_888, rs) }
                         .getOrElse {
@@ -329,8 +364,8 @@ internal open class Camera2(
                 )
 
                 internalImage
-                    .runCatching { Image(imageData, width, height, exif, format) }
-                    .onSuccess { image -> listener.onPreviewFrame(image) }
+                    .runCatching { Image(imageData, cropRect.width(), cropRect.height(), exif, format) }
+                    .onSuccess { image: Image -> listener.onPreviewFrame(image) }
 
                 internalImage.close()
             }
@@ -357,6 +392,8 @@ internal open class Camera2(
                 return@OnImageAvailableListener
             }
 
+            internalImage.setCropRect()
+
             val imageData: ByteArray = runCatching { internalImage.decode(config.outputFormat.value, rs) }
                 .getOrElse { t ->
                     internalImage.close()
@@ -365,6 +402,13 @@ internal open class Camera2(
                 }
 
             val exif = ExifInterface(imageData.inputStream())
+
+            exif.setAttribute(
+                ExifInterface.TAG_ORIENTATION,
+                rotationToExifOrientationMap
+                    .get(outputOrientation, ExifInterface.ORIENTATION_UNDEFINED)
+                    .toString()
+            )
 
             val image = Image(
                 imageData,
@@ -405,6 +449,7 @@ internal open class Camera2(
 
     protected val internalOutputFormat: Int get() = internalOutputFormats[config.outputFormat.value]
 
+    // 0, 90, 180, or 270
     override var deviceRotation: Int = 0
 
     override val isActive: Boolean
@@ -874,33 +919,48 @@ internal open class Camera2(
         val map: StreamConfigurationMap = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             ?: throw IllegalStateException("Failed to get configuration map for camera id $cameraId")
 
+        // Setup preview sizes
         previewSizes.clear()
+        // This also collects video sizes as it depends on max preview size
+        map.collectPreviewSizes()
 
-        val (surfaceLonger: Int, surfaceShorter: Int) =
-            if (preview.displaySize.width > preview.displaySize.height) preview.displaySize.width to preview.displaySize.height
-            else preview.displaySize.height to preview.displaySize.width
-
-        map.getOutputSizes(preview.outputClass).forEach {
-            if (it.width <= surfaceLonger && it.height <= surfaceShorter) {
-                previewSizes.add(it.width, it.height)
-            }
-        }
-
+        // Setup picture sizes
         pictureSizes.clear()
-
         collectPictureSizes(pictureSizes, map)
 
+        // Remove all `preview` sizes for ratio which is not a supported `picture` ratio
         supportedAspectRatios.forEach {
             if (!pictureSizes.ratios().contains(it)) previewSizes.remove(it)
         }
 
-        if (!supportedAspectRatios.contains(config.aspectRatio.value)) {
+        /*if (!supportedAspectRatios.contains(config.aspectRatio.value)) {
             config.aspectRatio.value = supportedAspectRatios.iterator().next()
-        }
+        }*/
+    }
 
-        map.getOutputSizes(MediaRecorder::class.java)
+    private fun StreamConfigurationMap.collectPreviewSizes() {
+        // Collect all supported preview sizes
+        getOutputSizes(preview.outputClass)
+            // Sort them by mapping to sorted set
+            ?.mapNotNullTo(sortedSetOf()) { Size(it.width, it.height) }
+            // Choose optimal size which is closest to screen size and trim the sorted set until (including) that size
+            ?.run { headSet(chooseOptimalPreviewSize(preview.displaySize.width, preview.displaySize.height), true) }
+            ?.also { previewSizes: NavigableSet<Size> ->
+                val count: Int = previewSizes.count()
+                // Add each size from the sorted and trimmed set to the preview size map
+                previewSizes.forEachIndexed { i: Int, size: Size ->
+                    this@Camera2.previewSizes.add(size)
+                    // If this is the last index (max size in a sorted set), setup video sizes based on it
+                    if (i == count - 1) collectVideoSizes(size)
+                }
+            }
+    }
+
+    private fun StreamConfigurationMap.collectVideoSizes(maxSize: Size) {
+        // Collect video sizes based on maximum preview size
+        getOutputSizes(MediaRecorder::class.java)
             ?.asSequence()
-            ?.filter { it.width <= preview.displaySize.width && it.height <= preview.displaySize.height }
+            ?.filter { it.width <= maxSize.width && it.height <= maxSize.height }
             ?.map { Size(it.width, it.height) }
             ?.let { videoManager.addVideoSizes(it) }
     }
@@ -913,29 +973,36 @@ internal open class Camera2(
 
         previewImageReader?.close()
 
-        previewImageReader = run {
+        previewImageReader =
             ImageReader.newInstance(
                 preview.width,
                 preview.height,
                 ImageFormat.YUV_420_888,
                 4 // maxImages
             ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
-        }
     }
 
     private fun prepareCaptureImageReader() {
 
         captureImageReader?.close()
 
-        captureImageReader = run {
-            val largestPicture: Size = pictureSizes.sizes(config.aspectRatio.value).last()
+        val (pictureWidth: Int, pictureHeight: Int) =
+            pictureSizes.sizes(config.sensorAspectRatio).lastOrNull()
+                ?: run {
+                    listener.onCameraError(
+                        CameraViewException("No supported picture size found for this camera. Try reopening this camera or use another one."),
+                        ErrorLevel.Error
+                    )
+                    return
+                }
+
+        captureImageReader =
             ImageReader.newInstance(
-                largestPicture.width,
-                largestPicture.height,
+                pictureWidth,
+                pictureHeight,
                 internalOutputFormat,
                 2 // maxImages
             ).apply { setOnImageAvailableListener(onCaptureImageAvailableListener, backgroundHandler) }
-        }
     }
 
     /**
@@ -953,8 +1020,13 @@ internal open class Camera2(
             return
         }
 
+        val needPreviewHeightAdjustment: Boolean =
+            deviceRotation % 180 == 0 && config.aspectRatio.value.run { y > x }
+
         val (width: Int, height: Int) =
-            previewSizes.sizes(config.aspectRatio.value).chooseOptimalPreviewSize(preview.width, preview.height)
+            previewSizes.sizes(config.sensorAspectRatio)
+                .chooseOptimalPreviewSize(preview.width, preview.height)
+                .run { width to if (needPreviewHeightAdjustment) adjustedHeight else height }
 
         preview.setBufferSize(width, height)
 
@@ -985,8 +1057,20 @@ internal open class Camera2(
 
         runCatching { camera?.createCaptureSession(surfaces, previewSessionStateCallback, backgroundHandler) }
             .onFailure { listener.onCameraError(CameraViewException("Failed to start camera session", it)) }
+
         previewStartStopLock.release()
     }
+
+    /**
+     * Return same height for landscape device rotation.
+     *
+     * For portrait rotation, if configured aspect ratio [CameraConfiguration.aspectRatio] has y > x,
+     * it means preview is portrait but this size is always width > height.
+     * Thus, setCropRect height based on given width and aspect ratio so that height > width.
+     * For eg., if configured ratio is `3:4` then `height = width * 4 / 3`
+     */
+    private val Size.adjustedHeight: Int
+        get() = (width * config.sensorAspectRatio.toFloat()).roundToInt()
 
     @Throws(IllegalStateException::class)
     private fun setupSurfaces(
@@ -1216,7 +1300,7 @@ internal open class Camera2(
             camera?.id?.toIntOrNull(),
             outputFile,
             videoConfig,
-            config.aspectRatio.value,
+            config.sensorAspectRatio,
             outputOrientation
         ) { stopVideoRecording() }
 
