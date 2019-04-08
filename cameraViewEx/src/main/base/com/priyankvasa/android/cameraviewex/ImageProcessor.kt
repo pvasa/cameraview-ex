@@ -17,9 +17,12 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.BitmapRegionDecoder
 import android.graphics.ImageFormat
 import android.media.Image
 import android.os.Build
+import android.os.SystemClock
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
@@ -27,7 +30,9 @@ import android.renderscript.Script
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
 import android.support.annotation.RequiresApi
+import timber.log.Timber
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 /**
  * Decode receiver [Image] to a byte array based on format of the image
@@ -40,14 +45,11 @@ import java.nio.ByteBuffer
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 internal fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
 
-    val image = this@decode
+    val image: Image = this@decode
 
     return when (image.format) {
 
-        ImageFormat.JPEG -> with(image.planes[0].buffer) {
-            rewind()
-            ByteArray(limit()).also { get(it) }
-        }
+        ImageFormat.JPEG -> ImageProcessor.jpegImageData(image)
 
         ImageFormat.YUV_420_888 -> when (outputFormat) {
             Modes.OutputFormat.YUV_420_888 -> ImageProcessor.yuvImageData(image)
@@ -62,10 +64,58 @@ internal fun Image.decode(outputFormat: Int, rs: RenderScript): ByteArray {
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 object ImageProcessor {
 
+    fun jpegImageData(image: Image): ByteArray {
+
+        val startTime = SystemClock.elapsedRealtime()
+
+        val adjustedWidth: Int = image.cropRect.width()
+        val adjustedHeight: Int = image.cropRect.height()
+
+        val buffer: ByteBuffer = image.planes[0].buffer.apply { rewind() }
+
+        val imageData: ByteArray = ByteArray(buffer.remaining()).apply { buffer.get(this) }
+
+        Timber.i("Normal processing time: ${SystemClock.elapsedRealtime() - startTime}")
+
+        if (adjustedWidth == image.width && adjustedHeight == image.height) return imageData
+
+        TODO("Fix impl")
+
+        val croppedBitmap: Bitmap = BitmapRegionDecoder.newInstance(imageData, 0, imageData.size, true)
+            ?.decodeRegion(image.cropRect, BitmapFactory.Options())
+            ?: throw IllegalArgumentException("Provided image data could not be decoded.")
+
+        val adjustedImageBuffer: ByteBuffer =
+            ByteBuffer.allocate(croppedBitmap.byteCount).apply {
+                order(ByteOrder.nativeOrder())
+                croppedBitmap.copyPixelsToBuffer(this)
+                rewind()
+            }
+
+        return ByteArray(adjustedImageBuffer.remaining())
+            .apply { adjustedImageBuffer.get(this) }
+            .also {
+                croppedBitmap.recycle()
+                Timber.i("Extra processing time: ${SystemClock.elapsedRealtime() - startTime}")
+            }
+    }
+
+    private fun Image.requireValidYuv() {
+        if (format != ImageFormat.YUV_420_888 || planes.size < 3) {
+            throw IllegalArgumentException("This is not a valid YUV image.")
+        }
+    }
+
     /** Implementation from [com.google.firebase.ml.vision.common.FirebaseVisionImage.fromMediaImage] */
     fun yuvImageData(image: Image): ByteArray {
+
+        image.requireValidYuv()
+
+        val imageWidth: Int = image.cropRect.width()
+        val imageHeight: Int = image.cropRect.height()
+
         val planes: Array<Image.Plane> = image.planes
-        val wh: Int = image.width * image.height
+        val wh: Int = imageWidth * imageHeight
         val imageData = ByteArray(wh + 2 * (wh / 4))
         val uBuffer: ByteBuffer = planes[1].buffer
         val vBuffer: ByteBuffer = planes[2].buffer
@@ -81,9 +131,9 @@ object ImageProcessor {
             vBuffer.get(imageData, wh, 1)
             uBuffer.get(imageData, wh + 1, 2 * wh / 4 - 1)
         } else {
-            planes[0].process(image.width, image.height, imageData, 0, 1)
-            planes[1].process(image.width, image.height, imageData, wh + 1, 2)
-            planes[2].process(image.width, image.height, imageData, wh, 2)
+            planes[0].process(imageWidth, imageHeight, imageData, 0, 1)
+            planes[1].process(imageWidth, imageHeight, imageData, wh + 1, 2)
+            planes[2].process(imageWidth, imageHeight, imageData, wh, 2)
         }
 
         return imageData
@@ -119,8 +169,10 @@ object ImageProcessor {
 
     fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
 
-        val width = image.width
-        val height = image.height
+        image.requireValidYuv()
+
+        val width: Int = image.cropRect.width()
+        val height: Int = image.cropRect.height()
 
         // Get the three image planes
         val planes = image.planes
@@ -191,8 +243,10 @@ object ImageProcessor {
 
     fun yuvToRgb(image: Image, rs: RenderScript): ByteArray {
 
-        val imageWidth = image.width
-        val imageHeight = image.height
+        image.requireValidYuv()
+
+        val imageWidth: Int = image.cropRect.width()
+        val imageHeight: Int = image.cropRect.height()
 
         val imageData = yuvImageData(image)
 

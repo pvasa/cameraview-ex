@@ -59,21 +59,31 @@ class CameraView @JvmOverloads constructor(
 
     private val parentJob: Job by lazy { SupervisorJob() }
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(parentJob + Dispatchers.Main)
+    private val coroutineScope: CoroutineScope by lazy { CoroutineScope(parentJob + Dispatchers.Main) }
+
+    private val listenerManager: CameraListenerManager by lazy {
+        CameraListenerManager(SupervisorJob(parentJob))
+            .apply { cameraOpenedListeners.add { requestLayout() } }
+            .also { if (isInEditMode) it.disable() }
+    }
+
+    private val config: CameraConfiguration =
+        CameraConfiguration.newInstance(
+            context,
+            attrs,
+            defStyleAttr,
+            { adjustViewBounds = it },
+            { message: String, cause: Throwable ->
+                listenerManager.onCameraError(CameraViewException(message, cause), ErrorLevel.Warning)
+            }
+        )
 
     private val preview: PreviewImpl by lazy {
         createPreview(context)
             .also {
                 // Add shutter view to CameraView
                 addView(it.shutterView)
-                it.shutterView.layoutParams = it.view.layoutParams
             }
-    }
-
-    private val listenerManager: CameraListenerManager by lazy {
-        CameraListenerManager(SupervisorJob(parentJob))
-            .apply { cameraOpenedListeners.add { requestLayout() } }
-            .also { if (isInEditMode) it.disable() }
     }
 
     /** Display orientation detector */
@@ -98,18 +108,6 @@ class CameraView @JvmOverloads constructor(
             }
         }
     }
-
-    private val config: CameraConfiguration =
-        if (isInEditMode) CameraConfiguration.defaultConfig
-        else CameraConfiguration.newInstance(
-            context,
-            attrs,
-            defStyleAttr,
-            { adjustViewBounds = it },
-            { message: String, cause: Throwable ->
-                listenerManager.onCameraError(CameraViewException(message, cause), ErrorLevel.Warning)
-            }
-        )
 
     private var camera: CameraInterface =
     // Based on OS version select the best camera implementation
@@ -308,7 +306,7 @@ class CameraView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
 
-        if (isInEditMode) {
+        if (!isInEditMode && !isCameraOpened) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             return
         }
@@ -316,17 +314,11 @@ class CameraView @JvmOverloads constructor(
         // Handle android:adjustViewBounds
         if (adjustViewBounds) {
 
-            if (!isCameraOpened) {
-                listenerManager.reserveRequestLayoutOnOpen()
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-                return
-            }
-
             val widthMode: Int = View.MeasureSpec.getMode(widthMeasureSpec)
             val heightMode: Int = View.MeasureSpec.getMode(heightMeasureSpec)
 
             if (widthMode == View.MeasureSpec.EXACTLY && heightMode != View.MeasureSpec.EXACTLY) {
-                val ratio: AspectRatio = config.aspectRatio.value
+                val ratio: AspectRatio = config.aspectRatio.value.inverse()
                 var height: Int = (View.MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
                 if (heightMode == View.MeasureSpec.AT_MOST) {
                     height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
@@ -341,8 +333,10 @@ class CameraView @JvmOverloads constructor(
                 if (widthMode == View.MeasureSpec.AT_MOST) {
                     width = Math.min(width, View.MeasureSpec.getSize(widthMeasureSpec))
                 }
-                super.onMeasure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                    heightMeasureSpec)
+                super.onMeasure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    heightMeasureSpec
+                )
             } else {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             }
@@ -350,31 +344,16 @@ class CameraView @JvmOverloads constructor(
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         }
 
-        // Measure the TextureView
-        val width: Int = measuredWidth
-        val height: Int = measuredHeight
-        var ratio: AspectRatio = config.aspectRatio.value
+        if (isInEditMode) return // Don't measure texture view and shutter view in edit mode
 
-        if (orientationDetector.lastKnownDisplayOrientation % 180 == 0) ratio = ratio.inverse()
+        val wMeasureSpec: Int = View.MeasureSpec.makeMeasureSpec(measuredWidth, View.MeasureSpec.EXACTLY)
+        val hMeasureSpec: Int = View.MeasureSpec.makeMeasureSpec(measuredHeight, View.MeasureSpec.EXACTLY)
 
-        if (height < width * ratio.y / ratio.x) preview.view.measure(
-            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(
-                width * ratio.y / ratio.x,
-                View.MeasureSpec.EXACTLY
-            )
-        ) else preview.view.measure(
-            View.MeasureSpec.makeMeasureSpec(
-                height * ratio.x / ratio.y,
-                View.MeasureSpec.EXACTLY
-            ),
-            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
-        )
-
-        preview.shutterView.layoutParams = preview.view.layoutParams
+        // Measure texture view and shutter view
+        preview.measure(wMeasureSpec, hMeasureSpec)
     }
 
-    override fun onSaveInstanceState(): Parcelable? =
+    override fun onSaveInstanceState(): Parcelable =
         SavedState(
             super.onSaveInstanceState() ?: Bundle(),
             adjustViewBounds,
@@ -501,7 +480,7 @@ class CameraView @JvmOverloads constructor(
         }
 
         // Save original state and restore later if camera falls back to using Camera1
-        val state: Parcelable? = onSaveInstanceState()
+        val state: Parcelable = onSaveInstanceState()
 
         if (camera.start()) return // Camera started successfully, return.
 
@@ -513,10 +492,15 @@ class CameraView @JvmOverloads constructor(
         if (camera is Camera1) return
 
         // Device uses legacy hardware layer; fall back to Camera1
+        fallback(state)
+    }
+
+    private fun fallback(savedState: Parcelable) {
+
         camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
 
         // Restore original state
-        onRestoreInstanceState(state)
+        onRestoreInstanceState(savedState)
 
         // Try to start camera again using Camera1 api
         // Return if successful

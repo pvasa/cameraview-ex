@@ -20,35 +20,12 @@ package com.priyankvasa.android.cameraviewex
 
 import android.os.Build
 import android.os.Environment
-import android.support.test.espresso.Espresso.onView
-import android.support.test.espresso.IdlingRegistry
-import android.support.test.espresso.IdlingResource
-import android.support.test.espresso.NoMatchingViewException
-import android.support.test.espresso.UiController
-import android.support.test.espresso.ViewAction
-import android.support.test.espresso.ViewAssertion
-import android.support.test.espresso.assertion.ViewAssertions.matches
-import android.support.test.espresso.matcher.ViewMatchers.assertThat
-import android.support.test.espresso.matcher.ViewMatchers.isDisplayed
-import android.support.test.espresso.matcher.ViewMatchers.withId
-import android.support.test.filters.FlakyTest
-import android.support.test.rule.ActivityTestRule
-import android.support.test.runner.AndroidJUnit4
 import android.view.View
 import android.view.ViewGroup
 import com.priyankvasa.android.cameraviewex.CameraViewActions.setAspectRatio
 import com.priyankvasa.android.cameraviewex.CameraViewMatchers.hasAspectRatio
 import com.priyankvasa.android.cameraviewex.test.R
-import kotlinx.android.synthetic.main.surface_view.view.*
 import kotlinx.android.synthetic.main.texture_view.view.*
-import org.hamcrest.CoreMatchers.`is`
-import org.hamcrest.Matcher
-import org.hamcrest.core.IsAnything
-import org.junit.After
-import org.junit.Before
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
 import java.io.Closeable
 import java.io.File
 
@@ -66,7 +43,7 @@ class CameraViewTest : GrantPermissionsRule() {
     private fun waitFor(ms: Long): ViewAction = object : AnythingAction("wait") {
 
         override fun perform(uiController: UiController?, view: View) {
-            uiController?.loopMainThreadForAtLeast(ms)
+            uiController.loopMainThreadForAtLeast(ms)
         }
     }
 
@@ -270,9 +247,10 @@ class CameraViewTest : GrantPermissionsRule() {
         onView(withId(R.id.camera))
             .check { view, _ ->
                 val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return@check }
-                assertThat(cameraView.cameraMode, `is`(Modes.DEFAULT_CAMERA_MODE))
-                cameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
-                assertThat(cameraView.cameraMode, `is`(Modes.CameraMode.VIDEO_CAPTURE))
+                assertThat(cameraView.isSingleCaptureModeEnabled, `is`(true))
+                cameraView.setCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
+                assertThat(cameraView.isVideoCaptureModeEnabled, `is`(true))
+                assertThat(cameraView.isSingleCaptureModeEnabled, `is`(false))
             }
     }
 
@@ -338,12 +316,12 @@ class CameraViewTest : GrantPermissionsRule() {
             .perform(object : AnythingAction("take picture") {
                 override fun perform(uiController: UiController, view: View) {
                     val cameraView = (view as CameraView).also { if (!it.isUiTestCompatible) return }
-                    cameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE
+                    cameraView.setCameraMode(Modes.CameraMode.VIDEO_CAPTURE)
                     uiController.loopMainThreadForAtLeast(1000)
                     cameraView.startVideoRecording(recordingFile)
                     uiController.loopMainThreadForAtLeast(4000)
                     saved = cameraView.stopVideoRecording()
-                    cameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE
+                    cameraView.setCameraMode(Modes.CameraMode.SINGLE_CAPTURE)
                 }
             })
             .check(showingPreview())
@@ -369,7 +347,7 @@ class CameraViewTest : GrantPermissionsRule() {
                 .addCameraOpenedListener {
                     if (!isIdleNow) {
                         isIdleNow = true
-                        resourceCallback?.onTransitionToIdle()
+                        resourceCallback.onTransitionToIdle()
                     }
                 }
                 .addCameraClosedListener { isIdleNow = false }
@@ -398,13 +376,13 @@ class CameraViewTest : GrantPermissionsRule() {
         private var validJpeg: Boolean = false
 
         init {
-            cameraView.addPictureTakenListener { imageData ->
+            cameraView.addPictureTakenListener { image: Image ->
                 if (!isIdleNow) {
                     isIdleNow = true
-                    validJpeg = imageData.size > 2 &&
-                        imageData[0] == 0xFF.toByte() &&
-                        imageData[1] == 0xD8.toByte()
-                    resourceCallback?.onTransitionToIdle()
+                    validJpeg = image.data.size > 2 &&
+                        image.data[0] == 0xFF.toByte() &&
+                        image.data[1] == 0xD8.toByte()
+                    resourceCallback.onTransitionToIdle()
                 }
             }
         }
