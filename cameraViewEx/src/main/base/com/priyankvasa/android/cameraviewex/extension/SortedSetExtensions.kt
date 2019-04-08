@@ -20,23 +20,17 @@ import com.priyankvasa.android.cameraviewex.Size
 import java.util.SortedSet
 
 /**
- * Chooses the optimal size based on respective supported sizes
- * and the surface size of [viewWidth] and [viewHeight].
+ * Chooses the optimal size based on [previewWidth] and [previewHeight].
+ *
+ * Choose smallest of sizes which has width >= [previewWidth] `AND` height >= [previewHeight].
+ * Best case would be a size with exact dimensions of [previewWidth] and [previewHeight].
+ * If none found then choose largest of sizes whose width < [previewWidth] `OR` height < [previewHeight].
+ * If still nothing found then choose largest of the whole set; if set is empty return [Size.Invalid].
  *
  * @return The picked optimal size.
  */
-internal fun SortedSet<Size>.chooseOptimalPreviewSize(viewWidth: Int, viewHeight: Int): Size {
-
-    val (maxWidth: Int, maxHeight: Int) =
-        if (viewHeight > viewWidth) viewHeight to viewWidth
-        else viewWidth to viewHeight
-
-    return asSequence()
-        .filter { it.width <= maxWidth && it.height <= maxHeight }
-        .run {
-            firstOrNull { it.width >= viewWidth && it.height >= viewHeight }
-                ?: lastOrNull { it.width < viewWidth || it.height < viewHeight }
-                ?: lastOrNull()
-                ?: Size.Invalid
-        }
-}
+internal fun SortedSet<Size>.chooseOptimalPreviewSize(previewWidth: Int, previewHeight: Int): Size =
+    if (isNotEmpty()) firstOrNull { it.width >= previewWidth && it.height >= previewHeight }
+        ?: lastOrNull { it.width < previewWidth || it.height < previewHeight }
+        ?: last()
+    else Size.Invalid
