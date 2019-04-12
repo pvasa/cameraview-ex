@@ -925,7 +925,7 @@ internal open class Camera2(
         previewSizes.clear()
         // Collect all supported preview sizes
         map.getOutputSizes(preview.outputClass)
-            ?.forEach { previewSizes.add(Size(it.width, it.height)) }
+            ?.forEach { previewSizes.add(it.width, it.height) }
 
         // Setup picture sizes
         pictureSizes.clear()

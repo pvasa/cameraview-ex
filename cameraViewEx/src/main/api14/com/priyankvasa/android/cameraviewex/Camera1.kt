@@ -148,6 +148,8 @@ internal class Camera1(
             if (isCameraOpened) updateCameraParams { setRotation(calcCameraRotation(value)) }
         }
 
+    override var screenRotation: Int = 0
+
     override val isActive: Boolean get() = cameraJob.isActive
 
     override val isCameraOpened: Boolean get() = camera != null
@@ -318,8 +320,7 @@ internal class Camera1(
     override fun setAspectRatio(ratio: AspectRatio): Boolean {
         // Handle this later when camera is opened
         if (!isCameraOpened) return true
-        val sizes: SortedSet<Size> = previewSizes.sizes(ratio)
-        if (sizes.isEmpty()) {
+        if (!previewSizes.ratios().contains(config.sensorAspectRatio)) {
             listener.onCameraError(CameraViewException("Ratio $ratio is not supported"))
             return false
         }
@@ -433,58 +434,52 @@ internal class Camera1(
         // It is recommended to open camera on another thread
         // https://developer.android.com/training/camera/cameradirect.html#TaskOpenCamera
         camera = runBlocking(coroutineContext) { Camera.open(cameraId) }.apply {
+
             // Supported preview sizes
             previewSizes.clear()
             parameters.supportedPreviewSizes
                 ?.forEach { previewSizes.add(it.width, it.height) }
-            // Supported picture sizes;
-            pictureSizes.clear()
-            parameters.supportedPictureSizes
-                ?.forEach { pictureSizes.add(it.width, it.height) }
-            // Supported video sizes;
+
+            // Supported video sizes
             parameters.supportedVideoSizes
                 ?.asSequence()
                 ?.map { com.priyankvasa.android.cameraviewex.Size(it.width, it.height) }
                 ?.let { videoManager.addVideoSizes(it) }
+
+            // Supported picture sizes
+            pictureSizes.clear()
+            parameters.supportedPictureSizes
+                ?.forEach { pictureSizes.add(it.width, it.height) }
+
             setDisplayOrientation(calcDisplayOrientation(deviceRotation))
         }
         adjustCameraParameters()
         listener.onCameraOpened()
     }
 
-    private fun chooseAspectRatio(): AspectRatio {
-        var r: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
-        previewSizes.ratios().forEach { ratio: AspectRatio ->
-            r = ratio
-            if (ratio == Modes.DEFAULT_ASPECT_RATIO) return ratio
-        }
-        return r
-    }
-
     private fun adjustCameraParameters() {
 
         if (!preview.isReady) return
 
-        val sizes: SortedSet<Size> = previewSizes.sizes(config.aspectRatio.value)
+        val sizes: SortedSet<Size> = previewSizes.sizes(config.sensorAspectRatio)
 
         if (sizes.isEmpty()) { // Not supported
-            config.aspectRatio.value = chooseAspectRatio()
+            config.aspectRatio.revert()
             return
         }
 
-        val size: Size = sizes.chooseOptimalPreviewSize(preview.width, preview.height)
+        val (width: Int, height: Int) = sizes.chooseOptimalPreviewSize(preview.width, preview.height)
 
         // Always re-apply camera parameters
         // Largest picture size in this ratio
-        val pictureSize: Size = pictureSizes.sizes(config.aspectRatio.value)
-            .takeIf { it.isNotEmpty() }
-            ?.last()
-            ?: size
+        val pictureSize: Size = pictureSizes.sizes(config.sensorAspectRatio)
+            .lastOrNull()
+            ?: Size(width, height)
 
         if (showingPreview) stopPreview()
 
         updateCameraParams {
-            setPreviewSize(size.width, size.height)
+            setPreviewSize(width, height)
             setPictureSize(pictureSize.width, pictureSize.height)
             setRotation(calcCameraRotation(deviceRotation))
             jpegQuality = config.jpegQuality.value
