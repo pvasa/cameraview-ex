@@ -17,7 +17,6 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.BitmapRegionDecoder
 import android.graphics.ImageFormat
 import android.media.Image
@@ -31,8 +30,8 @@ import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
 import android.support.annotation.RequiresApi
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 /**
  * Decode receiver [Image] to a byte array based on format of the image
@@ -66,7 +65,7 @@ object ImageProcessor {
 
     fun jpegImageData(image: Image): ByteArray {
 
-        val startTime = SystemClock.elapsedRealtime()
+        val startTime: Long = SystemClock.elapsedRealtime()
 
         val adjustedWidth: Int = image.cropRect.width()
         val adjustedHeight: Int = image.cropRect.height()
@@ -75,28 +74,20 @@ object ImageProcessor {
 
         val imageData: ByteArray = ByteArray(buffer.remaining()).apply { buffer.get(this) }
 
-        Timber.i("Normal processing time: ${SystemClock.elapsedRealtime() - startTime}")
+        Timber.d("Normal processing time: ${SystemClock.elapsedRealtime() - startTime}")
 
         if (adjustedWidth == image.width && adjustedHeight == image.height) return imageData
 
-        TODO("Fix impl")
-
         val croppedBitmap: Bitmap = BitmapRegionDecoder.newInstance(imageData, 0, imageData.size, true)
-            ?.decodeRegion(image.cropRect, BitmapFactory.Options())
+            ?.decodeRegion(image.cropRect, null)
             ?: throw IllegalArgumentException("Provided image data could not be decoded.")
 
-        val adjustedImageBuffer: ByteBuffer =
-            ByteBuffer.allocate(croppedBitmap.byteCount).apply {
-                order(ByteOrder.nativeOrder())
-                croppedBitmap.copyPixelsToBuffer(this)
-                rewind()
-            }
-
-        return ByteArray(adjustedImageBuffer.remaining())
-            .apply { adjustedImageBuffer.get(this) }
+        return ByteArrayOutputStream(croppedBitmap.byteCount)
+            .apply { croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, this) }
+            .toByteArray()
             .also {
                 croppedBitmap.recycle()
-                Timber.i("Extra processing time: ${SystemClock.elapsedRealtime() - startTime}")
+                Timber.d("Extra processing time: ${SystemClock.elapsedRealtime() - startTime}")
             }
     }
 

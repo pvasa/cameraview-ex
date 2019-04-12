@@ -34,6 +34,8 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     var deviceRotation: Int
 
+    var screenRotation: Int
+
     val maxDigitalZoom: Float
 
     /**

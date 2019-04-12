@@ -23,7 +23,7 @@ import android.util.AttributeSet
 class CameraConfiguration private constructor() {
 
     internal val aspectRatio: NonNullableLiveData<AspectRatio> = NonNullableLiveData(Modes.DEFAULT_ASPECT_RATIO)
-    // x >= y is always true
+    /** Same dimensions as [aspectRatio] but x >= y is always `true` */
     internal val sensorAspectRatio: AspectRatio
         get() = aspectRatio.value.run { if (x < y) inverse() else this }
     internal val cameraMode: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_CAMERA_MODE)
