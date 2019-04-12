@@ -111,8 +111,7 @@
         app:pinchToZoom="true"
         app:shutter="short_time"
         app:touchToFocus="true"
-        app:zsl="false"
-        tools:layout_height="480dp" />
+        app:zsl="false" />
 
     <TextView
         android:id="@+id/tvBarcodes"

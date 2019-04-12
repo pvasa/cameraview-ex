@@ -22,15 +22,24 @@ import java.util.SortedSet
 /**
  * Chooses the optimal size based on [previewWidth] and [previewHeight].
  *
- * Choose smallest of sizes which has width >= [previewWidth] `AND` height >= [previewHeight].
- * Best case would be a size with exact dimensions of [previewWidth] and [previewHeight].
- * If none found then choose largest of sizes whose width < [previewWidth] `OR` height < [previewHeight].
- * If still nothing found then choose largest of the whole set; if set is empty return [Size.Invalid].
+ * Find the longer and shorter edge from preview dimensions.
+ * Choose smallest of sizes which has width >= longerEdge `AND` height >= shorterEdge.
+ * Best case would be a size with exact dimensions as [previewWidth] and [previewHeight].
+ * If none found then choose largest of sizes whose width < longerEdge `OR` height < shorterEdge.
+ *
+ * If set is empty return [Size.Invalid].
  *
  * @return The picked optimal size.
  */
-internal fun SortedSet<Size>.chooseOptimalPreviewSize(previewWidth: Int, previewHeight: Int): Size =
-    if (isNotEmpty()) firstOrNull { it.width >= previewWidth && it.height >= previewHeight }
+internal fun SortedSet<Size>.chooseOptimalPreviewSize(previewWidth: Int, previewHeight: Int): Size {
+
+    if (isEmpty()) return Size.Invalid
+
+    val (surfaceLonger: Int, surfaceShorter: Int) =
+        if (previewWidth > previewHeight) previewWidth to previewHeight
+        else previewHeight to previewWidth
+
+    return firstOrNull { it.width >= surfaceLonger && it.height >= surfaceShorter }
         ?: lastOrNull { it.width < previewWidth || it.height < previewHeight }
         ?: last()
-    else Size.Invalid
+}

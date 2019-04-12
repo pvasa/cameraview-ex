@@ -94,11 +94,11 @@ class CameraView @JvmOverloads constructor(
             override fun onDisplayOrientationChanged(displayOrientation: Int) {
                 preview.setDisplayOrientation(displayOrientation)
                 camera.deviceRotation = displayOrientation
+                camera.screenRotation = displayOrientation
             }
 
             override fun onSensorOrientationChanged(sensorOrientation: Int) {
-                val orientation: Orientation = Orientation.parse(sensorOrientation)
-                val rotation: Int = when (orientation) {
+                val rotation: Int = when (val orientation: Orientation = Orientation.parse(sensorOrientation)) {
                     Orientation.Portrait, Orientation.PortraitInverted -> orientation.value
                     Orientation.Landscape -> Orientation.LandscapeInverted.value
                     Orientation.LandscapeInverted -> Orientation.Landscape.value
@@ -110,7 +110,7 @@ class CameraView @JvmOverloads constructor(
     }
 
     private var camera: CameraInterface =
-    // Based on OS version select the best camera implementation
+        // Based on OS version select the best camera implementation
         when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
                 Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
@@ -314,27 +314,27 @@ class CameraView @JvmOverloads constructor(
         // Handle android:adjustViewBounds
         if (adjustViewBounds) {
 
-            val widthMode: Int = View.MeasureSpec.getMode(widthMeasureSpec)
-            val heightMode: Int = View.MeasureSpec.getMode(heightMeasureSpec)
+            val widthMode: Int = MeasureSpec.getMode(widthMeasureSpec)
+            val heightMode: Int = MeasureSpec.getMode(heightMeasureSpec)
 
-            if (widthMode == View.MeasureSpec.EXACTLY && heightMode != View.MeasureSpec.EXACTLY) {
+            if (widthMode == MeasureSpec.EXACTLY && heightMode != MeasureSpec.EXACTLY) {
                 val ratio: AspectRatio = config.aspectRatio.value.inverse()
-                var height: Int = (View.MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
-                if (heightMode == View.MeasureSpec.AT_MOST) {
-                    height = Math.min(height, View.MeasureSpec.getSize(heightMeasureSpec))
+                var height: Int = (MeasureSpec.getSize(widthMeasureSpec) * ratio.toFloat()).toInt()
+                if (heightMode == MeasureSpec.AT_MOST) {
+                    height = Math.min(height, MeasureSpec.getSize(heightMeasureSpec))
                 }
                 super.onMeasure(
                     widthMeasureSpec,
-                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
                 )
-            } else if (widthMode != View.MeasureSpec.EXACTLY && heightMode == View.MeasureSpec.EXACTLY) {
+            } else if (widthMode != MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
                 val ratio: AspectRatio = config.aspectRatio.value
-                var width: Int = (View.MeasureSpec.getSize(heightMeasureSpec) * ratio.toFloat()).toInt()
-                if (widthMode == View.MeasureSpec.AT_MOST) {
-                    width = Math.min(width, View.MeasureSpec.getSize(widthMeasureSpec))
+                var width: Int = (MeasureSpec.getSize(heightMeasureSpec) * ratio.toFloat()).toInt()
+                if (widthMode == MeasureSpec.AT_MOST) {
+                    width = Math.min(width, MeasureSpec.getSize(widthMeasureSpec))
                 }
                 super.onMeasure(
-                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     heightMeasureSpec
                 )
             } else {
@@ -346,8 +346,8 @@ class CameraView @JvmOverloads constructor(
 
         if (isInEditMode) return // Don't measure texture view and shutter view in edit mode
 
-        val wMeasureSpec: Int = View.MeasureSpec.makeMeasureSpec(measuredWidth, View.MeasureSpec.EXACTLY)
-        val hMeasureSpec: Int = View.MeasureSpec.makeMeasureSpec(measuredHeight, View.MeasureSpec.EXACTLY)
+        val wMeasureSpec: Int = MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.EXACTLY)
+        val hMeasureSpec: Int = MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY)
 
         // Measure texture view and shutter view
         preview.measure(wMeasureSpec, hMeasureSpec)
