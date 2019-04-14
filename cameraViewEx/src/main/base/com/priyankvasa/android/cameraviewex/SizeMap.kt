@@ -71,7 +71,7 @@ internal class SizeMap {
         map.remove(ratio)
     }
 
-    fun ratios(): Set<AspectRatio> = map.keys
+    fun ratios(): Set<AspectRatio> = map.keys + map.keys.map { it.inverse() }
 
     /** Returns `true` if this map contains [size] mapped to any of the [ratios] */
     fun containsSize(size: Size): Boolean = sizes(AspectRatio.of(size)).contains(size)

@@ -46,13 +46,12 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
 
     override val coroutineContext: CoroutineContext get() = job + Dispatchers.Main
 
-    private val imageOutputDirectory: String by lazy {
-        "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/images".also { File(it).mkdirs() }
-    }
+    private val parentDir: String
+        by lazy { "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx" }
 
-    private val videoOutputDirectory: String by lazy {
-        "${Environment.getExternalStorageDirectory().absolutePath}/CameraViewEx/videos".also { File(it).mkdirs() }
-    }
+    private val imageOutputDirectory: String by lazy { "$parentDir/images".also { File(it).mkdirs() } }
+
+    private val videoOutputDirectory: String by lazy { "$parentDir/videos".also { File(it).mkdirs() } }
 
     private lateinit var videoFile: File
 
@@ -80,18 +79,18 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
         }
     }
 
-    @SuppressLint("SetTextI18n")
+    private val textBarcodes: String by lazy { getString(R.string.text_barcodes) }
+
     private val decodeSuccessListener: (MutableList<FirebaseVisionBarcode>) -> Unit =
         listener@{ barcodes: MutableList<FirebaseVisionBarcode> ->
             if (barcodes.isEmpty()) {
-                tvBarcodes?.text = "Barcodes"
+                tvBarcodes?.text = textBarcodes
                 return@listener
             }
-            val barcodesStr = "Barcodes\n${barcodes.joinToString(
-                "\n",
+            val barcodesStr = "$textBarcodes\n${barcodes.joinToString(
+                separator = "\n",
                 transform = { it.rawValue as? CharSequence ?: "" }
             )}"
-            Timber.i("Barcodes: $barcodesStr")
             launch { tvBarcodes?.text = barcodesStr }
         }
 
@@ -105,9 +104,8 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
         }
     }
 
-    private val cameraPreviewFrameHandler: CameraPreviewFrameHandler by lazy {
-        CameraPreviewFrameHandler(decodeSuccessListener, previewFrameInflater)
-    }
+    private val cameraPreviewFrameHandler: CameraPreviewFrameHandler
+        by lazy { CameraPreviewFrameHandler(decodeSuccessListener, previewFrameInflater) }
 
     override val supportedAspectRatios: Set<AspectRatio>
         get() = camera?.supportedAspectRatios ?: setOf()
@@ -135,7 +133,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
 
     private fun checkPermissions(): Array<String> {
 
-        val context = context ?: return permissions
+        val context: Context = context ?: return permissions
 
         return permissions
             .filter { ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
@@ -162,7 +160,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
             // Callback on background thread
-            setPreviewFrameListener(maxFrameRate = 5f, listener = cameraPreviewFrameHandler.listener)
+            setPreviewFrameListener(cameraPreviewFrameHandler.frameRate, cameraPreviewFrameHandler.listener)
 
             // Callback on main (UI) thread
             addPictureTakenListener { image: Image -> launch { saveDataToFile(image) } }
@@ -192,8 +190,6 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
                 ivVideoCaptureButton.isActivated = false
                 if (isSuccess) context?.toast("Video saved to ${videoFile.absolutePath}")
                 else context?.toast("Failed to save video!")
-                // To test an edge case where there was a crash upon exiting frag right after video recording
-                // activity?.supportFragmentManager?.popBackStack()
             }
 
             // Callback on main (UI) thread
@@ -202,14 +198,20 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
     }
 
     private suspend fun saveDataToFile(image: Image): File {
-        val output = nextImageFile.apply { createNewFile() }
-        val os = BufferedOutputStream(output.outputStream())
-        runCatching { withContext(Dispatchers.IO) { os.use { it.write(image.data) } } }
+
+        val output: File = nextImageFile.apply { createNewFile() }
+
+        runCatching {
+            withContext(Dispatchers.IO) {
+                BufferedOutputStream(output.outputStream()).use { it.write(image.data) }
+            }
+        }
             .onFailure {
                 context?.toast("Unable to save image to file.")
                 Timber.e(it)
             }
             .onSuccess { context?.toast("Saved image to file ${output.absolutePath}") }
+
         return output
     }
 
