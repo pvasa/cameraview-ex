@@ -60,7 +60,7 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
     /**
      * @return `true` if the aspect ratio was changed.
      */
-    fun setAspectRatio(ratio: AspectRatio): Boolean
+    fun setAspectRatio(ratio: AspectRatio)
 
     fun takePicture()
 

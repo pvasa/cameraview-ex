@@ -124,7 +124,8 @@ class CameraView @JvmOverloads constructor(
     init {
         if (!isInEditMode) {
             config.aspectRatio.observe(camera) {
-                if (camera.setAspectRatio(it)) coroutineScope.launch { requestLayout() }
+                camera.setAspectRatio(it)
+                coroutineScope.launch { requestLayout() }
             }
             config.shutter.observe(camera) { preview.shutterView.shutterTime = it }
         }
@@ -166,7 +167,20 @@ class CameraView @JvmOverloads constructor(
         }
 
     /** Current aspect ratio of camera. Valid format is "height:width" eg. "4:3". */
-    var aspectRatio: AspectRatio by config.aspectRatio::value
+    var aspectRatio: AspectRatio
+        get() = config.aspectRatio.value
+        set(ratio) {
+            // Check if new aspect ratio is supported
+            if (!supportedAspectRatios.contains(ratio)) {
+                listenerManager.onCameraError(
+                    CameraViewException("Aspect ratio $this is not supported by this device." +
+                        " Valid ratios are CameraView.supportedAspectRatios $supportedAspectRatios."),
+                    ErrorLevel.ErrorCritical
+                )
+                return
+            }
+            config.aspectRatio.value = ratio
+        }
 
     /**
      * Set format of the output of image data produced from the camera for [Modes.CameraMode.SINGLE_CAPTURE] mode.

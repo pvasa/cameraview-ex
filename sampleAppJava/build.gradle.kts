@@ -89,6 +89,7 @@ dependencies {
     // Android support
     implementation(Config.Libs.appcompatV7)
     implementation(Config.Libs.constraintLayout)
+    implementation(Config.Libs.supportExifInterface)
 
     // Glide
     implementation(Config.Libs.glide) { exclude("com.android.support") }

@@ -82,8 +82,8 @@ dependencies {
     implementation(fileTree(mapOf("include" to arrayOf("*.jar"), "dir" to "libs")))
 
     // CameraViewEx
-//    implementation("com.priyankvasa.android:cameraview-ex:3.4.2")
-    implementation("com.priyankvasa.android:cameraview-ex:3.4.2-debug")
+//    implementation("com.priyankvasa.android:cameraview-ex:3.4.3")
+    implementation("com.priyankvasa.android:cameraview-ex:3.4.3-debug")
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)

@@ -36,7 +36,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
-import java.util.SortedSet
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -90,6 +89,9 @@ internal class Camera1(
 
         Camera.PreviewCallback { data: ByteArray?, camera: Camera? ->
 
+            // Data may be null when Camera api is "catching breath" between frame generation
+            if (camera == null || data == null) return@PreviewCallback
+
             // Use debounce logic only if interval is > 0. If not, it means user wants max frame rate
             if (debounceIntervalMillis > 0) {
                 val currentTimeStamp: Long = SystemClock.elapsedRealtime()
@@ -98,9 +100,6 @@ internal class Camera1(
                 // Otherwise update last frame timestamp to current
                 else lastTimeStamp.set(currentTimeStamp)
             }
-
-            // Data may be null when Camera api is "catching breath" between frame generation
-            if (camera == null || data == null) return@PreviewCallback
 
             launch(CoroutineExceptionHandler { _, _ -> }) {
                 val image = Image(
@@ -317,15 +316,8 @@ internal class Camera1(
             return@getOrElse false
         }
 
-    override fun setAspectRatio(ratio: AspectRatio): Boolean {
-        // Handle this later when camera is opened
-        if (!isCameraOpened) return true
-        if (!previewSizes.ratios().contains(config.sensorAspectRatio)) {
-            listener.onCameraError(CameraViewException("Ratio $ratio is not supported"))
-            return false
-        }
+    override fun setAspectRatio(ratio: AspectRatio) {
         adjustCameraParameters()
-        return true
     }
 
     override fun takePicture() {
@@ -461,25 +453,19 @@ internal class Camera1(
 
         if (!preview.isReady) return
 
-        val sizes: SortedSet<Size> = previewSizes.sizes(config.sensorAspectRatio)
+        val previewSize: Size =
+            previewSizes.sizes(config.sensorAspectRatio)
+                .chooseOptimalPreviewSize(preview.width, preview.height)
 
-        if (sizes.isEmpty()) { // Not supported
-            config.aspectRatio.revert()
-            return
-        }
-
-        val (width: Int, height: Int) = sizes.chooseOptimalPreviewSize(preview.width, preview.height)
-
-        // Always re-apply camera parameters
         // Largest picture size in this ratio
         val pictureSize: Size = pictureSizes.sizes(config.sensorAspectRatio)
             .lastOrNull()
-            ?: Size(width, height)
+            ?: previewSize
 
         if (showingPreview) stopPreview()
 
         updateCameraParams {
-            setPreviewSize(width, height)
+            setPreviewSize(previewSize.width, previewSize.height)
             setPictureSize(pictureSize.width, pictureSize.height)
             setRotation(calcCameraRotation(deviceRotation))
             jpegQuality = config.jpegQuality.value

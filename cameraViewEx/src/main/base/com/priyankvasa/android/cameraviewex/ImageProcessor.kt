@@ -33,6 +33,7 @@ import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
+
 /**
  * Decode receiver [Image] to a byte array based on format of the image
  *
@@ -92,12 +93,14 @@ object ImageProcessor {
     }
 
     private fun Image.requireValidYuv() {
-        if (format != ImageFormat.YUV_420_888 || planes.size < 3) {
+        if ((format != ImageFormat.YUV_420_888 &&
+                format != ImageFormat.NV21 &&
+                format != ImageFormat.YV12) ||
+            planes.size < 3) {
             throw IllegalArgumentException("This is not a valid YUV image.")
         }
     }
 
-    /** Implementation from [com.google.firebase.ml.vision.common.FirebaseVisionImage.fromMediaImage] */
     fun yuvImageData(image: Image): ByteArray {
 
         image.requireValidYuv()
@@ -107,55 +110,99 @@ object ImageProcessor {
 
         val planes: Array<Image.Plane> = image.planes
         val wh: Int = imageWidth * imageHeight
-        val imageData = ByteArray(wh + 2 * (wh / 4))
+        val halfWh: Int = wh / 2
+        // dataSize = width * height * ImageFormat.getBitsPerPixel(format) / 8
+        // ~= wh * 12 / 8
+        // ~= wh + (wh / 2)
+        val imageData = ByteArray(wh + halfWh)
         val uBuffer: ByteBuffer = planes[1].buffer
         val vBuffer: ByteBuffer = planes[2].buffer
         val vPos: Int = vBuffer.position()
         val uLimit: Int = uBuffer.limit()
         vBuffer.position(vPos + 1)
         uBuffer.limit(uLimit - 1)
-        val var14: Boolean = vBuffer.remaining() == 2 * wh / 4 - 2 && vBuffer.compareTo(uBuffer) == 0
         vBuffer.position(vPos)
         uBuffer.limit(uLimit)
-        if (var14) {
+        if (vBuffer.remaining() == halfWh - 2 && vBuffer.compareTo(uBuffer) == 0) {
             planes[0].buffer.get(imageData, 0, wh)
             vBuffer.get(imageData, wh, 1)
-            uBuffer.get(imageData, wh + 1, 2 * wh / 4 - 1)
+            uBuffer.get(imageData, wh + 1, halfWh - 1)
         } else {
-            planes[0].process(imageWidth, imageHeight, imageData, 0, 1)
-            planes[1].process(imageWidth, imageHeight, imageData, wh + 1, 2)
-            planes[2].process(imageWidth, imageHeight, imageData, wh, 2)
+            planes[0].process(imageWidth, imageHeight, imageData, 0)
+            planes[1].process(imageWidth, imageHeight, imageData, wh + 1)
+            planes[2].process(imageWidth, imageHeight, imageData, wh)
         }
 
         return imageData
     }
 
-    private fun Image.Plane.process(width: Int, height: Int, imageData: ByteArray, var4: Int, var5: Int) {
+    private fun Image.Plane.process(imageWidth: Int, imageHeight: Int, imageData: ByteArray, length: Int) {
 
-        val plane: Image.Plane = this
-
-        val buffer: ByteBuffer = plane.buffer
         val pos: Int = buffer.position()
-        val var8: Int = (buffer.remaining() + plane.rowStride - 1) / plane.rowStride
-        val var9: Int = height / var8
-        val var10: Int = width / var9
-        var var11 = var4
+        val rows: Int = (buffer.remaining() + rowStride - 1) / rowStride
+        val k = imageHeight / rows
+        val m = imageWidth / k
+        var n = length
         var row = 0
 
-        repeat(var8) {
+        repeat(rows) {
 
             var thisRow = row
 
-            repeat(var10) {
-                imageData[var11] = buffer.get(thisRow)
-                var11 += var5
-                thisRow += plane.pixelStride
+            repeat(m) {
+                imageData[n] = buffer.get(thisRow)
+                n += pixelStride
+                thisRow += pixelStride
             }
 
-            row += plane.rowStride
+            row += rowStride
         }
 
         buffer.position(pos)
+    }
+
+    // todo remove after finalizing above algo
+    fun getDataFromImage(image: Image): ByteArray {
+        val format = image.format
+        val width = image.cropRect.width()
+        val height = image.cropRect.height()
+        var rowStride: Int
+        var pixelStride: Int
+        // Read image data
+        val planes = image.planes
+        // Check image validity
+        var buffer: ByteBuffer
+        var offset = 0
+        val data = ByteArray(width * height * ImageFormat.getBitsPerPixel(format) / 8)
+        val rowData = ByteArray(planes!![0].rowStride)
+        for (i in planes.indices) {
+            buffer = planes[i].buffer
+            rowStride = planes[i].rowStride
+            pixelStride = planes[i].pixelStride
+            // For multi-planar yuv images, assuming yuv420 with 2x2 chroma subsampling.
+            val w = if (i == 0) width else width / 2
+            val h = if (i == 0) height else height / 2
+            for (row in 0 until h) {
+                val bytesPerPixel = ImageFormat.getBitsPerPixel(format) / 8
+                if (pixelStride == bytesPerPixel) {
+                    // Special case: optimized read of the entire row
+                    val length = w * bytesPerPixel
+                    buffer.get(data, offset, length)
+                    // Advance buffer the remainder of the row stride
+                    buffer.position(buffer.position() + rowStride - length)
+                    offset += length
+                } else {
+                    // Generic case: should work for any pixelStride but slower.
+                    // Use intermediate buffer to avoid read byte-by-byte from
+                    // DirectByteBuffer, which is very bad for performance
+                    buffer.get(rowData, 0, rowStride)
+                    for (col in 0 until w) {
+                        data[offset++] = rowData[col * pixelStride]
+                    }
+                }
+            }
+        }
+        return data
     }
 
     fun yuvToRgbNative(image: Image, rs: RenderScript): ByteArray {
