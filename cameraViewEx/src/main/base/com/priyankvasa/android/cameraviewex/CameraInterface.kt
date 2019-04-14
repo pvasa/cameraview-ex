@@ -19,26 +19,10 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.arch.lifecycle.LifecycleOwner
-import android.media.ImageReader
-import android.os.Build
-import android.support.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import java.io.File
-import kotlin.coroutines.CoroutineContext
 
 internal interface CameraInterface : LifecycleOwner, CoroutineScope {
-
-    val cameraJob: Job
-
-    override val coroutineContext: CoroutineContext get() = Dispatchers.Main + cameraJob
-
-    val preview: PreviewImpl
-
-    val config: CameraConfiguration
-
-    val listener: Listener
 
     val isActive: Boolean
 
@@ -50,10 +34,17 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     var deviceRotation: Int
 
-    @Modes.JpegQuality
-    var jpegQuality: Int
+    var screenRotation: Int
 
     val maxDigitalZoom: Float
+
+    /**
+     * Maximum number of frames to generate per second for preview frame listener.
+     * Actual frame rate might be less based on device capabilities but will not be more than this value.
+     * A float can be set for eg., max frame rate of 0.5f will produce one frame every 2 seconds.
+     * Any value less than or equal to zero (<= 0f) will produce maximum frames per second supported by device.
+     */
+    var maxPreviewFrameRate: Float
 
     /**
      * @return `true` if the implementation was able to start the camera session.
@@ -64,24 +55,19 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
         if (isVideoRecording) stopVideoRecording()
     }
 
-    fun destroy() {
-        cameraJob.cancel()
-        stop()
-    }
+    fun destroy() = stop()
 
     /**
      * @return `true` if the aspect ratio was changed.
      */
-    fun setAspectRatio(ratio: AspectRatio): Boolean
+    fun setAspectRatio(ratio: AspectRatio)
 
     fun takePicture()
 
     fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration)
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun pauseVideoRecording(): Boolean
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun resumeVideoRecording(): Boolean
 
     fun stopVideoRecording(): Boolean
@@ -89,18 +75,10 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
     interface Listener {
         fun onCameraOpened()
         fun onCameraClosed()
-        fun onPictureTaken(imageData: ByteArray)
+        fun onPictureTaken(image: Image)
         fun onVideoRecordStarted()
         fun onVideoRecordStopped(isSuccess: Boolean)
-        fun onCameraError(
-            e: Exception,
-            errorLevel: ErrorLevel = ErrorLevel.Error,
-            isCritical: Boolean = false
-        )
-
-        fun onLegacyPreviewFrame(image: LegacyImage)
-
-        @RequiresApi(Build.VERSION_CODES.KITKAT)
-        fun onPreviewFrame(reader: ImageReader)
+        fun onCameraError(e: Exception, errorLevel: ErrorLevel = ErrorLevel.Error)
+        fun onPreviewFrame(image: Image)
     }
 }

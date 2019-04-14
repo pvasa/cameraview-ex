@@ -16,10 +16,12 @@
 
 package com.priyankvasa.android.cameraviewex
 
+import java.lang.Long.signum
+
 /**
  * Immutable class for describing width and height dimensions in pixels.
  */
-class Size
+data class Size
 /**
  * Create a new immutable Size instance.
  *
@@ -28,13 +30,12 @@ class Size
  */
 (val width: Int, val height: Int) : Comparable<Size> {
 
+    val aspectRatio: AspectRatio = AspectRatio.of(this)
+
     override fun equals(other: Any?): Boolean = when {
         other == null -> false
         this === other -> true
-        other is Size -> {
-            val size = other as Size?
-            width == size?.width && height == size.height
-        }
+        other is Size -> width == other.width && height == other.height
         else -> false
     }
 
@@ -44,10 +45,18 @@ class Size
     // assuming most sizes are <2^16, doing a rotate will give us perfect hashing
         height xor (width shl Integer.SIZE / 2 or width.ushr(Integer.SIZE / 2))
 
-    override fun compareTo(other: Size): Int = width * height - other.width * other.height
+    override fun compareTo(other: Size): Int =
+        signum((width.toLong() * height) - (other.width.toLong() * other.height))
 
     companion object {
-        val P1080 = Size(1920, 1080)
-        val P720 = Size(1280, 720)
+        val P2160: Size = Size(3840, 2160)
+        val P1440: Size = Size(2560, 1440)
+        val P1080: Size = Size(1920, 1080)
+        val P720: Size = Size(1280, 720)
+        val P480: Size = Size(720, 480)
+        val CIF: Size = Size(352, 288)
+        val QVGA: Size = Size(320, 240)
+        val QCIF: Size = Size(176, 144)
+        val Invalid: Size = Size(-1, -1)
     }
 }

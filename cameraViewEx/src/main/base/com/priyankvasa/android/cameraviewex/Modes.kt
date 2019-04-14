@@ -22,9 +22,6 @@ import android.support.annotation.IntDef
 
 object Modes {
 
-    const val LANDSCAPE_90 = 90
-    const val LANDSCAPE_270 = 270
-
     @IntDef(CameraMode.SINGLE_CAPTURE,
         CameraMode.BURST_CAPTURE,
         CameraMode.CONTINUOUS_FRAME,

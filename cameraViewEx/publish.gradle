@@ -15,9 +15,6 @@
 apply plugin: "com.github.dcendents.android-maven"
 apply plugin: "com.jfrog.bintray"
 
-version = project.ext.versionName
-group = "com.priyankvasa.android"
-
 ext {
     bintrayRepo = "android"
     bintrayName = "cameraview-ex"
@@ -44,7 +41,7 @@ install {
     repositories.mavenInstaller {
         pom.project {
             packaging "aar"
-            groupId this.group
+            groupId project.group
             artifactId artifact
 
             name libraryName
@@ -73,11 +70,6 @@ install {
     }
 }
 
-task sourcesJar(type: Jar) {
-    classifier = "sources"
-    from android.sourceSets.main.java.srcDirs
-}
-
 artifacts {
     archives sourcesJar
 }
@@ -99,10 +91,10 @@ bintray {
         publish = true
         publicDownloadNumbers = true
         version {
-            name = this.version
+            name = project.version
             desc = libraryDescription
             released = new Date()
-            vcsTag = this.version
+            vcsTag = "v" + project.version
         }
     }
 }

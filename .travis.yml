@@ -24,7 +24,7 @@ before_install:
 - openssl aes-256-cbc -K $encrypted_9498d2163fe1_key -iv $encrypted_9498d2163fe1_iv
   -in ./keystore.jks.enc -out ./keystore.jks -d
 - openssl aes-256-cbc -K $encrypted_22c643d0471b_key -iv $encrypted_22c643d0471b_iv
-  -in ./sampleApp/google-services.json.enc -out ./sampleApp/google-services.json -d
+  -in ./CameraEx/sampleApp/google-services.json.enc -out ./CameraEx/sampleApp/google-services.json -d
 - yes | sdkmanager "platforms;android-28"
 
 env:

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Opacity percentage
+    100% — FF
+    95% — F2
+    90% — E6
+    85% — D9
+    80% — CC
+    75% — BF
+    70% — B3
+    65% — A6
+    60% — 99
+    55% — 8C
+    50% — 80
+    45% — 73
+    40% — 66
+    35% — 59
+    30% — 4D
+    25% — 40
+    20% — 33
+    15% — 26
+    10% — 1A
+    5%  — 0D
+    0% —  00
+    -->
+
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="dark_red">#C80000</color>
+    <color name="lighter_gray">#DDDDDD</color>
+    <color name="darker_gray">#383838</color>
+
+    <color name="black_transparent_75_percent">#40000000</color>
+    <color name="black_transparent_20_percent">#CC000000</color>
+
+    <color name="white_transparent_75_percent">#40FFFFFF</color>
+
+</resources>
