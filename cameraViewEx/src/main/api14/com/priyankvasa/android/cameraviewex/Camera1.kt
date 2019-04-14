@@ -24,22 +24,42 @@ import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.ImageFormat
 import android.hardware.Camera
+import android.os.SystemClock
+import android.support.media.ExifInterface
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
-import java.util.SortedSet
+import java.io.IOException
+import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 
 internal class Camera1(
-    override val listener: CameraInterface.Listener,
-    override val preview: PreviewImpl,
-    override val config: CameraConfiguration,
-    override val cameraJob: Job
+    private val listener: CameraInterface.Listener,
+    private val preview: PreviewImpl,
+    private val config: CameraConfiguration,
+    private val cameraJob: Job
 ) : CameraInterface {
 
-    private val lifecycleRegistry: LifecycleRegistry =
+    override val coroutineContext: CoroutineContext get() = Dispatchers.Default + cameraJob
+
+    private val lifecycleRegistry: LifecycleRegistry by lazy {
         LifecycleRegistry(this).also { it.markState(Lifecycle.State.CREATED) }
+    }
+
+    /** A [Semaphore] to prevent concurrent opening or closing camera. */
+    private val cameraOpenCloseLock: Semaphore by lazy { Semaphore(1, true) }
+
+    /** A [Semaphore] to prevent concurrent starting or stopping preview. */
+    private val previewStartStopLock: Semaphore by lazy { Semaphore(1, true) }
 
     private var cameraId: Int = Modes.Facing.FACING_BACK
 
@@ -47,16 +67,69 @@ internal class Camera1(
 
     var camera: Camera? = null
 
+    private val videoManager: VideoManager
+        by lazy { VideoManager { listener.onCameraError(CameraViewException(it), ErrorLevel.Warning) } }
+
+    private var debounceIntervalMillis: Int = -1
+
+    override var maxPreviewFrameRate: Float = -1f
+        set(value) {
+            field = value
+            debounceIntervalMillis = when {
+                value <= 0 -> -1
+                value < 1 -> ((1 / value) * 1000).roundToInt()
+                else -> (1000 / value).roundToInt()
+            }
+        }
+
     private val previewCallback: Camera.PreviewCallback by lazy {
-        Camera.PreviewCallback { data, camera ->
-            if (!isCameraOpened) return@PreviewCallback
-            val image = LegacyImage(
-                data,
-                camera.parameters.previewSize.width,
-                camera.parameters.previewSize.height,
-                camera.parameters.previewFormat
-            )
-            listener.onLegacyPreviewFrame(image)
+
+        // Timestamp of the last frame processed. Used for de-bouncing purposes.
+        val lastTimeStamp = AtomicLong(0L)
+
+        Camera.PreviewCallback { data: ByteArray?, camera: Camera? ->
+
+            // Data may be null when Camera api is "catching breath" between frame generation
+            if (camera == null || data == null) return@PreviewCallback
+
+            // Use debounce logic only if interval is > 0. If not, it means user wants max frame rate
+            if (debounceIntervalMillis > 0) {
+                val currentTimeStamp: Long = SystemClock.elapsedRealtime()
+                // Debounce if current timestamp is within debounce interval
+                if (debounceIntervalMillis > currentTimeStamp - lastTimeStamp.get()) return@PreviewCallback
+                // Otherwise update last frame timestamp to current
+                else lastTimeStamp.set(currentTimeStamp)
+            }
+
+            launch(CoroutineExceptionHandler { _, _ -> }) {
+                val image = Image(
+                    data,
+                    camera.parameters.previewSize.width,
+                    camera.parameters.previewSize.height,
+                    ExifInterface(data.inputStream()),
+                    camera.parameters.previewFormat
+                )
+                listener.onPreviewFrame(image)
+            }
+        }
+    }
+
+    private val pictureCallback: Camera.PictureCallback by lazy {
+        Camera.PictureCallback { data: ByteArray?, camera: Camera? ->
+            isPictureCaptureInProgress.set(false)
+            camera?.cancelAutoFocus()
+            startPreview()
+            if (camera == null || data == null) return@PictureCallback
+            camera.runCatching {
+                val image = Image(
+                    data,
+                    parameters.pictureSize.width,
+                    parameters.pictureSize.height,
+                    ExifInterface(data.inputStream()),
+                    parameters.pictureFormat
+                )
+                listener.onPictureTaken(image)
+            }
         }
     }
 
@@ -68,20 +141,19 @@ internal class Camera1(
 
     private var showingPreview: Boolean = false
 
-    override var jpegQuality: Int = Modes.DEFAULT_JPEG_QUALITY
-
     override var deviceRotation: Int = 0
         set(value) {
-            if (field == value ||
-                (isCameraOpened && !updateCameraParams { setRotation(calcCameraRotation(value)) })) return
             field = value
+            if (isCameraOpened) updateCameraParams { setRotation(calcCameraRotation(value)) }
         }
+
+    override var screenRotation: Int = 0
 
     override val isActive: Boolean get() = cameraJob.isActive
 
     override val isCameraOpened: Boolean get() = camera != null
 
-    override var isVideoRecording: Boolean = false
+    override val isVideoRecording: Boolean get() = videoManager.isVideoRecording
 
     override val supportedAspectRatios: Set<AspectRatio>
         get() {
@@ -97,7 +169,8 @@ internal class Camera1(
             if (!isCameraOpened) field
             else camera?.parameters?.focusMode?.equals(Camera.Parameters.FOCUS_MODE_FIXED) == false
         set(value) {
-            if (setAutoFocusInternal(value)) field = value
+            if (field == value) return
+            field = if (isCameraOpened) setAutoFocusInternal(value) && value else value
         }
 
     override val maxDigitalZoom: Float = 1f
@@ -105,117 +178,146 @@ internal class Camera1(
     private var flash: Int = Modes.DEFAULT_FLASH
         set(value) {
             if (isCameraOpened) updateCameraParams {
-                val modes = camera?.parameters?.supportedFlashModes
-                val mode = FLASH_MODES.get(value)
-                if (modes?.contains(mode) == true) {
+                val modes: MutableList<String>? = camera?.parameters?.supportedFlashModes
+                val mode: String? = FLASH_MODES.get(value)
+                if (mode != null && modes?.contains(mode) == true) {
                     flashMode = mode
                     field = value
                 }
-                val currentMode = FLASH_MODES.get(field)
-                if (modes == null || !modes.contains(currentMode)) {
+                val currentMode: String? = FLASH_MODES.get(field)
+                if (modes == null || currentMode == null || !modes.contains(currentMode)) {
                     flashMode = Camera.Parameters.FLASH_MODE_OFF
                     field = Modes.Flash.FLASH_OFF
                 }
             } else field = value
         }
 
-    private val previewSurfaceChangedListener: () -> Unit by lazy {
-        {
-            setUpPreview()
-            adjustCameraParameters()
-        }
+    private fun previewSurfaceChangedAction() {
+        runCatching { setUpPreview() }
+            .onFailure {
+                listener.onCameraError(CameraViewException("Unable to setup preview.", it))
+                return
+            }
+        adjustCameraParameters()
     }
 
     init {
-        preview.surfaceChangeListener = previewSurfaceChangedListener
+        preview.surfaceChangeListener = { previewSurfaceChangedAction() }
         addObservers()
     }
 
     override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
-    private fun addObservers() = config.run {
+    private fun addObservers(): Unit = config.run {
+
         facing.observe(this@Camera1) {
             if (isCameraOpened) {
                 stop()
                 start()
             }
         }
+
         cameraMode.observe(this@Camera1) {
             if (isCameraOpened) {
-                stop()
-                start()
+                stopPreview()
+                startPreview()
             }
         }
+
         autoFocus.observe(this@Camera1) { this@Camera1.autoFocus = it != Modes.AutoFocus.AF_OFF }
+
         flash.observe(this@Camera1) { this@Camera1.flash = it }
+
+        jpegQuality.observe(this@Camera1) { updateCameraParams { jpegQuality = it } }
     }
 
     override fun start(): Boolean {
+        if (!cameraOpenCloseLock.tryAcquire()) return false
         chooseCamera()
-        openCamera()
-        if (preview.isReady) setUpPreview()
+        runCatching { openCamera() }
+            .onFailure {
+                cameraOpenCloseLock.release()
+                listener.onCameraError(
+                    CameraViewException("Unable to open camera.", it),
+                    ErrorLevel.ErrorCritical
+                )
+                return false
+            }
+        if (preview.isReady) runCatching { setUpPreview() }
+            .onFailure {
+                cameraOpenCloseLock.release()
+                listener.onCameraError(CameraViewException("Unable to setup preview.", it))
+                return false
+            }
+        cameraOpenCloseLock.release()
         return startPreview()
     }
 
     private fun startPreview(): Boolean = runCatching {
+        if (!previewStartStopLock.tryAcquire()) return@runCatching false
         if (config.isContinuousFrameModeEnabled) camera?.setPreviewCallback(previewCallback)
         camera?.startPreview()
         showingPreview = true
-        true
+        return@runCatching true
     }.getOrElse {
         listener.onCameraError(CameraViewException("Unable to start preview.", it))
-        false
-    }
+        return@getOrElse false
+    }.also { previewStartStopLock.release() }
 
     private fun stopPreview(): Boolean = runCatching {
+        if (!previewStartStopLock.tryAcquire()) return@runCatching false
         camera?.setPreviewCallback(null)
         camera?.stopPreview()
-        true
+        return@runCatching true
     }.getOrElse {
         listener.onCameraError(CameraViewException("Unable to stop preview.", it))
-        false
-    }
+        return@getOrElse false
+    }.also { previewStartStopLock.release() }
 
     override fun stop() {
+        if (!cameraOpenCloseLock.tryAcquire()) return
         super.stop()
         stopPreview()
         showingPreview = false
         camera?.release()
         camera = null
         listener.onCameraClosed()
+        cameraOpenCloseLock.release()
     }
 
+    override fun destroy() {
+        cameraJob.cancel()
+        super.destroy()
+    }
+
+    @Throws(IOException::class, RuntimeException::class, IllegalStateException::class)
     private fun setUpPreview() {
 
-        camera.runCatching {
-            this ?: return
-            if (preview.outputClass === SurfaceHolder::class.java) setPreviewDisplay(preview.surfaceHolder)
-            else preview.surfaceTexture?.let { setPreviewTexture(it) }
-                ?: throw IllegalStateException("Surface texture not initialized!")
-            lifecycleRegistry.markState(Lifecycle.State.STARTED)
-        }
-            .onFailure { listener.onCameraError(CameraViewException("Unable to setup preview.", it)) }
+        val camera: Camera = camera ?: return
+
+        if (preview.outputClass === SurfaceHolder::class.java)
+            camera.setPreviewDisplay(preview.surfaceHolder)
+        else preview.surfaceTexture?.let { camera.setPreviewTexture(it) }
+            ?: throw IllegalStateException("Surface texture not initialized!")
+
+        lifecycleRegistry.markState(Lifecycle.State.STARTED)
     }
 
     private fun updateCameraParams(func: Camera.Parameters.() -> Unit): Boolean =
         runCatching {
             camera?.parameters = camera?.parameters?.apply(func)
-            true
+                ?: throw IllegalStateException("Camera not opened or already closed!")
+            return@runCatching true
         }.getOrElse {
-            listener.onCameraError(CameraViewException("Unable to update camera parameters.", it))
-            false
+            listener.onCameraError(
+                CameraViewException("Unable to update camera parameters.", it),
+                ErrorLevel.Warning
+            )
+            return@getOrElse false
         }
 
-    override fun setAspectRatio(ratio: AspectRatio): Boolean {
-        // Handle this later when camera is opened
-        if (!isCameraOpened) return true
-        val sizes = previewSizes.sizes(ratio)
-        if (sizes.isEmpty()) {
-            listener.onCameraError(CameraViewException("Ratio $ratio is not supported"))
-            return false
-        }
+    override fun setAspectRatio(ratio: AspectRatio) {
         adjustCameraParameters()
-        return true
     }
 
     override fun takePicture() {
@@ -237,35 +339,73 @@ internal class Camera1(
 
     @Throws(RuntimeException::class)
     private fun takePictureInternal() {
+
+        if (!isPictureCaptureInProgress.compareAndSet(false, true)) return
+
         val outputFormat = when (config.outputFormat.value) {
             Modes.OutputFormat.YUV_420_888 -> ImageFormat.NV21
             Modes.OutputFormat.RGBA_8888 -> ImageFormat.RGB_565
             else -> ImageFormat.JPEG
         }
-        if (isPictureCaptureInProgress.compareAndSet(false, true)) {
-            camera?.parameters?.pictureFormat = outputFormat
-            camera?.takePicture(
-                Camera.ShutterCallback { preview.shutterView.show() },
-                null,
-                null,
-                Camera.PictureCallback { data, camera ->
-                    isPictureCaptureInProgress.set(false)
-                    listener.onPictureTaken(data)
-                    camera?.cancelAutoFocus()
-                    startPreview()
-                }
-            )
+
+        camera?.parameters?.pictureFormat = outputFormat
+        camera?.takePicture(
+            Camera.ShutterCallback { launch(Dispatchers.Main) { preview.shutterView.show() } },
+            null,
+            null,
+            pictureCallback
+        )
+    }
+
+    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) {
+
+        if (!isCameraOpened || !preview.isReady) {
+            throw IllegalStateException("Camera not started or already stopped")
+        }
+
+        camera?.unlock()
+
+        runCatching {
+            videoManager.setupMediaRecorder(
+                camera ?: return,
+                cameraId,
+                preview.surface,
+                outputFile,
+                videoConfig,
+                config.aspectRatio.value,
+                calcCameraRotation(deviceRotation)
+            ) { stopVideoRecording() }
+            videoManager.startMediaRecorder()
+            listener.onVideoRecordStarted()
+        }.getOrElse {
+            camera?.lock()
+            throw it
         }
     }
 
-    override fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration) =
-        listener.onCameraError(CameraViewException("Video recording is not supported on API < 21 (ie. camera1 implementation.)"))
+    override fun pauseVideoRecording(): Boolean {
+        listener.onCameraError(CameraViewException("Video pausing and resuming is only supported on API 24 and higher"))
+        return false
+    }
 
-    override fun pauseVideoRecording(): Boolean = false
+    override fun resumeVideoRecording(): Boolean {
+        listener.onCameraError(CameraViewException("Video pausing and resuming is only supported on API 24 and higher"))
+        return false
+    }
 
-    override fun resumeVideoRecording(): Boolean = false
-
-    override fun stopVideoRecording(): Boolean = false
+    override fun stopVideoRecording(): Boolean = runCatching {
+        videoManager.stopVideoRecording()
+        return@runCatching true
+    }
+        .getOrElse {
+            listener.onCameraError(CameraViewException("Unable to stop video recording.", it))
+            return@getOrElse false
+        }
+        .also {
+            listener.onVideoRecordStopped(it)
+            camera?.lock()
+            return it
+        }
 
     /** This rewrites [.cameraId] and [.cameraInfo]. */
     private fun chooseCamera() {
@@ -280,80 +420,62 @@ internal class Camera1(
         cameraId = INVALID_CAMERA_ID
     }
 
+    @Throws(RuntimeException::class)
     private fun openCamera() {
-        try {
-            camera = Camera.open(cameraId)
+
+        // It is recommended to open camera on another thread
+        // https://developer.android.com/training/camera/cameradirect.html#TaskOpenCamera
+        camera = runBlocking(coroutineContext) { Camera.open(cameraId) }.apply {
+
             // Supported preview sizes
             previewSizes.clear()
-            camera?.parameters?.supportedPreviewSizes
-                ?.forEach { size -> previewSizes.add(Size(size.width, size.height)) }
-            // Supported picture sizes;
-            pictureSizes.clear()
-            camera?.parameters?.supportedPictureSizes
-                ?.forEach { size -> pictureSizes.add(Size(size.width, size.height)) }
-            adjustCameraParameters()
-            camera?.setDisplayOrientation(calcDisplayOrientation(deviceRotation))
-            listener.onCameraOpened()
-        } catch (e: RuntimeException) {
-            listener.onCameraError(CameraViewException("Unable to open camera.", e), isCritical = true)
-        }
-    }
+            parameters.supportedPreviewSizes
+                ?.forEach { previewSizes.add(it.width, it.height) }
 
-    private fun chooseAspectRatio(): AspectRatio {
-        var r: AspectRatio = Modes.DEFAULT_ASPECT_RATIO
-        previewSizes.ratios().forEach { ratio ->
-            r = ratio
-            if (ratio == Modes.DEFAULT_ASPECT_RATIO) return ratio
+            // Supported video sizes
+            parameters.supportedVideoSizes
+                ?.asSequence()
+                ?.map { com.priyankvasa.android.cameraviewex.Size(it.width, it.height) }
+                ?.let { videoManager.addVideoSizes(it) }
+
+            // Supported picture sizes
+            pictureSizes.clear()
+            parameters.supportedPictureSizes
+                ?.forEach { pictureSizes.add(it.width, it.height) }
+
+            setDisplayOrientation(calcDisplayOrientation(deviceRotation))
         }
-        return r
+        adjustCameraParameters()
+        listener.onCameraOpened()
     }
 
     private fun adjustCameraParameters() {
 
-        val sizes = previewSizes.sizes(config.aspectRatio.value)
+        if (!preview.isReady) return
 
-        if (sizes.isEmpty()) { // Not supported
-            config.aspectRatio.value = chooseAspectRatio()
-            return
-        }
+        val previewSize: Size =
+            previewSizes.sizes(config.sensorAspectRatio)
+                .chooseOptimalPreviewSize(preview.width, preview.height)
 
-        val size = chooseOptimalSize(sizes)
-
-        // Always re-apply camera parameters
         // Largest picture size in this ratio
-        val pictureSize = pictureSizes.sizes(config.aspectRatio.value).last()
+        val pictureSize: Size = pictureSizes.sizes(config.sensorAspectRatio)
+            .lastOrNull()
+            ?: previewSize
 
         if (showingPreview) stopPreview()
 
         updateCameraParams {
-            setPreviewSize(size.width, size.height)
+            setPreviewSize(previewSize.width, previewSize.height)
             setPictureSize(pictureSize.width, pictureSize.height)
             setRotation(calcCameraRotation(deviceRotation))
+            jpegQuality = config.jpegQuality.value
         }
 
         flash = config.flash.value
 
-        setAutoFocusInternal(autoFocus)
+        if (autoFocus && !setAutoFocusInternal(autoFocus)) autoFocus = false
 
         if (showingPreview) startPreview()
-    }
-
-    private fun chooseOptimalSize(sizes: SortedSet<Size>): Size {
-        if (!preview.isReady) return sizes.first() // Not yet laid out. Return the smallest size.
-        val desiredWidth: Int
-        val desiredHeight: Int
-        val surfaceWidth = preview.width
-        val surfaceHeight = preview.height
-        if (deviceRotation % 180 == 90) {
-            desiredWidth = surfaceHeight
-            desiredHeight = surfaceWidth
-        } else {
-            desiredWidth = surfaceWidth
-            desiredHeight = surfaceHeight
-        }
-        return sizes
-            .firstOrNull { desiredWidth <= it.width && desiredHeight <= it.height }
-            ?: sizes.last()
     }
 
     /**
@@ -391,34 +513,38 @@ internal class Camera1(
             (cameraInfo.orientation + screenOrientationDegrees) % 360
 
         else -> {  // back-facing
-            val landscapeFlip = if (screenOrientationDegrees % 180 == 90) 180 else 0
+            val landscapeFlip: Int = if (screenOrientationDegrees % 180 == 90) 180 else 0
             (cameraInfo.orientation + screenOrientationDegrees + landscapeFlip) % 360
         }
     }
 
     /**
-     * @return `true` if [Camera.Parameters] was modified for [camera], `false` otherwise.
+     * @return `true` if focus mode was set correctly, `false` otherwise.
      */
-    private fun setAutoFocusInternal(autoFocus: Boolean): Boolean = if (isCameraOpened) updateCameraParams {
+    private fun setAutoFocusInternal(autoFocus: Boolean): Boolean {
 
-        val modes = supportedFocusModes ?: return@updateCameraParams
+        val modes: MutableList<String> = camera?.parameters?.supportedFocusModes ?: return false
 
-        focusMode = when {
+        val (focusMode: String, result: Boolean) = when {
             autoFocus &&
                 config.isVideoCaptureModeEnabled &&
                 modes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO) ->
-                Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO
+                Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO to true
             autoFocus &&
                 config.isSingleCaptureModeEnabled &&
                 modes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) ->
-                Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
+                Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE to true
+            autoFocus && modes.contains(Camera.Parameters.FOCUS_MODE_EDOF) ->
+                Camera.Parameters.FOCUS_MODE_FIXED to true
             modes.contains(Camera.Parameters.FOCUS_MODE_FIXED) ->
-                Camera.Parameters.FOCUS_MODE_FIXED
+                Camera.Parameters.FOCUS_MODE_FIXED to !autoFocus
             modes.contains(Camera.Parameters.FOCUS_MODE_INFINITY) ->
-                Camera.Parameters.FOCUS_MODE_INFINITY
-            else -> modes[0]
+                Camera.Parameters.FOCUS_MODE_INFINITY to !autoFocus
+            else -> return false
         }
-    } else false
+
+        return result && updateCameraParams { this.focusMode = focusMode }
+    }
 
     companion object {
 

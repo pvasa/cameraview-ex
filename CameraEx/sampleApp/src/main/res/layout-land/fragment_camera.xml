@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:paddingStart="0dp"
+    android:paddingEnd="64dp"
+    tools:context=".camera.CameraActivity"
+    tools:ignore="ContentDescription">
+
+    <ImageView
+        android:id="@+id/ivSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:padding="18dp"
+        android:src="@drawable/ic_settings_white"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/ivFlashSwitch"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivFlashSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:padding="18dp"
+        android:src="@drawable/ic_flash_auto"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/tbSingleCapture"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivSettings" />
+
+    <ToggleButton
+        android:id="@+id/tbSingleCapture"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_photo_camera_selector"
+        android:button="@null"
+        android:checked="true"
+        android:padding="18dp"
+        android:textOff="@null"
+        android:textOn="@null"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/tbVideoCapture"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch" />
+
+    <ToggleButton
+        android:id="@+id/tbVideoCapture"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_video_cam_selector"
+        android:button="@null"
+        android:checked="true"
+        android:padding="18dp"
+        android:textOff="@null"
+        android:textOn="@null"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/tbContinuousFrame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tbSingleCapture" />
+
+    <ToggleButton
+        android:id="@+id/tbContinuousFrame"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/ic_barcode_scan_selector"
+        android:button="@null"
+        android:checked="true"
+        android:padding="18dp"
+        android:textOff="@null"
+        android:textOn="@null"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tbVideoCapture" />
+
+    <com.priyankvasa.android.cameraviewex.CameraView
+        android:id="@+id/camera"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:adjustViewBounds="true"
+        android:keepScreenOn="true"
+        app:aspectRatio="4:3"
+        app:autoFocus="continuous_picture"
+        app:awb="auto"
+        app:cameraMode="single_capture|video_capture|continuous_frame"
+        app:facing="back"
+        app:flash="auto"
+        app:jpegQuality="high"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.3"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:noiseReduction="high_quality"
+        app:opticalStabilization="true"
+        app:outputFormat="jpeg"
+        app:pinchToZoom="true"
+        app:shutter="short_time"
+        app:touchToFocus="true"
+        app:zsl="true"
+        tools:layout_height="match_parent"
+        tools:layout_width="480dp" />
+
+    <TextView
+        android:id="@+id/tvBarcodes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:background="@color/black_transparent_75_percent"
+        android:lineSpacingExtra="2dp"
+        android:maxLines="20"
+        android:padding="12dp"
+        android:text="@string/text_barcodes"
+        android:textColor="@color/white"
+        android:translationZ="2dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivOutputPreview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:scaleType="fitCenter"
+        android:translationZ="2dp"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
+        tools:src="@color/colorPrimary"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/ivCameraSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:src="@drawable/ic_camera_switch"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/ivCaptureButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivCaptureButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_camera_capture"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/ivVideoCaptureButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivCameraSwitch" />
+
+    <ImageView
+        android:id="@+id/ivVideoCaptureButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_camera_video_capture"
+        android:translationZ="2dp"
+        app:layout_constraintBottom_toTopOf="@id/ivPlayPause"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivCaptureButton" />
+
+    <ImageView
+        android:id="@+id/ivPlayPause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:src="@drawable/ic_play_pause"
+        android:translationZ="2dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivVideoCaptureButton"
+        tools:visibility="visible" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

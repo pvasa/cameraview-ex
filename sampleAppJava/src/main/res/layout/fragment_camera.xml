@@ -28,7 +28,7 @@
         app:aspectRatio="4:3"
         app:autoFocus="continuous_picture"
         app:awb="auto"
-        app:cameraMode="single_capture"
+        app:cameraMode="single_capture|continuous_frame"
         app:facing="back"
         app:flash="auto"
         app:jpegQuality="high"
@@ -43,16 +43,49 @@
         app:touchToFocus="true"
         app:zsl="true" />
 
-    <TextView
-        android:id="@+id/tvBarcodes"
+    <ImageView
+        android:id="@+id/ivFramePreview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="48dp"
-        android:lineSpacingExtra="2dp"
-        android:maxLines="20"
-        android:textColor="@color/black"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivFlashSwitch" />
+        android:layout_margin="10dp"
+        android:elevation="2dp"
+        app:layout_constraintBottom_toBottomOf="@id/camera"
+        app:layout_constraintEnd_toEndOf="@id/camera"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toStartOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
+        app:layout_constraintVertical_bias="0" />
+
+    <ImageView
+        android:id="@+id/ivCapturePreview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:clickable="true"
+        android:elevation="2dp"
+        android:focusable="true"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/camera"
+        app:layout_constraintEnd_toEndOf="@id/camera"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintStart_toStartOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
+        app:layout_constraintVertical_bias="0" />
+
+    <ImageView
+        android:id="@+id/ivCloseCapturePreview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:elevation="2dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/ivCapturePreview"
+        app:layout_constraintEnd_toEndOf="@id/ivCapturePreview"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintStart_toStartOf="@id/ivCapturePreview"
+        app:layout_constraintTop_toTopOf="@id/ivCapturePreview"
+        app:layout_constraintVertical_bias="0" />
 
     <ImageView
         android:id="@+id/ivCaptureButton"
@@ -63,17 +96,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <ImageView
-        android:id="@+id/ivPhoto"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@android:color/darker_gray"
-        android:elevation="12dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

@@ -22,6 +22,7 @@ import android.content.Context
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
+import android.support.transition.TransitionManager
 import android.support.v4.math.MathUtils
 import android.view.Surface
 import android.view.SurfaceHolder
@@ -52,6 +53,8 @@ internal abstract class PreviewImpl {
     internal abstract val view: View
 
     internal val context: Context get() = view.context
+
+    val displaySize: Size by lazy { view.resources.displayMetrics.run { Size(widthPixels, heightPixels) } }
 
     private val overlayView: PreviewOverlayView by lazy { PreviewOverlayView(view.context) }
 
@@ -93,8 +96,8 @@ internal abstract class PreviewImpl {
 
         val areaSize: Float = context.convertDpToPixelF(sideLengthInDp)
 
-        val left = MathUtils.clamp(centerX - areaSize / 2, 0f, surfaceWidth - areaSize)
-        val top = MathUtils.clamp(centerY - areaSize / 2, 0f, surfaceHeight - areaSize)
+        val left: Float = MathUtils.clamp(centerX - areaSize / 2, 0f, surfaceWidth - areaSize)
+        val top: Float = MathUtils.clamp(centerY - areaSize / 2, 0f, surfaceHeight - areaSize)
 
         val rectF = RectF(left, top, left + areaSize, top + areaSize)
 
@@ -107,6 +110,14 @@ internal abstract class PreviewImpl {
     }
 
     internal fun removeOverlay() {
-        (view.parent as? ViewGroup)?.apply { removeView(overlayView) }
+        (view.parent as? ViewGroup)?.run {
+            TransitionManager.beginDelayedTransition(this)
+            removeView(overlayView)
+        }
+    }
+
+    internal fun measure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        view.measure(widthMeasureSpec, heightMeasureSpec)
+        shutterView.measure(widthMeasureSpec, heightMeasureSpec)
     }
 }

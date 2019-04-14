@@ -1,0 +1,8 @@
+<resources>
+
+    <string name="app_name">CameraViewExSample</string>
+    <string name="text_aspect_ratio">Aspect ratio</string>
+    <string name="text_done">Done</string>
+    <string name="text_barcodes">Barcodes</string>
+
+</resources>

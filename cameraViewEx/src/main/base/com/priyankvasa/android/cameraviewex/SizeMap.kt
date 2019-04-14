@@ -25,9 +25,18 @@ import java.util.TreeSet
  */
 internal class SizeMap {
 
-    private val ratios = ArrayMap<AspectRatio, SortedSet<Size>>()
+    private val map: ArrayMap<AspectRatio, SortedSet<Size>> = ArrayMap()
 
-    val isEmpty: Boolean get() = ratios.isEmpty
+    val isEmpty: Boolean get() = map.isEmpty
+
+    /**
+     * Add a new [Size] of [width] and [height] to this collection.
+     *
+     * @param width of size to add.
+     * @param height of size to add.
+     * @return `true` if it is added, `false` if it already exists and is not added.
+     */
+    fun add(width: Int, height: Int): Boolean = add(Size(width, height))
 
     /**
      * Add a new [Size] to this collection.
@@ -37,17 +46,17 @@ internal class SizeMap {
      */
     fun add(size: Size): Boolean {
 
-        ratios.keys.forEach { ratio ->
+        map.keys.forEach { ratio ->
             if (ratio.matches(size)) {
-                return if (ratios[ratio]?.contains(size) == true) false
+                return if (map[ratio]?.contains(size) == true) false
                 else {
-                    ratios[ratio]?.add(size)
+                    map[ratio]?.add(size)
                     true
                 }
             }
         }
         // None of the existing ratio matches the provided size; add a new key
-        ratios[AspectRatio.of(size.width, size.height)] = TreeSet<Size>().apply { add(size) }
+        map[AspectRatio.of(size)] = TreeSet<Size>().apply { add(size) }
         return true
     }
 
@@ -59,16 +68,21 @@ internal class SizeMap {
      * looping through previewSizes in [Camera2.collectCameraInfo] has null elements. Seems like a ghost bug.
      */
     fun remove(ratio: AspectRatio?) {
-        ratios.remove(ratio)
+        map.remove(ratio)
     }
 
-    fun ratios(): Set<AspectRatio> = ratios.keys
+    fun ratios(): Set<AspectRatio> = map.keys + map.keys.map { it.inverse() }
+
+    /** Returns `true` if this map contains [size] mapped to any of the [ratios] */
+    fun containsSize(size: Size): Boolean = sizes(AspectRatio.of(size)).contains(size)
 
     /**
+     * Returns all the sizes mapped to [ratio] or an empty set if none found
+     *
      * Note: [ratio] is nullable because for some reason, on older devices,
      * looping through previewSizes in [Camera1.supportedAspectRatios] has null elements. Seems like a ghost bug.
      */
-    fun sizes(ratio: AspectRatio?): SortedSet<Size> = ratios[ratio] ?: sortedSetOf()
+    fun sizes(ratio: AspectRatio?): SortedSet<Size> = map[ratio] ?: sortedSetOf()
 
-    fun clear() = ratios.clear()
+    fun clear() = map.clear()
 }

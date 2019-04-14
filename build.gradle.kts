@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:3.3.0")
+        classpath("com.android.tools.build:gradle:3.3.2")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${Config.Versions.kotlin}")
         classpath("com.google.gms:google-services:${Config.Versions.googleServices}") // google-services plugin
         classpath("com.github.dcendents:android-maven-gradle-plugin:${Config.Versions.mavenGradlePlugin}")
@@ -60,6 +60,7 @@ allprojects {
     }
 }
 
-tasks.create("clean", Delete::class.java) {
+tasks.create<Delete>("clean") {
     delete(rootProject.buildDir)
+    delete("$rootDir/mavenRepo")
 }

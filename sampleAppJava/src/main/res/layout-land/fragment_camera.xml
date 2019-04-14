@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context="com.priyankvasa.android.cameraviewex_sample.camera.CameraActivity"
+    tools:ignore="ContentDescription">
+
+    <ImageView
+        android:id="@+id/ivFlashSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="18dp"
+        android:src="@drawable/ic_flash_auto"
+        app:layout_constraintEnd_toStartOf="@id/camera"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.priyankvasa.android.cameraviewex.CameraView
+        android:id="@+id/camera"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginStart="?attr/actionBarSize"
+        android:adjustViewBounds="true"
+        android:keepScreenOn="true"
+        app:aspectRatio="3:4"
+        app:autoFocus="continuous_picture"
+        app:awb="auto"
+        app:cameraMode="single_capture|continuous_frame"
+        app:facing="back"
+        app:flash="auto"
+        app:jpegQuality="high"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:noiseReduction="high_quality"
+        app:opticalStabilization="false"
+        app:outputFormat="jpeg"
+        app:pinchToZoom="true"
+        app:shutter="short_time"
+        app:touchToFocus="true"
+        app:zsl="true" />
+
+    <ImageView
+        android:id="@+id/ivFramePreview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:elevation="2dp"
+        app:layout_constraintBottom_toBottomOf="@id/camera"
+        app:layout_constraintEnd_toEndOf="@id/camera"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toStartOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
+        app:layout_constraintVertical_bias="0" />
+
+    <ImageView
+        android:id="@+id/ivCapturePreview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:clickable="true"
+        android:elevation="2dp"
+        android:focusable="true"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/camera"
+        app:layout_constraintEnd_toEndOf="@id/camera"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintStart_toStartOf="@id/camera"
+        app:layout_constraintTop_toTopOf="@id/camera"
+        app:layout_constraintVertical_bias="0" />
+
+    <ImageView
+        android:id="@+id/ivCloseCapturePreview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:elevation="2dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/ivCapturePreview"
+        app:layout_constraintEnd_toEndOf="@id/ivCapturePreview"
+        app:layout_constraintHorizontal_bias="1"
+        app:layout_constraintStart_toStartOf="@id/ivCapturePreview"
+        app:layout_constraintTop_toTopOf="@id/ivCapturePreview"
+        app:layout_constraintVertical_bias="0" />
+
+    <ImageView
+        android:id="@+id/ivCaptureButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="64dp"
+        android:src="@drawable/ic_camera_capture"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivPhoto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/darker_gray"
+        android:elevation="12dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</android.support.constraint.ConstraintLayout>

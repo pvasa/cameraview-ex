@@ -19,9 +19,9 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 3
-    private const val minorVersion = 0
-    private const val patchVersion = 1
-    private const val versionClassifier = "beta"
+    private const val minorVersion = 4
+    private const val patchVersion = 3
+    private const val versionClassifier = ""
 
     val versionName: String
         get() = "$majorVersion.$minorVersion.$patchVersion${if (versionClassifier.isNotBlank()) "-" else ""}$versionClassifier"
@@ -33,7 +33,7 @@ object Config {
             patchVersion
 
     object Versions {
-        const val kotlin = "1.3.11"
+        const val kotlin = "1.3.30"
         const val support = "28.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"
@@ -73,6 +73,7 @@ object Config {
         const val supportAnnotations = "com.android.support:support-annotations:${Versions.support}"
         const val appcompatV7 = "com.android.support:appcompat-v7:${Versions.support}"
         const val supportTransition = "com.android.support:transition:${Versions.support}"
+        const val supportExifInterface = "com.android.support:exifinterface:${Versions.support}"
         const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
         const val lifecycleLivedata = "android.arch.lifecycle:livedata-core:${Versions.lifecycle}"

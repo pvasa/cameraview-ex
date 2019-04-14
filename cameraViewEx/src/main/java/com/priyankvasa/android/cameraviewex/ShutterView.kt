@@ -17,8 +17,8 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.content.Context
-import android.content.res.Resources
 import android.os.Handler
+import android.support.annotation.ColorInt
 import android.support.annotation.ColorRes
 import android.support.transition.TransitionManager
 import android.support.v4.app.ActivityCompat
@@ -36,7 +36,8 @@ internal class ShutterView @JvmOverloads constructor(
     defStyle: Int = 0
 ) : View(context, attrs, defStyle) {
 
-    private val defaultShutterColor = ActivityCompat.getColor(context, android.R.color.black)
+    @ColorInt
+    private val defaultShutterColor: Int = ActivityCompat.getColor(context, android.R.color.black)
 
     internal var shutterTime = Modes.DEFAULT_SHUTTER
 
@@ -46,12 +47,12 @@ internal class ShutterView @JvmOverloads constructor(
     }
 
     internal fun setShutterColor(@ColorRes colorRes: Int) {
-        val color = try {
-            ActivityCompat.getColor(context, colorRes)
-        } catch (e: Resources.NotFoundException) {
-            Timber.w(e, "Color resource $colorRes not found. Falling back to default color $defaultShutterColor")
-            defaultShutterColor
-        }
+        @ColorInt val color: Int =
+            runCatching { ActivityCompat.getColor(context, colorRes) }
+                .getOrElse {
+                    Timber.w(it, "Color resource $colorRes not found. Falling back to default color $defaultShutterColor")
+                    defaultShutterColor
+                }
         setBackgroundColor(color)
     }
 
