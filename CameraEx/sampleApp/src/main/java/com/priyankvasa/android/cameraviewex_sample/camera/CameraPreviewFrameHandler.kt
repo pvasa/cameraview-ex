@@ -25,6 +25,17 @@ class CameraPreviewFrameHandler(
     private var previewAvailableCallback: ((Bitmap) -> Unit)?
 ) {
 
+    val frameRate: Float = 5f
+
+    val listener: (Image) -> Unit = { image: Image ->
+        // Uncomment to print stats to logcat
+        printStats()
+        detectBarcodes(image)
+        // Comment to stop showing the small preview of continuous frames
+        // This is very heavy on memory. Consumes almost 300mbs on a Samsung S8.
+        showPreview(image)
+    }
+
     private val rotationToFirebaseOrientationMap: SparseIntArray = SparseIntArray()
         .apply {
             put(0, FirebaseVisionImageMetadata.ROTATION_0)
@@ -42,38 +53,37 @@ class CameraPreviewFrameHandler(
         FirebaseVision.getInstance().getVisionBarcodeDetector(barcodeDetectorOptions)
 
     private val detectionCompleteListener: (Task<MutableList<FirebaseVisionBarcode>>) -> Unit =
-        { task ->
+        { task: Task<MutableList<FirebaseVisionBarcode>> ->
             if (task.isSuccessful) task.result?.let { barcodeDecodeSuccessCallback?.invoke(it) }
             else Timber.e(task.exception)
             decoding.set(false)
         }
 
+    private val rect: Rect = Rect()
+
+    private val jpegDataStream = ByteArrayOutputStream()
+
+    private val options: BitmapFactory.Options =
+        BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+
     /** This boolean makes sure only one frame is processed at a time by Firebase barcode detector */
     private val decoding = AtomicBoolean(false)
-
-    val listener: (Image) -> Unit = { image: Image ->
-        // Uncomment to print stats to logcat
-        // printStats()
-        detectBarcodes(image)
-        // Comment to stop showing the small preview of continuous frames
-        showPreview(image)
-    }
 
     /**
      * It prints preview frame listener stats like
      * time between each frame and max and min times between frames.
      */
-    private var min = Long.MAX_VALUE
-    private var max = Long.MIN_VALUE
+    private var min: Long = Long.MAX_VALUE
+    private var max: Long = Long.MIN_VALUE
     private var last = 0L
 
     private fun printStats() {
-        val now = SystemClock.elapsedRealtime()
+        val now: Long = SystemClock.elapsedRealtime()
         if (last == 0L) {
             last = now
             return
         }
-        val diff = now - last
+        val diff: Long = now - last
         if (diff > max) max = diff else if (diff < min) min = diff
         last = now
         // Max diff is not correct after toggling preview frame mode
@@ -84,37 +94,34 @@ class CameraPreviewFrameHandler(
 
         if (!decoding.compareAndSet(false, true)) return
 
-        val firebaseRotation = rotationToFirebaseOrientationMap[image.exifInterface.rotationDegrees]
+        val firebaseRotation: Int = rotationToFirebaseOrientationMap[image.exifInterface.rotationDegrees]
 
-        val metadata = FirebaseVisionImageMetadata.Builder()
+        val metadata: FirebaseVisionImageMetadata = FirebaseVisionImageMetadata.Builder()
             .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
             .setRotation(firebaseRotation)
             .setWidth(image.width)
             .setHeight(image.height)
             .build()
 
-        val visionImage = FirebaseVisionImage.fromByteArray(image.data, metadata)
+        val visionImage: FirebaseVisionImage = FirebaseVisionImage.fromByteArray(image.data, metadata)
 
         barcodeDetector.detectInImage(visionImage).addOnCompleteListener(detectionCompleteListener)
     }
 
+    /** This is very heavy on memory. Consumes almost 300mbs on a Samsung S8. */
     private fun showPreview(image: Image) {
 
-        val rotation: Int = image.exifInterface.rotationDegrees
-
-        val jpegDataStream = ByteArrayOutputStream()
+        jpegDataStream.reset()
 
         YuvImage(image.data, ImageFormat.NV21, image.width, image.height, null)
-            .compressToJpeg(Rect(0, 0, image.width, image.height), 40, jpegDataStream)
+            .compressToJpeg(rect.apply { set(0, 0, image.width, image.height) }, 40, jpegDataStream)
 
         val jpegData: ByteArray = jpegDataStream.toByteArray()
 
-        val options: BitmapFactory.Options =
-            BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
-
         val bm: Bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.size, options)
+            ?: return
 
-        previewAvailableCallback?.invoke(bm.rotate(rotation))
+        previewAvailableCallback?.invoke(bm.rotate(image.exifInterface.rotationDegrees))
     }
 
     fun release() {

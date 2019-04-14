@@ -18,8 +18,6 @@ import groovy.util.Node
 import org.jetbrains.dokka.DokkaConfiguration
 import org.jetbrains.dokka.gradle.DokkaAndroidTask
 import org.jetbrains.dokka.gradle.LinkMapping
-import org.jetbrains.kotlin.gradle.internal.AndroidExtensionsExtension
-import org.jetbrains.kotlin.gradle.internal.CacheImplementation
 import java.net.URL
 
 plugins {
@@ -105,19 +103,16 @@ android {
     )
 
     compileOptions {
-        setSourceCompatibility(JavaVersion.VERSION_1_8)
+        sourceCompatibility = JavaVersion.VERSION_1_8
         setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
 }
 
 androidExtensions {
-    configure(delegateClosureOf<AndroidExtensionsExtension> {
-        isExperimental = true
-        defaultCacheImplementation = CacheImplementation.SPARSE_ARRAY
-    })
+    isExperimental = true
 }
 
-tasks.withType(Test::class.java) {
+tasks.withType(Test::class.java).all {
     useJUnitPlatform {
         //includeTags "fast", "smoke & feature-a"
         //excludeTags "slow", "ci"
@@ -126,7 +121,7 @@ tasks.withType(Test::class.java) {
     }
     systemProperty("java.util.logging.manager", "java.util.logging.LogManager")
     systemProperty("junit.jupiter.conditions.deactivate", "*")
-    systemProperties = mutableMapOf<String, Any>(
+    systemProperties = mapOf<String, Any>(
         "junit.jupiter.extensions.autodetection.enabled" to "true",
         "junit.jupiter.testinstance.lifecycle.default" to "per_class"
     )

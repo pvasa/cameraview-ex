@@ -113,7 +113,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
                     CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
                     CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
                 )
-            else warn("Video stabilization not supported by selected camera ${camera.id}.")
+            else warn("Video stabilization not supported by selected camera (id ${camera.id}).")
         }
 
         baseRequestBuilder[CaptureRequest.NOISE_REDUCTION_MODE]

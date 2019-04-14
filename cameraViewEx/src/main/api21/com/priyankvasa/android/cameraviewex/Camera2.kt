@@ -281,33 +281,31 @@ internal open class Camera2(
 
     private fun android.media.Image.setCropRect() {
 
-        // `true` when device orientation is portrait (height > width)
-        // and requested output dimensions are landscape (width > height).
+        val isScreenPortrait: Boolean = screenRotation % 180 == 0
+
+        val x: Float = config.aspectRatio.value.x.toFloat()
+        val y: Float = config.aspectRatio.value.y.toFloat()
+
+        // `true` when screen rotation is portrait (height > width)
+        // and requested output dimensions are landscape (width > height)
+        // or vice versa.
         val needOutputSizeAdjustment: Boolean =
-            (screenRotation % 180 == 0 && config.aspectRatio.value.run { x > y }) ||
-                (screenRotation % 180 == 90 && config.aspectRatio.value.run { y > x })
+            (isScreenPortrait && x > y) || (!isScreenPortrait && y > x)
 
         if (needOutputSizeAdjustment) {
 
-            // The adjustment is required here because when device is held in portrait orientation,
-            // camera can naturally only generate portrait images while requested output dimensions are landscape.
+            val ratio: Float = if (isScreenPortrait) y / x else x / y
 
-            fun Int.adjust(): Int = times(config.aspectRatio.value.inverse().toFloat()).roundToInt()
-
-            // When size adjustment is needed then based on sensor's rotation
+            // When size adjustment is needed then based on screen rotation
             // decide which dimension should be adjusted, `width` or `height`
-            val (adjustedWidth: Int, adjustedHeight: Int) =
-                when (outputOrientation % 180) { // TODO Test this logic
-                    deviceRotation % 180 -> width to width.adjust()
-                    else -> height.adjust() to height
-                }
+            val adjustWidth: Boolean = deviceRotation % 180 != outputOrientation % 180
 
             // Set the crop rect with new adjusted dimensions which will be used later to produce final output
             cropRect = Rect(
                 0, // left
                 0, // top
-                adjustedWidth, // right
-                adjustedHeight // bottom
+                if (adjustWidth) (height * ratio).roundToInt() else width, // right
+                if (!adjustWidth) (width * ratio).roundToInt() else height // bottom
             )
         }
     }
@@ -317,7 +315,7 @@ internal open class Camera2(
         // Timestamp of the last frame processed. Used for de-bouncing purposes.
         val lastTimeStamp = AtomicLong(0L)
 
-        return@lazy ImageReader.OnImageAvailableListener { reader ->
+        return@lazy ImageReader.OnImageAvailableListener { reader: ImageReader ->
 
             // Flag to decide when to debounce a frame
             var debounce = false
@@ -381,7 +379,7 @@ internal open class Camera2(
                     reader.acquireLatestImage()
                         ?: throw NullPointerException("No new image is available.")
                 }
-                    .getOrElse { t ->
+                    .getOrElse { t: Throwable ->
                         listener.onCameraError(CameraViewException("Failed to capture image.", t))
                         return@OnImageAvailableListener
                     }
@@ -824,29 +822,9 @@ internal open class Camera2(
         stopBackgroundThread()
     }
 
-    override fun setAspectRatio(ratio: AspectRatio): Boolean {
-
-        if (!config.sensorAspectRatio.isValid()) {
-            config.aspectRatio.revert()
-            return false
-        }
-
+    override fun setAspectRatio(ratio: AspectRatio) {
         prepareCaptureImageReader()
         restartPreview()
-        return true
-    }
-
-    private fun AspectRatio.isValid(): Boolean {
-
-        if (supportedAspectRatios.contains(this@isValid)) return true
-
-        listener.onCameraError(
-            CameraViewException("Aspect ratio $this is not supported by this device." +
-                " Valid ratios are $supportedAspectRatios. Refer CameraView.supportedAspectRatios"),
-            ErrorLevel.ErrorCritical
-        )
-
-        return false
     }
 
     override fun takePicture() {
@@ -1095,7 +1073,7 @@ internal open class Camera2(
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, config.autoFocus.value)
         } else {
             listener.onCameraError(
-                CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera. Setting it to off."),
+                CameraViewException("Af mode ${config.autoFocus.value} not supported by selected camera (id $cameraId). Setting it to off."),
                 ErrorLevel.Warning
             )
             config.autoFocus.value = Modes.AutoFocus.AF_OFF
@@ -1135,7 +1113,7 @@ internal open class Camera2(
             previewRequestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, config.awb.value)
         } else {
             listener.onCameraError(
-                CameraViewException("Awb mode ${config.awb.value} not supported by selected camera. Setting it to off."),
+                CameraViewException("Awb mode ${config.awb.value} not supported by selected camera (id $cameraId). Setting it to off."),
                 ErrorLevel.Warning
             )
             config.awb.value = Modes.AutoWhiteBalance.AWB_OFF
@@ -1149,7 +1127,7 @@ internal open class Camera2(
                 CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON
             ) else {
                 listener.onCameraError(
-                    CameraViewException("Optical image stabilization is not supported by selected camera $cameraId. Setting it to off."),
+                    CameraViewException("Optical image stabilization is not supported by selected camera (id $cameraId). Setting it to off."),
                     ErrorLevel.Warning
                 )
                 config.opticalStabilization.value = false
@@ -1165,7 +1143,7 @@ internal open class Camera2(
             previewRequestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, config.noiseReduction.value)
         } else {
             listener.onCameraError(
-                CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera. Setting it to off."),
+                CameraViewException("Noise reduction mode ${config.noiseReduction.value} not supported by selected camera (id $cameraId). Setting it to off."),
                 ErrorLevel.Warning
             )
             config.noiseReduction.value = Modes.NoiseReduction.NOISE_REDUCTION_OFF
