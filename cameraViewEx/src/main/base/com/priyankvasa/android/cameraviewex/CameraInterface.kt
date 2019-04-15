@@ -47,9 +47,11 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
     var maxPreviewFrameRate: Float
 
     /**
-     * @return `true` if the implementation was able to start the camera session.
+     * @return `true` if the implementation was able to start the passed in cameraId
      */
-    fun start(): Boolean
+    fun start(cameraId: Int): Boolean
+
+    fun getNextCameraId(): Int
 
     fun stop() {
         if (isVideoRecording) stopVideoRecording()
