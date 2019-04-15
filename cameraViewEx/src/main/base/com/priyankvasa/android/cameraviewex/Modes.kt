@@ -187,4 +187,7 @@ object Modes {
     const val DEFAULT_SHUTTER = Shutter.SHUTTER_OFF
     const val DEFAULT_AWB = AutoWhiteBalance.AWB_OFF
     const val DEFAULT_ZSL = false
+
+    /** Value to pass into start when not wanting to specific a camera ID */
+    const val NO_CAMERA_ID = -1
 }

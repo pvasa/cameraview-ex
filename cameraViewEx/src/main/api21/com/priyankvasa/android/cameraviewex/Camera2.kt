@@ -628,7 +628,7 @@ internal open class Camera2(
         facing.observe(this@Camera2) {
             if (!isCameraOpened) return@observe
             stop()
-            start()
+            start(it)
         }
 
         autoFocus.observe(this@Camera2) {
@@ -761,13 +761,20 @@ internal open class Camera2(
         listener.onCameraError(CameraViewException("Background thread was interrupted.", it))
     }
 
+    /***
+     * If Modes.NO_CAMERA_ID is passed in then the camera will switch from
+     * the first back camera to the first front camera and vice versa.
+     */
     @SuppressLint("MissingPermission")
-    override fun start(): Boolean = runCatching {
+    override fun start(cameraId: Int): Boolean = runCatching {
         if (!cameraOpenCloseLock.tryAcquire()) return@runCatching false
-        chooseCameraIdByFacing()
+        when (cameraId) {
+            Modes.NO_CAMERA_ID -> chooseCameraIdByFacing()
+            else -> chooseCameraIdById("$cameraId")
+        }
         collectCameraInfo()
         prepareCaptureImageReader()
-        cameraManager.openCamera(cameraId, cameraDeviceCallback, backgroundHandler)
+        cameraManager.openCamera("$cameraId", cameraDeviceCallback, backgroundHandler)
         return@runCatching true
     }
         .getOrElse {
@@ -827,6 +834,21 @@ internal open class Camera2(
 
     /**
      * Chooses a camera ID by the specified camera facing ([CameraConfiguration.facing]).
+     */
+    override fun getNextCameraId(): Int {
+
+        cameraManager.cameraIdList.run {
+            ifEmpty { throw IllegalStateException("No camera available.") }
+            val i = indexOf(cameraId)
+            if (i+1 < this.size) {
+                return Integer.parseInt(this[i+1])
+            }
+        }
+        return Modes.Facing.FACING_BACK
+    }
+
+    /**
+     * Chooses a camera ID by the specified camera facing ([CameraConfiguration.facing]).
      *
      * This rewrites [cameraId], [cameraCharacteristics], and optionally
      * [CameraConfiguration.facing].
@@ -876,6 +898,29 @@ internal open class Camera2(
         // The operation can reach here when the only camera device is an external one.
         // We treat it as facing back.
         config.facing.value = Modes.Facing.FACING_BACK
+    }
+
+    /**
+     * Chooses a camera ID by the camera ID that is passed in
+     *
+     * This rewrites [cameraId], [cameraCharacteristics], and optionally
+     * [CameraConfiguration.facing].
+     */
+    @Throws(IllegalStateException::class, NullPointerException::class, UnsupportedOperationException::class)
+    private fun chooseCameraIdById(id: String) {
+
+        cameraId = id
+        cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
+
+        val level: Int? = cameraCharacteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+
+        if (level == null || level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY)
+            throw UnsupportedOperationException(
+                    "Camera with id $cameraId has hardware level $level," +
+                            " which is not supported by ${this@Camera2} implementation."
+            )
+
+        config.facing.value = Integer.parseInt(cameraId)
     }
 
     /**

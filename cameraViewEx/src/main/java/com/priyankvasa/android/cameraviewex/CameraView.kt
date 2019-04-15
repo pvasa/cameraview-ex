@@ -482,6 +482,16 @@ class CameraView @JvmOverloads constructor(
      */
     @RequiresPermission(Manifest.permission.CAMERA)
     fun start() {
+        start(Modes.NO_CAMERA_ID)
+    }
+
+    /**
+     * Open a camera device by camera ID and start showing camera preview. This is typically called from
+     * [Activity.onResume].
+     * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
+     */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun start(id: Int) {
 
         if (!requireActive()) return
 
@@ -496,7 +506,7 @@ class CameraView @JvmOverloads constructor(
         // Save original state and restore later if camera falls back to using Camera1
         val state: Parcelable = onSaveInstanceState()
 
-        if (camera.start()) return // Camera started successfully, return.
+        if (camera.start(id)) return // Camera started successfully, return.
 
         // This camera instance is no longer useful, destroy it.
         camera.destroy()
@@ -506,10 +516,10 @@ class CameraView @JvmOverloads constructor(
         if (camera is Camera1) return
 
         // Device uses legacy hardware layer; fall back to Camera1
-        fallback(state)
+        fallback(id, state)
     }
 
-    private fun fallback(savedState: Parcelable) {
+    private fun fallback(id: Int, savedState: Parcelable) {
 
         camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
 
@@ -518,7 +528,7 @@ class CameraView @JvmOverloads constructor(
 
         // Try to start camera again using Camera1 api
         // Return if successful
-        if (camera.start()) return
+        if (camera.start(id)) return
 
         // Unable to start camera using any api. Post a critical error.
         listenerManager.onCameraError(
@@ -526,6 +536,14 @@ class CameraView @JvmOverloads constructor(
                 " Please check if the camera hardware is usable and CameraView is correctly configured."),
             ErrorLevel.ErrorCritical
         )
+    }
+
+    /**
+     * This will switch to the next camera, looping through all back and front cameras
+     * in the order that the device presents them. Ex: 0 (back), 1 (front), 2 (back), etc.
+     */
+    fun nextCamera() {
+        facing = camera.getNextCameraId()
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */

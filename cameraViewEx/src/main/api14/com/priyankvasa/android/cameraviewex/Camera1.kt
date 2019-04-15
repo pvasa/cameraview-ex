@@ -216,7 +216,7 @@ internal class Camera1(
         facing.observe(this@Camera1) {
             if (isCameraOpened) {
                 stop()
-                start()
+                start(it)
             }
         }
 
@@ -234,18 +234,25 @@ internal class Camera1(
         jpegQuality.observe(this@Camera1) { updateCameraParams { jpegQuality = it } }
     }
 
-    override fun start(): Boolean {
+    /***
+     * If Modes.NO_CAMERA_ID is passed in then the camera will switch from
+     * the first back camera to the first front camera and vice versa.
+     */
+    override fun start(cameraId: Int): Boolean {
         if (!cameraOpenCloseLock.tryAcquire()) return false
-        chooseCamera()
+        when (cameraId) {
+            Modes.NO_CAMERA_ID -> chooseCamera()
+            else -> chooseCameraById(cameraId)
+        }
         runCatching { openCamera() }
-            .onFailure {
-                cameraOpenCloseLock.release()
-                listener.onCameraError(
-                    CameraViewException("Unable to open camera.", it),
-                    ErrorLevel.ErrorCritical
-                )
-                return false
-            }
+                .onFailure {
+                    cameraOpenCloseLock.release()
+                    listener.onCameraError(
+                            CameraViewException("Unable to open camera.", it),
+                            ErrorLevel.ErrorCritical
+                    )
+                    return false
+                }
         if (preview.isReady) runCatching { setUpPreview() }
             .onFailure {
                 cameraOpenCloseLock.release()
@@ -411,6 +418,15 @@ internal class Camera1(
         }
 
     /** This rewrites [.cameraId] and [.cameraInfo]. */
+    override fun getNextCameraId(): Int {
+
+        if (cameraId+1 < Camera.getNumberOfCameras()) {
+            return cameraId + 1
+        }
+        return Modes.Facing.FACING_BACK
+    }
+
+    /** This rewrites [.cameraId] and [.cameraInfo]. */
     private fun chooseCamera() {
 
         (0 until Camera.getNumberOfCameras()).forEach { id ->
@@ -421,6 +437,17 @@ internal class Camera1(
         }
 
         cameraId = INVALID_CAMERA_ID
+    }
+
+    /** This rewrites [.cameraId] and [.cameraInfo]. */
+    private fun chooseCameraById(id: Int) {
+
+        cameraId = if (id >= 0 && id < Camera.getNumberOfCameras()) {
+            id
+        } else {
+            INVALID_CAMERA_ID
+        }
+        Camera.getCameraInfo(cameraId, cameraInfo)
     }
 
     @Throws(RuntimeException::class)
