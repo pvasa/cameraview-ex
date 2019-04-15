@@ -42,9 +42,9 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
 import android.renderscript.RenderScript
-import android.support.media.ExifInterface
 import android.util.SparseIntArray
 import android.view.Surface
+import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
 import com.priyankvasa.android.cameraviewex.extension.isAfSupported
 import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
@@ -100,15 +100,6 @@ internal open class Camera2(
             put(Modes.OutputFormat.JPEG, ImageFormat.JPEG)
             put(Modes.OutputFormat.YUV_420_888, ImageFormat.YUV_420_888)
             put(Modes.OutputFormat.RGBA_8888, ImageFormat.YUV_420_888)
-        }
-    }
-
-    private val rotationToExifOrientationMap: SparseIntArray by lazy {
-        SparseIntArray().apply {
-            put(0, ExifInterface.ORIENTATION_NORMAL)
-            put(90, ExifInterface.ORIENTATION_ROTATE_90)
-            put(180, ExifInterface.ORIENTATION_ROTATE_180)
-            put(270, ExifInterface.ORIENTATION_ROTATE_270)
         }
     }
 
@@ -279,7 +270,8 @@ internal open class Camera2(
             }
         }
 
-    private fun android.media.Image.setCropRect() {
+    /** Return `true` if the image size was adjusted, `false` if using original size. */
+    private fun android.media.Image.setCropRect(): Boolean {
 
         val isScreenPortrait: Boolean = screenRotation % 180 == 0
 
@@ -307,7 +299,11 @@ internal open class Camera2(
                 if (adjustWidth) (height * ratio).roundToInt() else width, // right
                 if (!adjustWidth) (width * ratio).roundToInt() else height // bottom
             )
+
+            return true
         }
+
+        return false
     }
 
     private val onPreviewImageAvailableListener: ImageReader.OnImageAvailableListener by lazy {
@@ -352,14 +348,7 @@ internal open class Camera2(
                             return@launch
                         }
 
-                val exif = ExifInterface(imageData.inputStream())
-
-                exif.setAttribute(
-                    ExifInterface.TAG_ORIENTATION,
-                    rotationToExifOrientationMap
-                        .get(outputOrientation, ExifInterface.ORIENTATION_UNDEFINED)
-                        .toString()
-                )
+                val exif: ExifInterface = ExifInterface().apply { rotation = outputOrientation }
 
                 internalImage
                     .runCatching { Image(imageData, cropRect.width(), cropRect.height(), exif, format) }
@@ -372,15 +361,15 @@ internal open class Camera2(
 
     private val onCaptureImageAvailableListener: ImageReader.OnImageAvailableListener by lazy {
 
-        ImageReader.OnImageAvailableListener { reader ->
+        ImageReader.OnImageAvailableListener { reader: ImageReader ->
 
             val internalImage: android.media.Image =
                 runCatching {
                     reader.acquireLatestImage()
                         ?: throw NullPointerException("No new image is available.")
                 }
-                    .getOrElse { t: Throwable ->
-                        listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                    .getOrElse {
+                        listener.onCameraError(CameraViewException("Failed to capture image.", it))
                         return@OnImageAvailableListener
                     }
 
@@ -390,26 +379,30 @@ internal open class Camera2(
                 return@OnImageAvailableListener
             }
 
-            internalImage.setCropRect()
+            val imageSizeAdjusted: Boolean = internalImage.setCropRect()
 
             val imageData: ByteArray = runCatching { internalImage.decode(config.outputFormat.value, rs) }
-                .getOrElse { t ->
+                .getOrElse {
                     internalImage.close()
-                    listener.onCameraError(CameraViewException("Failed to capture image.", t))
+                    listener.onCameraError(CameraViewException("Failed to capture image.", it))
                     return@OnImageAvailableListener
                 }
 
-            val exif = ExifInterface(imageData.inputStream())
+            val exif = ExifInterface()
 
-            exif.setAttribute(
-                ExifInterface.TAG_ORIENTATION,
-                rotationToExifOrientationMap
-                    .get(outputOrientation, ExifInterface.ORIENTATION_UNDEFINED)
-                    .toString()
-            )
+            val exifAlreadyRead: Boolean
+                by lazy { internalImage.format == ImageFormat.JPEG && exif.readExifSafe(imageData) }
+
+            val finalImageData: ByteArray =
+                if (imageSizeAdjusted || !exifAlreadyRead) {
+                    exif.rotation = outputOrientation
+                    exif.writeExif(imageData)
+                } else {
+                    imageData
+                }
 
             val image = Image(
-                imageData,
+                finalImageData,
                 internalImage.width,
                 internalImage.height,
                 exif,
@@ -550,7 +543,7 @@ internal open class Camera2(
                             defaultCaptureCallback,
                             backgroundHandler
                         )
-                    }.onFailure { t -> listener.onCameraError(CameraViewException("Failed to restart camera preview.", t)) }
+                    }.onFailure { listener.onCameraError(CameraViewException("Failed to restart camera preview.", it)) }
 
                     manualFocusEngaged = false
 
@@ -605,8 +598,8 @@ internal open class Camera2(
 
                 manualFocusEngaged = true
 
-            }.onFailure { t ->
-                listener.onCameraError(CameraViewException("Failed to lock focus.", t))
+            }.onFailure {
+                listener.onCameraError(CameraViewException("Failed to lock focus.", it))
                 return@listener false
             }
 
@@ -1041,8 +1034,8 @@ internal open class Camera2(
         runCatching {
             previewRequestBuilder = camera?.createCaptureRequest(template)
                 ?: throw IllegalStateException("Camera not started or already stopped")
-        }.getOrElse { t ->
-            listener.onCameraError(CameraViewException("Failed to start camera session", t))
+        }.getOrElse {
+            listener.onCameraError(CameraViewException("Failed to start camera session", it))
             previewStartStopLock.release()
             return
         }
@@ -1222,6 +1215,7 @@ internal open class Camera2(
 
     // Calculate output orientation based on device sensor orientation.
     private val outputOrientation: Int
+        @Throws(IllegalStateException::class)
         get() {
             val cameraSensorOrientation: Int = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
                 ?: throw IllegalStateException("Camera characteristics not available")

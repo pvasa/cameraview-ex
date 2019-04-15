@@ -48,7 +48,6 @@ public class CameraFragment extends Fragment {
     private RequestManager glideManager;
 
     private Matrix matrix = new Matrix();
-    private float previewScale = 0.4f;
 
     @Nullable
     @Override
@@ -175,21 +174,15 @@ public class CameraFragment extends Fragment {
 
     private void showCapturePreview(@NotNull Image image) {
 
-        byte[] jpegData = image.getData();
-        final int rotation = image.getExifInterface().getRotationDegrees();
+        final float previewCaptureScale = 0.2f;
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        Bitmap bm = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length, options);
-
-        if (bm == null) return;
-
-        final RequestOptions requestOptions = new RequestOptions();
+        final RequestOptions requestOptions = new RequestOptions()
+            .override((int) (image.getWidth() * previewCaptureScale), (int) (image.getHeight() * previewCaptureScale));
 
         Activity activity = getActivity();
         if (activity != null) activity.runOnUiThread(() -> {
-                glideManager.load(rotate(bm, rotation))
-                    .apply(requestOptions.override((int) (bm.getWidth() * previewScale), (int) (bm.getHeight() * previewScale)))
+            glideManager.load(image.getData())
+                .apply(requestOptions)
                     .into(ivCapturePreview);
                 ivCapturePreview.setVisibility(View.VISIBLE);
                 ivCloseCapturePreview.setVisibility(View.VISIBLE);
@@ -211,15 +204,15 @@ public class CameraFragment extends Fragment {
 
         final ByteArrayOutputStream jpegDataStream = new ByteArrayOutputStream();
 
+        final float previewFrameScale = 0.4f;
+
         yuvImage.compressToJpeg(
             new Rect(0, 0, image.getWidth(), image.getHeight()),
-            (int) (100 * previewScale),
+            (int) (100 * previewFrameScale),
             jpegDataStream
         );
 
         jpegData = jpegDataStream.toByteArray();
-
-        final int rotation = image.getExifInterface().getRotationDegrees();
 
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -227,12 +220,13 @@ public class CameraFragment extends Fragment {
 
         if (bm == null) return;
 
-        final RequestOptions requestOptions = new RequestOptions();
+        final RequestOptions requestOptions = new RequestOptions()
+            .override((int) (bm.getWidth() * previewFrameScale), (int) (bm.getHeight() * previewFrameScale));
 
         Activity activity = getActivity();
         if (activity != null) activity.runOnUiThread(() ->
-            glideManager.load(rotate(bm, rotation))
-                .apply(requestOptions.override((int) (bm.getWidth() * previewScale), (int) (bm.getHeight() * previewScale)))
+            glideManager.load(rotate(bm, image.getExifInterface().getRotation()))
+                .apply(requestOptions)
                 .into(ivFramePreview)
         );
     }

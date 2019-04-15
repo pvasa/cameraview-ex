@@ -94,11 +94,9 @@ class CameraPreviewFrameHandler(
 
         if (!decoding.compareAndSet(false, true)) return
 
-        val firebaseRotation: Int = rotationToFirebaseOrientationMap[image.exifInterface.rotationDegrees]
-
         val metadata: FirebaseVisionImageMetadata = FirebaseVisionImageMetadata.Builder()
             .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
-            .setRotation(firebaseRotation)
+            .setRotation(rotationToFirebaseOrientationMap[image.exifInterface.rotation])
             .setWidth(image.width)
             .setHeight(image.height)
             .build()
@@ -121,7 +119,7 @@ class CameraPreviewFrameHandler(
         val bm: Bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.size, options)
             ?: return
 
-        previewAvailableCallback?.invoke(bm.rotate(image.exifInterface.rotationDegrees))
+        previewAvailableCallback?.invoke(bm.rotate(image.exifInterface.rotation))
     }
 
     fun release() {
