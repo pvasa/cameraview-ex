@@ -766,11 +766,11 @@ internal open class Camera2(
      * the first back camera to the first front camera and vice versa.
      */
     @SuppressLint("MissingPermission")
-    override fun start(id: Int): Boolean = runCatching {
+    override fun start(cameraId: Int): Boolean = runCatching {
         if (!cameraOpenCloseLock.tryAcquire()) return@runCatching false
         when (id) {
             Modes.NO_CAMERA_ID -> chooseCameraIdByFacing()
-            else -> chooseCameraIdById("$id")
+            else -> chooseCameraIdById("$cameraId")
         }
         collectCameraInfo()
         prepareCaptureImageReader()

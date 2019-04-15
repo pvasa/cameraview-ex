@@ -238,11 +238,11 @@ internal class Camera1(
      * If Modes.NO_CAMERA_ID is passed in then the camera will switch from
      * the first back camera to the first front camera and vice versa.
      */
-    override fun start(id: Int): Boolean {
+    override fun start(cameraIdd: Int): Boolean {
         if (!cameraOpenCloseLock.tryAcquire()) return false
         when (id) {
             Modes.NO_CAMERA_ID -> chooseCamera()
-            else -> chooseCameraById(id)
+            else -> chooseCameraById(cameraId)
         }
         runCatching { openCamera() }
                 .onFailure {
