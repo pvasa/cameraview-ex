@@ -33,16 +33,16 @@ internal open class Camera2Api24(
     override fun pauseVideoRecording(): Boolean = runCatching {
         videoManager.pause()
         true
-    }.getOrElse { t ->
-        listener.onCameraError(t as Exception)
+    }.getOrElse {
+        listener.onCameraError(it as Exception)
         false
     }
 
     override fun resumeVideoRecording(): Boolean = runCatching {
         videoManager.resume()
         true
-    }.getOrElse { t ->
-        listener.onCameraError(t as Exception)
+    }.getOrElse {
+        listener.onCameraError(it as Exception)
         false
     }
 }

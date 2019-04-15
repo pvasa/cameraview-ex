@@ -16,7 +16,7 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.support.media.ExifInterface
+import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 
 /**
  * Data class to wrap preview frames or captured image data.

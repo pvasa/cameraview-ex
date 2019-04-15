@@ -25,9 +25,9 @@ import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.ImageFormat
 import android.hardware.Camera
 import android.os.SystemClock
-import android.support.media.ExifInterface
 import android.support.v4.util.SparseArrayCompat
 import android.view.SurfaceHolder
+import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -106,7 +106,7 @@ internal class Camera1(
                     data,
                     camera.parameters.previewSize.width,
                     camera.parameters.previewSize.height,
-                    ExifInterface(data.inputStream()),
+                    ExifInterface().apply { rotation = calcCameraRotation(deviceRotation) },
                     camera.parameters.previewFormat
                 )
                 listener.onPreviewFrame(image)
@@ -125,7 +125,10 @@ internal class Camera1(
                     data,
                     parameters.pictureSize.width,
                     parameters.pictureSize.height,
-                    ExifInterface(data.inputStream()),
+                    ExifInterface().apply {
+                        if (parameters.pictureFormat == ImageFormat.JPEG && readExifSafe(data)) return@apply
+                        rotation = calcCameraRotation(deviceRotation)
+                    },
                     parameters.pictureFormat
                 )
                 listener.onPictureTaken(image)
