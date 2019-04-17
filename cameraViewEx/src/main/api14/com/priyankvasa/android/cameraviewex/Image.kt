@@ -24,14 +24,9 @@ import com.priyankvasa.android.cameraviewex.exif.ExifInterface
  * @param data preview/capture frame data [ByteArray]
  * @param width of the frame
  * @param height of the frame
- * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated
- *   The orientation [ExifInterface.TAG_ORIENTATION] would be one of
- *   [ExifInterface.ORIENTATION_NORMAL] // does not need rotation
- *   [ExifInterface.ORIENTATION_ROTATE_90] // needs 90 degree rotation
- *   [ExifInterface.ORIENTATION_ROTATE_180] // needs 180 degree rotation
- *   [ExifInterface.ORIENTATION_ROTATE_270] // needs 270 degree rotation
- * @param format image format of preview frame from [android.graphics.ImageFormat].
- *   Usually this would be [android.graphics.ImageFormat.NV21]
+ * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated.
+ *   For the image to be upright, it should be rotated by [ExifInterface.getRotation]
+ * @param format image format of frame from [android.graphics.ImageFormat].
  */
 data class Image(
     val data: ByteArray,

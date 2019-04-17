@@ -86,20 +86,18 @@ internal open class Camera2(
     /** A [Semaphore] to prevent concurrent starting or stopping preview. */
     private val previewStartStopLock: Semaphore by lazy { Semaphore(1, true) }
 
-    private val rs: RenderScript by lazy { RenderScript.create(context) }
+    private val imageProcessor: ImageProcessor
+        by lazy {
+            val contextType: RenderScript.ContextType =
+                if (BuildConfig.DEBUG) RenderScript.ContextType.DEBUG
+                else RenderScript.ContextType.NORMAL
+            ImageProcessor(RenderScript.create(context, contextType, RenderScript.CREATE_FLAG_NONE))
+        }
 
     private val internalFacings: SparseIntArray by lazy {
         SparseIntArray().apply {
             put(Modes.Facing.FACING_BACK, CameraCharacteristics.LENS_FACING_BACK)
             put(Modes.Facing.FACING_FRONT, CameraCharacteristics.LENS_FACING_FRONT)
-        }
-    }
-
-    private val internalOutputFormats: SparseIntArray by lazy {
-        SparseIntArray().apply {
-            put(Modes.OutputFormat.JPEG, ImageFormat.JPEG)
-            put(Modes.OutputFormat.YUV_420_888, ImageFormat.YUV_420_888)
-            put(Modes.OutputFormat.RGBA_8888, ImageFormat.YUV_420_888)
         }
     }
 
@@ -339,10 +337,16 @@ internal open class Camera2(
                     return@launch
                 }
 
+                runCatching { internalImage.checkValidYuv() }
+                    .onFailure {
+                        internalImage.close()
+                        return@launch
+                    }
+
                 internalImage.setCropRect()
 
                 val imageData: ByteArray =
-                    runCatching { internalImage.decode(Modes.OutputFormat.YUV_420_888, rs) }
+                    runCatching { imageProcessor.decode(internalImage, Modes.OutputFormat.YUV_420_888) }
                         .getOrElse {
                             internalImage.close()
                             return@launch
@@ -373,28 +377,29 @@ internal open class Camera2(
                         return@OnImageAvailableListener
                     }
 
-            if (internalImage.format != internalOutputFormat || internalImage.planes.isEmpty()) {
+            if (internalImage.planes.isEmpty()) {
                 internalImage.close()
                 listener.onCameraError(CameraViewException("Failed to capture image. Invalid format or internal image data."))
                 return@OnImageAvailableListener
             }
 
-            val imageSizeAdjusted: Boolean = internalImage.setCropRect()
+            val isImageSizeAdjusted: Boolean = internalImage.setCropRect()
 
-            val imageData: ByteArray = runCatching { internalImage.decode(config.outputFormat.value, rs) }
-                .getOrElse {
-                    internalImage.close()
-                    listener.onCameraError(CameraViewException("Failed to capture image.", it))
-                    return@OnImageAvailableListener
-                }
+            val imageData: ByteArray =
+                runCatching { imageProcessor.decode(internalImage, config.outputFormat.value) }
+                    .getOrElse {
+                        internalImage.close()
+                        listener.onCameraError(CameraViewException("Failed to capture image.", it))
+                        return@OnImageAvailableListener
+                    }
 
             val exif = ExifInterface()
 
-            val exifAlreadyRead: Boolean
+            val isExifAlreadyRead: Boolean
                 by lazy { internalImage.format == ImageFormat.JPEG && exif.readExifSafe(imageData) }
 
             val finalImageData: ByteArray =
-                if (imageSizeAdjusted || !exifAlreadyRead) {
+                if (isImageSizeAdjusted || !isExifAlreadyRead) {
                     exif.rotation = outputOrientation
                     exif.writeExif(imageData)
                 } else {
@@ -438,7 +443,13 @@ internal open class Camera2(
 
     private val pictureSizes: SizeMap by lazy { SizeMap() }
 
-    protected val internalOutputFormat: Int get() = internalOutputFormats[config.outputFormat.value]
+    protected val internalOutputFormat: Int
+        get() = when (config.outputFormat.value) {
+            Modes.OutputFormat.JPEG -> ImageFormat.JPEG
+            Modes.OutputFormat.RGBA_8888 -> ImageFormat.YUV_420_888
+            Modes.OutputFormat.YUV_420_888 -> ImageFormat.YUV_420_888
+            else -> ImageFormat.YUV_420_888
+        }
 
     // 0, 90, 180, or 270
     override var deviceRotation: Int = 0
