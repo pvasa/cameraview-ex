@@ -304,18 +304,11 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         chooseSmallest: Boolean = false
     ): Size = videoSizes.sizes(aspectRatio).run {
 
-        val sort: (size: Size) -> Pair<Int, Int> = { size ->
-            if (size.width < size.height) size.height to size.width
-            else size.width to size.height
-        }
-
-        return@run if (chooseSmallest) firstOrNull { size: Size ->
-            val (surfaceLonger: Int, surfaceShorter: Int) = sort(size)
-            return@firstOrNull surfaceLonger == surfaceShorter * aspectRatio.x / aspectRatio.y
+        if (chooseSmallest) firstOrNull {
+            it.longerEdge == it.shorterEdge * aspectRatio.x / aspectRatio.y
         } ?: first()
-        else lastOrNull { size: Size ->
-            val (surfaceLonger: Int, surfaceShorter: Int) = sort(size)
-            return@lastOrNull surfaceLonger == surfaceShorter * aspectRatio.x / aspectRatio.y
+        else lastOrNull {
+            it.longerEdge == it.shorterEdge * aspectRatio.x / aspectRatio.y
         } ?: last()
     }
 }

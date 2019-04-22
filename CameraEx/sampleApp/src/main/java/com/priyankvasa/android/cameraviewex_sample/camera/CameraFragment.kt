@@ -160,7 +160,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
             addCameraOpenedListener { Timber.i("Camera opened.") }
 
             // Callback on background thread
-            setPreviewFrameListener(cameraPreviewFrameHandler.frameRate, cameraPreviewFrameHandler.listener)
+            setContinuousFrameListener(cameraPreviewFrameHandler.frameRate, cameraPreviewFrameHandler.listener)
 
             // Callback on main (UI) thread
             addPictureTakenListener { image: Image -> launch { saveDataToFile(image) } }
@@ -265,6 +265,7 @@ open class CameraFragment : Fragment(), SettingsDialogFragment.ConfigListener, A
         tbContinuousFrame.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) camera.enableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
             else camera.disableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
+            cameraPreviewFrameHandler.resetStats()
             updateViewState()
         }
 

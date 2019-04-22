@@ -25,7 +25,7 @@
         android:layout_marginStart="?attr/actionBarSize"
         android:adjustViewBounds="true"
         android:keepScreenOn="true"
-        app:aspectRatio="3:4"
+        app:aspectRatio="4:3"
         app:autoFocus="continuous_picture"
         app:awb="auto"
         app:cameraMode="single_capture|continuous_frame"

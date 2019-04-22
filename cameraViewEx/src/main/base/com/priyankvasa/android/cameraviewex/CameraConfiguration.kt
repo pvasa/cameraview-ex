@@ -27,6 +27,8 @@ class CameraConfiguration private constructor() {
     internal val sensorAspectRatio: AspectRatio
         get() = aspectRatio.value.run { if (x < y) inverse() else this }
     internal val cameraMode: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_CAMERA_MODE)
+    internal val continuousFrameSize: NonNullableLiveData<Size> = NonNullableLiveData(Modes.DEFAULT_CONTINUOUS_FRAME_SIZE)
+    internal val singleCaptureSize: NonNullableLiveData<Size> = NonNullableLiveData(Modes.DEFAULT_SINGLE_CAPTURE_SIZE)
     internal val outputFormat: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_OUTPUT_FORMAT)
     internal val jpegQuality: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_JPEG_QUALITY)
     internal val facing: NonNullableLiveData<Int> = NonNullableLiveData(Modes.DEFAULT_FACING)
@@ -86,9 +88,27 @@ class CameraConfiguration private constructor() {
             cameraMode.value = attrs.getInt(R.styleable.CameraView_cameraMode, Modes.DEFAULT_CAMERA_MODE)
             outputFormat.value = attrs.getInt(R.styleable.CameraView_outputFormat, Modes.DEFAULT_OUTPUT_FORMAT)
             shutter.value = attrs.getInt(R.styleable.CameraView_shutter, Modes.DEFAULT_SHUTTER)
+            jpegQuality.value = attrs.getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
 
             // API 21+
-            jpegQuality.value = attrs.getInt(R.styleable.CameraView_jpegQuality, Modes.DEFAULT_JPEG_QUALITY)
+            continuousFrameSize.value = attrs.getString(R.styleable.CameraView_continuousFrameSize)
+                .runCatching {
+                    if (this.isNullOrBlank()) Modes.DEFAULT_CONTINUOUS_FRAME_SIZE
+                    else Size.parse(this)
+                }
+                .getOrElse {
+                    warn("Cannot parse size. Fallback to default sizes based on aspect ratio.", it)
+                    Modes.DEFAULT_CONTINUOUS_FRAME_SIZE
+                }
+            singleCaptureSize.value = attrs.getString(R.styleable.CameraView_singleCaptureSize)
+                .runCatching {
+                    if (this.isNullOrBlank()) Modes.DEFAULT_SINGLE_CAPTURE_SIZE
+                    else Size.parse(this)
+                }
+                .getOrElse {
+                    warn("Cannot parse size. Fallback to default sizes based on aspect ratio.", it)
+                    Modes.DEFAULT_SINGLE_CAPTURE_SIZE
+                }
             touchToFocus.value = attrs.getBoolean(R.styleable.CameraView_touchToFocus, Modes.DEFAULT_TOUCH_TO_FOCUS)
             pinchToZoom.value = attrs.getBoolean(R.styleable.CameraView_pinchToZoom, Modes.DEFAULT_PINCH_TO_ZOOM)
             awb.value = attrs.getInt(R.styleable.CameraView_awb, Modes.DEFAULT_AWB)

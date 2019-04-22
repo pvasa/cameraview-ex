@@ -152,7 +152,7 @@ public class CameraFragment extends Fragment {
             return Unit.INSTANCE;
         });
 
-        camera.setPreviewFrameListener(
+        camera.setContinuousFrameListener(
             5f, // Max frame rate
             (Image image) -> {
                 showFramePreview(image);
