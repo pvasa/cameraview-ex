@@ -25,10 +25,9 @@ class CameraPreviewFrameHandler(
     private var previewAvailableCallback: ((Bitmap) -> Unit)?
 ) {
 
-    val frameRate: Float = 5f
+    val frameRate: Float = 10f
 
     val listener: (Image) -> Unit = { image: Image ->
-        // Uncomment to print stats to logcat
         printStats()
         detectBarcodes(image)
         // Comment to stop showing the small preview of continuous frames
@@ -75,19 +74,39 @@ class CameraPreviewFrameHandler(
      */
     private var min: Long = Long.MAX_VALUE
     private var max: Long = Long.MIN_VALUE
-    private var last = 0L
+    private var last: Long = 0L
+    private var frameCount: Long = 0L
+    private var totalDiff: Long = 0L
 
     private fun printStats() {
+        ++frameCount
         val now: Long = SystemClock.elapsedRealtime()
         if (last == 0L) {
             last = now
             return
         }
         val diff: Long = now - last
+        totalDiff += diff
         if (diff > max) max = diff else if (diff < min) min = diff
         last = now
-        // Max diff is not correct after toggling preview frame mode
-        Timber.i("Preview frame stats: Time from last frame: ${diff}ms, Min diff: ${min}ms, Max diff: ${max}ms")
+        Timber.i(
+            """
+            Preview frame stats:
+                Frame count: $frameCount
+                Time from last frame: ${diff}ms
+                Min diff: ${min}ms
+                Max diff: ${max}ms
+                Avg diff: ${totalDiff / frameCount}
+                """
+        )
+    }
+
+    fun resetStats() {
+        min = Long.MAX_VALUE
+        max = Long.MIN_VALUE
+        last = 0L
+        frameCount = 0L
+        totalDiff = 0L
     }
 
     private fun detectBarcodes(image: Image) {

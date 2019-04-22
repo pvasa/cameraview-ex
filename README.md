@@ -19,11 +19,15 @@ Minimum API 14 is required to use CameraViewEx.
 #### Why another camera library?
 Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
 
+> Note: This is alpha version with more advanced features like any size preview and customizable output sizes. If you need more stable version or find any issues with this version, please switch to [version v3.4.3](https://github.com/pvasa/cameraview-ex/tree/v3.4.3).
+
 ## Features
 - High quality image capture
 - Multiple camera modes like single capture, continuous frame, and video capture
 - Ability to enable all or multiple modes simultaneously
 - Preview frame listener
+- Any size preview
+- Customizable continuous frame and single capture output size (different from preview size and aspect ratio)
 - Support multiple formats for output images like jpeg, yuv_420_888, rgba_8888
 - Pinch to zoom
 - Touch to focus
@@ -42,7 +46,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.4.3"
+    implementation "com.priyankvasa.android:cameraview-ex:3.5.0-alpha"
 }
 ```
 
@@ -58,6 +62,7 @@ dependencies {
     app:autoFocus="continuous_picture"
     app:awb="auto"
     app:cameraMode="single_capture"
+    app:continuousFrameSize="W1440,1080"
     app:facing="back"
     app:flash="auto"
     app:jpegQuality="high"
@@ -66,6 +71,7 @@ dependencies {
     app:outputFormat="jpeg"
     app:pinchToZoom="true"
     app:shutter="short_time"
+    app:singleCaptureSize="1920,H1080"
     app:touchToFocus="true"
     app:zsl="true" />
 ```
@@ -119,7 +125,7 @@ camera.setCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 camera.enableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 // Output format is always ImageFormat.YUV_420_888
 // Callback on background thread
-camera.setPreviewFrameListener(maxFrameRate = 10f /*optional*/) { image: Image -> /* Preview frame available. */ }
+camera.setContinuousFrameListener(maxFrameRate = 10f /*optional*/) { image: Image -> /* Frame available. */ }
 // Disable continuous frame mode
 camera.disableCameraMode(Modes.CameraMode.CONTINUOUS_FRAME)
 ```
@@ -187,6 +193,8 @@ camera.capture()
 | cameraMode                                   | app:cameraMode           | **single_capture**, continuous_frame, video_capture                                                                             | :heavy_check_mark:             | :heavy_check_mark:          |
 | facing                                       | app:facing               | **back**, front                                                                                                                 | :heavy_check_mark:             | :heavy_check_mark:          |
 | aspectRatio                                  | app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_                                          | :heavy_check_mark:             | :heavy_check_mark:          |
+| continuousFrameSize                          | app:continuousFrameSize  | **`W1920,H1080`**, `W1440,1080`, `1280,H720` <br/> _(or any other size)_                                                        | :heavy_check_mark:             | :heavy_check_mark:          |
+| singleCaptureSize                            | app:singleCaptureSize    | **`W1920,H1080`**, `W1440,1080`, `1280,H720` <br/> _(or any other size)_                                                        | :heavy_check_mark:             | :heavy_check_mark:          |
 | touchToFocus                                 | app:touchToFocus         | **false**, true                                                                                                                 | :x:                            | :heavy_check_mark:          |
 | autoFocus                                    | app:autoFocus            | **off**, auto, macro, continuous_video, <br/> continuous_picture, edof                                                          | :heavy_check_mark:             | :heavy_check_mark:          |
 | pinchToZoom                                  | app:pinchToZoom          | **false**, true                                                                                                                 | :x:                            | :heavy_check_mark:          |

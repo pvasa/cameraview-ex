@@ -14,6 +14,8 @@
 <resources>
     <public name="facing" type="attr" />
     <public name="aspectRatio" type="attr" />
+    <public name="continuousFrameSize" type="attr" />
+    <public name="singleCaptureSize" type="attr" />
     <public name="autoFocus" type="attr" />
     <public name="flash" type="attr" />
     <public name="touchToFocus" type="attr" />

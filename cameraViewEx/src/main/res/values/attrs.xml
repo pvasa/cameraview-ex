@@ -26,10 +26,17 @@
             <!-- The camera device faces the same direction as the device's screen. -->
             <enum name="front" value="1" />
         </attr>
-        <!-- Aspect ratio of camera preview and pictures. -->
+        <!--
+            Aspect ratio of camera preview and pictures.
+            This also affects orientation and not just dimensions.
+            For eg., 4:3 (landscape) and 3:4 (portrait) will generate differently oriented preview/output
+        -->
         <attr name="aspectRatio" format="string" />
 
-        <!-- Auto focus mode. -->
+        <!--
+            Auto focus mode.
+            See {@link android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE}
+        -->
         <attr name="autoFocus" format="enum">
             <enum name="off" value="0" />
             <enum name="auto" value="1" />
@@ -39,10 +46,16 @@
             <enum name="edof" value="5" />
         </attr>
 
+        <!--
+            If true, when user touches an area on preview,
+            focusing will be set to "auto" mode and the touched area will be focused.
+        -->
         <attr name="touchToFocus" format="boolean" />
 
+        <!-- Allow adjusting digital zoom by pinching the screen in and out -->
         <attr name="pinchToZoom" format="boolean" />
 
+        <!-- See {@link android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE} -->
         <attr name="awb" format="enum">
             <enum name="off" value="0" />
             <enum name="auto" value="1" />
@@ -81,8 +94,37 @@
 
         <!--<attr name="ae" format="boolean" />-->
 
+        <!-- See {@link android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE} -->
         <attr name="opticalStabilization" format="boolean" />
 
+        <!--
+            Set desired size for continuous frames. This only affects dimensions of frame, the orientation is decided by [aspectRatio].
+
+            Valid formats are `W1440,H1080`, `H1440,W1080`, `W1440,1080`, `1440,W1080`, `H1440,1080`, `1440,H1080`
+            The output is not guaranteed to be of this size.
+            If it is not supported by camera device or in wrong format,
+            it will silently fallback to using best size based on aspect ratio.
+
+            NOTE: Behaviour for camera1 (API < 21) is different.
+            On setting this value, the actual preview will also be of this size but will be squeezed into {@link CameraView.aspectRatio}.
+            This is due to how camera1 api does not allow setting different sizes for preview surface and output.
+        -->
+        <attr name="continuousFrameSize" format="string" />
+
+        <!--
+            Set desired size for single capture images. This only affects dimensions of image, the orientation is decided by {@link CameraView.aspectRatio}.
+
+            Valid formats are `W1440,H1080`, `H1440,W1080`, `W1440,1080`, `1440,W1080`, `H1440,1080`, `1440,H1080`
+            The output is not guaranteed to be of this size.
+            If it is not supported by camera device or in wrong format,
+            it will silently fallback to using best size based on aspect ratio.
+        -->
+        <attr name="singleCaptureSize" format="string" />
+
+        <!--
+            Noise reduction mode.
+            See {@link android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE}
+        -->
         <attr name="noiseReduction" format="enum">
             <enum name="off" value="0" />
             <enum name="fast" value="1" />
@@ -91,18 +133,31 @@
             <enum name="zero_shutter_lag" value="4" />
         </attr>
 
+        <!-- Duration of shutter animation shown when capturing a single picture -->
         <attr name="shutter" format="enum">
+            <!-- Don't show shutter -->
             <enum name="off" value="0" />
+            <!-- 200 ms shutter duration -->
             <enum name="short_time" value="200" />
+            <!-- 400 ms shutter duration -->
             <enum name="long_time" value="400" />
         </attr>
 
+        <!--
+            Set format of the output of image data produced from the camera for {@link Modes.CameraMode.SINGLE_CAPTURE} mode.
+            Supported values are {@link Modes.OutputFormat}.
+         -->
         <attr name="outputFormat" format="enum">
             <enum name="jpeg" value="0" />
             <enum name="yuv_420_888" value="1" />
             <enum name="rgba_8888" value="2" />
         </attr>
 
+        <!--
+            Set image quality of the output image.
+            This property is only applicable for {@link outputFormat} {@link Modes.OutputFormat.JPEG}
+            Supported values are {@link Modes.JpegQuality}.
+        -->
         <attr name="jpegQuality" format="enum">
             <enum name="low" value="60" />
             <enum name="medium" value="80" />
@@ -110,13 +165,30 @@
             <enum name="high" value="100" />
         </attr>
 
-        <!-- Zero shutter lag capture -->
+        <!--
+            Zero shutter lag capture mode.
+            See {@link android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG}
+        -->
         <attr name="zsl" format="boolean" />
 
         <attr name="cameraMode" format="flags">
+            <!--
+                Capture still images.
+                Call {@link CameraView.capture} after setting this mode to capture a single picture.
+                Callback in listener set by {@link CameraView.addPictureTakenListener}
+            -->
             <flag name="single_capture" value="1" />
             <!--<flag name="burst_capture" value="2" />-->
+            <!--
+                Listen to continuous frames generated from camera.
+                Callbacks in listener set by {@link CameraView.setContinuousFrameListener}
+            -->
             <flag name="continuous_frame" value="4" />
+            <!--
+                Record videos.
+                Call {@link CameraView.startVideoRecording} after setting this mode to start video recording.
+                Callback in listener set by {@link CameraView.addVideoRecordStartedListener}
+            -->
             <flag name="video_capture" value="8" />
         </attr>
 

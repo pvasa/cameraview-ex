@@ -173,18 +173,20 @@ object Modes {
     }
 
     const val DEFAULT_ADJUST_VIEW_BOUNDS = true
-    val DEFAULT_ASPECT_RATIO = AspectRatio.of(4, 3)
-    const val DEFAULT_CAMERA_MODE = CameraMode.SINGLE_CAPTURE
-    const val DEFAULT_OUTPUT_FORMAT = OutputFormat.JPEG
-    const val DEFAULT_JPEG_QUALITY = JpegQuality.DEFAULT
-    const val DEFAULT_FACING = Facing.FACING_BACK
-    const val DEFAULT_AUTO_FOCUS = AutoFocus.AF_OFF
+    val DEFAULT_ASPECT_RATIO: AspectRatio = AspectRatio.of(4, 3)
+    val DEFAULT_CONTINUOUS_FRAME_SIZE: Size = Size.Invalid
+    val DEFAULT_SINGLE_CAPTURE_SIZE: Size = Size.Invalid
+    const val DEFAULT_CAMERA_MODE: Int = CameraMode.SINGLE_CAPTURE
+    const val DEFAULT_OUTPUT_FORMAT: Int = OutputFormat.JPEG
+    const val DEFAULT_JPEG_QUALITY: Int = JpegQuality.DEFAULT
+    const val DEFAULT_FACING: Int = Facing.FACING_BACK
+    const val DEFAULT_AUTO_FOCUS: Int = AutoFocus.AF_OFF
     const val DEFAULT_TOUCH_TO_FOCUS = false
     const val DEFAULT_PINCH_TO_ZOOM = false
     const val DEFAULT_OPTICAL_STABILIZATION = false
-    const val DEFAULT_FLASH = Flash.FLASH_OFF
-    const val DEFAULT_NOISE_REDUCTION = NoiseReduction.NOISE_REDUCTION_OFF
-    const val DEFAULT_SHUTTER = Shutter.SHUTTER_OFF
-    const val DEFAULT_AWB = AutoWhiteBalance.AWB_OFF
+    const val DEFAULT_FLASH: Int = Flash.FLASH_OFF
+    const val DEFAULT_NOISE_REDUCTION: Int = NoiseReduction.NOISE_REDUCTION_OFF
+    const val DEFAULT_SHUTTER: Int = Shutter.SHUTTER_OFF
+    const val DEFAULT_AWB: Int = AutoWhiteBalance.AWB_OFF
     const val DEFAULT_ZSL = false
 }
