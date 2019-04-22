@@ -16,6 +16,9 @@
 
 package com.priyankvasa.android.cameraviewex.exif;
 
+import android.os.Build;
+import android.support.annotation.RequiresApi;
+
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -213,6 +216,7 @@ class ExifData {
      * Decodes the user comment tag into string as specified in the EXIF
      * standard. Returns null if decoding failed.
      */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     protected String getUserComment() {
         IfdData ifdData = mIfdDatas[IfdId.TYPE_IFD_0];
         if (ifdData == null) {

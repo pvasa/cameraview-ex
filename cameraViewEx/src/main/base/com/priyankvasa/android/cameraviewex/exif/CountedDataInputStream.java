@@ -16,6 +16,9 @@
 
 package com.priyankvasa.android.cameraviewex.exif;
 
+import android.os.Build;
+import android.support.annotation.RequiresApi;
+
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -28,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 class CountedDataInputStream extends FilterInputStream {
 
     // allocate a byte buffer for a long value;
-    private final byte mByteArray[] = new byte[8];
+    private final byte[] mByteArray = new byte[8];
     private final ByteBuffer mByteBuffer = ByteBuffer.wrap(mByteArray);
     private int mCount = 0;
 
@@ -122,14 +125,15 @@ class CountedDataInputStream extends FilterInputStream {
         return mByteBuffer.getLong();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String readString(int n) throws IOException {
-        byte buf[] = new byte[n];
+        byte[] buf = new byte[n];
         readOrThrow(buf);
         return new String(buf, StandardCharsets.UTF_8);
     }
 
     public String readString(int n, Charset charset) throws IOException {
-        byte buf[] = new byte[n];
+        byte[] buf = new byte[n];
         readOrThrow(buf);
         return new String(buf, charset);
     }

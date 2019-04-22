@@ -18,6 +18,8 @@ package com.priyankvasa.android.cameraviewex.exif;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.SparseIntArray;
 
 import org.jetbrains.annotations.NotNull;
@@ -1680,6 +1682,7 @@ public class ExifInterface {
      * Decodes the user comment tag into string as specified in the EXIF
      * standard. Returns null if decoding failed.
      */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String getUserComment() {
         return mData.getUserComment();
     }
