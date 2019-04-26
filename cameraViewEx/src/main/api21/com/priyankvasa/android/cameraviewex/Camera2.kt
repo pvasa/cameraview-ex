@@ -46,6 +46,8 @@ import android.util.SparseIntArray
 import android.view.Surface
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
+import com.priyankvasa.android.cameraviewex.extension.cropHeight
+import com.priyankvasa.android.cameraviewex.extension.cropWidth
 import com.priyankvasa.android.cameraviewex.extension.isAfSupported
 import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
 import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
@@ -359,7 +361,7 @@ internal open class Camera2(
                 val exif: ExifInterface = ExifInterface().apply { rotation = outputOrientation }
 
                 internalImage
-                    .runCatching { Image(imageData, cropRect.width(), cropRect.height(), exif, format) }
+                    .runCatching { Image(imageData, cropWidth, cropHeight, exif, format) }
                     .onSuccess { image: Image -> listener.onPreviewFrame(image) }
 
                 internalImage.close()
@@ -412,10 +414,10 @@ internal open class Camera2(
 
             val image = Image(
                 finalImageData,
-                internalImage.width,
-                internalImage.height,
+                internalImage.cropWidth,
+                internalImage.cropHeight,
                 exif,
-                internalImage.format
+                config.outputFormat.value
             )
 
             listener.onPictureTaken(image)
@@ -452,7 +454,7 @@ internal open class Camera2(
             Modes.OutputFormat.JPEG -> ImageFormat.JPEG
             Modes.OutputFormat.RGBA_8888 -> ImageFormat.YUV_420_888
             Modes.OutputFormat.YUV_420_888 -> ImageFormat.YUV_420_888
-            else -> ImageFormat.YUV_420_888
+            else -> Modes.DEFAULT_OUTPUT_FORMAT
         }
 
     // 0, 90, 180, or 270

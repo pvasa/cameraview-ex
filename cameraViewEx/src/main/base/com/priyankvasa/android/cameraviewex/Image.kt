@@ -26,9 +26,9 @@ import com.priyankvasa.android.cameraviewex.exif.ExifInterface
  * @param height of the frame
  * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated.
  *   For the image to be upright, it should be rotated by [ExifInterface.getRotation]
- * @param format image format of frame from [android.graphics.ImageFormat].
+ * @param format image format of frame from [Modes.OutputFormat].
  */
-data class Image(
+data class Image internal constructor(
     val data: ByteArray,
     val width: Int,
     val height: Int,
@@ -36,16 +36,17 @@ data class Image(
     val format: Int
 ) {
 
-    override fun equals(other: Any?): Boolean = this === other ||
-        (other is Image &&
-            width == other.width &&
-            height == other.height &&
-            format == other.format &&
-            exifInterface == other.exifInterface &&
-            data.contentEquals(other.data))
+    override fun equals(other: Any?): Boolean =
+        this === other ||
+            (other is Image &&
+                width == other.width &&
+                height == other.height &&
+                format == other.format &&
+                exifInterface == other.exifInterface &&
+                data.contentEquals(other.data))
 
     override fun hashCode(): Int {
-        var result = data.contentHashCode()
+        var result: Int = data.contentHashCode()
         result = 31 * result + width
         result = 31 * result + height
         result = 31 * result + format
