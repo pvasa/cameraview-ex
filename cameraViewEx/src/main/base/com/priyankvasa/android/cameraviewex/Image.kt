@@ -33,7 +33,7 @@ data class Image internal constructor(
     val width: Int,
     val height: Int,
     val exifInterface: ExifInterface,
-    val format: Int
+    @Modes.OutputFormat val format: Int
 ) {
 
     override fun equals(other: Any?): Boolean =
