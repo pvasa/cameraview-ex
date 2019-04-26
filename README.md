@@ -46,7 +46,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.5.0-alpha"
+    implementation "com.priyankvasa.android:cameraview-ex:3.5.1-alpha"
 }
 ```
 

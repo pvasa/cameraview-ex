@@ -19,7 +19,7 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 3
-    private const val minorVersion = 4
+    private const val minorVersion = 5
     private const val patchVersion = 1
     private const val versionClassifier = ""
 
