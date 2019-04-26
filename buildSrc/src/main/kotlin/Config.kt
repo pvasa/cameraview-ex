@@ -20,7 +20,7 @@ object Config {
 
     private const val majorVersion = 3
     private const val minorVersion = 5
-    private const val patchVersion = 0
+    private const val patchVersion = 1
     private const val versionClassifier = "alpha"
 
     val versionName: String
@@ -33,7 +33,7 @@ object Config {
             patchVersion
 
     object Versions {
-        const val kotlin = "1.3.30"
+        const val kotlin = "1.3.31"
         const val support = "28.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"

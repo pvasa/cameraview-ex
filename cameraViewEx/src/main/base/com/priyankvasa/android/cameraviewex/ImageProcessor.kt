@@ -28,6 +28,11 @@ import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicYuvToRGB
 import android.renderscript.Type
 import android.support.annotation.RequiresApi
+import com.priyankvasa.android.cameraviewex.extension.cropHeight
+import com.priyankvasa.android.cameraviewex.extension.cropWidth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -47,9 +52,7 @@ fun Image.checkValidYuv() {
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 class ImageProcessor(private val rs: RenderScript) {
 
-    private val yuvTypeBuilder: Type.Builder = Type.Builder(rs, Element.YUV(rs))
-
-    private val rgbTypeBuilder: Type.Builder = Type.Builder(rs, Element.RGBA_8888(rs))
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 
     /**
      * Decode receiver [Image] to a byte array based on format of the image
@@ -69,7 +72,7 @@ class ImageProcessor(private val rs: RenderScript) {
         ImageFormat.YUV_420_888 -> when (outputFormat) {
             Modes.OutputFormat.YUV_420_888 -> getYuvImageData(image)
             Modes.OutputFormat.RGBA_8888 ->
-                yuvToRgb(getYuvImageData(image), image.cropRect.width(), image.cropRect.height())
+                yuvToRgb(getYuvImageData(image), image.cropWidth, image.cropHeight)
             else -> throw IllegalArgumentException("Output format $outputFormat is invalid.")
         }
 
@@ -81,8 +84,8 @@ class ImageProcessor(private val rs: RenderScript) {
 
         val startTime: Long = SystemClock.elapsedRealtime()
 
-        val adjustedWidth: Int = image.cropRect.width()
-        val adjustedHeight: Int = image.cropRect.height()
+        val adjustedWidth: Int = image.cropWidth
+        val adjustedHeight: Int = image.cropHeight
 
         val buffer: ByteBuffer = image.planes[0].buffer.apply { rewind() }
 
@@ -111,8 +114,8 @@ class ImageProcessor(private val rs: RenderScript) {
 
         image.checkValidYuv()
 
-        val imageWidth: Int = image.cropRect.width()
-        val imageHeight: Int = image.cropRect.height()
+        val imageWidth: Int = image.cropWidth
+        val imageHeight: Int = image.cropHeight
 
         val planes: Array<Image.Plane> = image.planes
         val wh: Int = imageWidth * imageHeight
@@ -170,7 +173,8 @@ class ImageProcessor(private val rs: RenderScript) {
     @Throws(IllegalArgumentException::class)
     fun yuvToRgb(yuvImageData: ByteArray, imageWidth: Int, imageHeight: Int): ByteArray {
 
-        val yuvType: Type = yuvTypeBuilder.setX(imageWidth)
+        val yuvType: Type = Type.Builder(rs, Element.YUV(rs))
+            .setX(imageWidth)
             .setY(imageHeight)
             .setYuvFormat(ImageFormat.NV21)
             .create()
@@ -179,7 +183,8 @@ class ImageProcessor(private val rs: RenderScript) {
             Allocation.createTyped(rs, yuvType, Allocation.USAGE_SCRIPT)
                 .apply { copyFrom(yuvImageData) }
 
-        val rgbType: Type = rgbTypeBuilder.setX(imageWidth)
+        val rgbType: Type = Type.Builder(rs, Element.RGBA_8888(rs))
+            .setX(imageWidth)
             .setY(imageHeight)
             .create()
 
@@ -187,27 +192,25 @@ class ImageProcessor(private val rs: RenderScript) {
             Allocation.createTyped(rs, rgbType, Allocation.USAGE_SCRIPT)
 
         // Create script
-        ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs))
-            .apply {
-                // Set input for script
-                setInput(yuvAllocation)
-                // Call script for output allocation
-                forEach(rgbAllocation)
-            }
-            .also { it.destroy() }
+        val script: ScriptIntrinsicYuvToRGB = ScriptIntrinsicYuvToRGB.create(rs, Element.U8_4(rs))
+        // Set input for script
+        script.setInput(yuvAllocation)
+        // Call script for output allocation
+        script.forEach(rgbAllocation)
 
         val rgbData = ByteArray(rgbAllocation.bytesSize)
 
         // Copy script result into byte array
         rgbAllocation.copyTo(rgbData)
 
-        rs.finish()
-
         // Destroy allocations and types to free memory
-        yuvAllocation.destroy()
-        rgbAllocation.destroy()
-        yuvType.destroy()
-        rgbType.destroy()
+        coroutineScope.launch {
+            yuvAllocation.destroy()
+            rgbAllocation.destroy()
+            yuvType.destroy()
+            rgbType.destroy()
+            script.destroy()
+        }
 
         return rgbData
     }
