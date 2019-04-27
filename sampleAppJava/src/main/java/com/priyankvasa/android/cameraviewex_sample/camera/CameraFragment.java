@@ -152,7 +152,7 @@ public class CameraFragment extends Fragment {
             return Unit.INSTANCE;
         });
 
-        camera.setPreviewFrameListener(
+        camera.setContinuousFrameListener(
             5f, // Max frame rate
             (Image image) -> {
                 showFramePreview(image);
@@ -233,22 +233,18 @@ public class CameraFragment extends Fragment {
 
     private Bitmap rotate(Bitmap bm, int rotation) {
 
-        switch (rotation) {
+        if (rotation == 0) return bm;
 
-            case 0:
-                return bm;
+        matrix.setRotate(rotation);
 
-            default:
-                matrix.setRotate(rotation);
-                return Bitmap.createBitmap(
-                    bm,
-                    0,
-                    0,
-                    bm.getWidth(),
-                    bm.getHeight(),
-                    matrix,
-                    true
-                );
-        }
+        return Bitmap.createBitmap(
+            bm,
+            0,
+            0,
+            bm.getWidth(),
+            bm.getHeight(),
+            matrix,
+            true
+        );
     }
 }

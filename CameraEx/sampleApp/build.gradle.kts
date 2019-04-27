@@ -75,6 +75,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         setTargetCompatibility(JavaVersion.VERSION_1_8)
     }
+
+    packagingOptions {
+        pickFirst("META-INF/atomicfu.kotlin_module")
+    }
 }
 
 dependencies {
@@ -82,8 +86,8 @@ dependencies {
     implementation(fileTree(mapOf("include" to arrayOf("*.jar"), "dir" to "libs")))
 
     // CameraViewEx
-//    implementation("com.priyankvasa.android:cameraview-ex:3.4.3")
-    implementation("com.priyankvasa.android:cameraview-ex:3.4.3-debug")
+//    implementation("com.priyankvasa.android:cameraview-ex:3.5.1-alpha")
+    implementation("com.priyankvasa.android:cameraview-ex:3.5.1-alpha-debug")
 
     // Kotlin
     implementation(Config.Libs.kotlinStdLibJdk8)

@@ -46,6 +46,8 @@ import android.util.SparseIntArray
 import android.view.Surface
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
+import com.priyankvasa.android.cameraviewex.extension.cropHeight
+import com.priyankvasa.android.cameraviewex.extension.cropWidth
 import com.priyankvasa.android.cameraviewex.extension.isAfSupported
 import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
 import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
@@ -86,20 +88,18 @@ internal open class Camera2(
     /** A [Semaphore] to prevent concurrent starting or stopping preview. */
     private val previewStartStopLock: Semaphore by lazy { Semaphore(1, true) }
 
-    private val rs: RenderScript by lazy { RenderScript.create(context) }
+    private val imageProcessor: ImageProcessor
+        by lazy {
+            val contextType: RenderScript.ContextType =
+                if (BuildConfig.DEBUG) RenderScript.ContextType.DEBUG
+                else RenderScript.ContextType.NORMAL
+            ImageProcessor(RenderScript.create(context, contextType, RenderScript.CREATE_FLAG_NONE))
+        }
 
     private val internalFacings: SparseIntArray by lazy {
         SparseIntArray().apply {
             put(Modes.Facing.FACING_BACK, CameraCharacteristics.LENS_FACING_BACK)
             put(Modes.Facing.FACING_FRONT, CameraCharacteristics.LENS_FACING_FRONT)
-        }
-    }
-
-    private val internalOutputFormats: SparseIntArray by lazy {
-        SparseIntArray().apply {
-            put(Modes.OutputFormat.JPEG, ImageFormat.JPEG)
-            put(Modes.OutputFormat.YUV_420_888, ImageFormat.YUV_420_888)
-            put(Modes.OutputFormat.RGBA_8888, ImageFormat.YUV_420_888)
         }
     }
 
@@ -311,19 +311,23 @@ internal open class Camera2(
         // Timestamp of the last frame processed. Used for de-bouncing purposes.
         val lastTimeStamp = AtomicLong(0L)
 
-        return@lazy ImageReader.OnImageAvailableListener { reader: ImageReader ->
-
-            // Flag to decide when to debounce a frame
-            var debounce = false
+        // Flag to decide when to debounce a frame
+        fun debounce(): Boolean {
 
             // Use debounce logic only if interval is > 0. If not, it means user wants max frame rate
-            if (debounceIntervalMillis > 0) {
-                val currentTimeStamp: Long = SystemClock.elapsedRealtime()
-                // Set debounce flag to true if current timestamp is within debounce interval
-                if (debounceIntervalMillis > currentTimeStamp - lastTimeStamp.get()) debounce = true
-                // Otherwise update last frame timestamp to current
-                else lastTimeStamp.set(currentTimeStamp)
+            if (debounceIntervalMillis <= 0) return false
+
+            val currentTimeStamp: Long = SystemClock.elapsedRealtime()
+            // Set debounce flag to true if current timestamp is within debounce interval
+            if (debounceIntervalMillis > currentTimeStamp - lastTimeStamp.get()) {
+                return true
             }
+            // Otherwise update last frame timestamp to current
+            lastTimeStamp.set(currentTimeStamp)
+            return false
+        }
+
+        return@lazy ImageReader.OnImageAvailableListener { reader: ImageReader ->
 
             launch {
 
@@ -334,15 +338,21 @@ internal open class Camera2(
                 // The reason for using flag instead of de-bouncing right from beginning is because
                 // once this listener is called, image must be acquired from image reader otherwise preview will freeze.
                 // After acquiring image if debounce is true, close the image and return.
-                if (debounce) {
+                if (debounce()) {
                     internalImage.close()
                     return@launch
                 }
 
+                runCatching { internalImage.checkValidYuv() }
+                    .onFailure {
+                        internalImage.close()
+                        return@launch
+                    }
+
                 internalImage.setCropRect()
 
                 val imageData: ByteArray =
-                    runCatching { internalImage.decode(Modes.OutputFormat.YUV_420_888, rs) }
+                    runCatching { imageProcessor.decode(internalImage, Modes.OutputFormat.YUV_420_888) }
                         .getOrElse {
                             internalImage.close()
                             return@launch
@@ -351,7 +361,7 @@ internal open class Camera2(
                 val exif: ExifInterface = ExifInterface().apply { rotation = outputOrientation }
 
                 internalImage
-                    .runCatching { Image(imageData, cropRect.width(), cropRect.height(), exif, format) }
+                    .runCatching { Image(imageData, cropWidth, cropHeight, exif, format) }
                     .onSuccess { image: Image -> listener.onPreviewFrame(image) }
 
                 internalImage.close()
@@ -373,28 +383,29 @@ internal open class Camera2(
                         return@OnImageAvailableListener
                     }
 
-            if (internalImage.format != internalOutputFormat || internalImage.planes.isEmpty()) {
+            if (internalImage.planes.isEmpty()) {
                 internalImage.close()
                 listener.onCameraError(CameraViewException("Failed to capture image. Invalid format or internal image data."))
                 return@OnImageAvailableListener
             }
 
-            val imageSizeAdjusted: Boolean = internalImage.setCropRect()
+            val isImageSizeAdjusted: Boolean = internalImage.setCropRect()
 
-            val imageData: ByteArray = runCatching { internalImage.decode(config.outputFormat.value, rs) }
-                .getOrElse {
-                    internalImage.close()
-                    listener.onCameraError(CameraViewException("Failed to capture image.", it))
-                    return@OnImageAvailableListener
-                }
+            val imageData: ByteArray =
+                runCatching { imageProcessor.decode(internalImage, config.outputFormat.value) }
+                    .getOrElse {
+                        internalImage.close()
+                        listener.onCameraError(CameraViewException("Failed to capture image.", it))
+                        return@OnImageAvailableListener
+                    }
 
             val exif = ExifInterface()
 
-            val exifAlreadyRead: Boolean
+            val isExifAlreadyRead: Boolean
                 by lazy { internalImage.format == ImageFormat.JPEG && exif.readExifSafe(imageData) }
 
             val finalImageData: ByteArray =
-                if (imageSizeAdjusted || !exifAlreadyRead) {
+                if (isImageSizeAdjusted || !isExifAlreadyRead) {
                     exif.rotation = outputOrientation
                     exif.writeExif(imageData)
                 } else {
@@ -403,10 +414,10 @@ internal open class Camera2(
 
             val image = Image(
                 finalImageData,
-                internalImage.width,
-                internalImage.height,
+                internalImage.cropWidth,
+                internalImage.cropHeight,
                 exif,
-                internalImage.format
+                config.outputFormat.value
             )
 
             listener.onPictureTaken(image)
@@ -430,15 +441,21 @@ internal open class Camera2(
 
     private lateinit var videoRequestBuilder: CaptureRequest.Builder
 
-    private var captureImageReader: ImageReader? = null
+    private var singleCaptureReader: ImageReader? = null
 
-    private var previewImageReader: ImageReader? = null
+    private var continuousFrameReader: ImageReader? = null
 
     private val previewSizes: SizeMap by lazy { SizeMap() }
 
     private val pictureSizes: SizeMap by lazy { SizeMap() }
 
-    protected val internalOutputFormat: Int get() = internalOutputFormats[config.outputFormat.value]
+    protected val internalOutputFormat: Int
+        get() = when (config.outputFormat.value) {
+            Modes.OutputFormat.JPEG -> ImageFormat.JPEG
+            Modes.OutputFormat.RGBA_8888 -> ImageFormat.YUV_420_888
+            Modes.OutputFormat.YUV_420_888 -> ImageFormat.YUV_420_888
+            else -> Modes.DEFAULT_OUTPUT_FORMAT
+        }
 
     // 0, 90, 180, or 270
     override var deviceRotation: Int = 0
@@ -614,6 +631,18 @@ internal open class Camera2(
         }
     }
 
+    // Calculate output orientation based on device sensor orientation.
+    private val outputOrientation: Int
+        @Throws(IllegalStateException::class)
+        get() {
+            val cameraSensorOrientation: Int = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+                ?: throw IllegalStateException("Camera characteristics not available")
+
+            return (cameraSensorOrientation
+                + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+                + 360) % 360
+        }
+
     override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
     private fun addObservers(): Unit = config.run {
@@ -623,7 +652,11 @@ internal open class Camera2(
             restartPreview()
         }
 
-        outputFormat.observe(this@Camera2) { prepareCaptureImageReader() }
+        continuousFrameSize.observe(this@Camera2) { restartPreview() }
+
+        singleCaptureSize.observe(this@Camera2) { restartPreview() }
+
+        outputFormat.observe(this@Camera2) { prepareSingleCaptureReader() }
 
         facing.observe(this@Camera2) {
             if (!isCameraOpened) return@observe
@@ -773,7 +806,7 @@ internal open class Camera2(
             else -> chooseCameraIdById("$cameraId")
         }
         collectCameraInfo()
-        prepareCaptureImageReader()
+        prepareSingleCaptureReader()
         cameraManager.openCamera("$cameraId", cameraDeviceCallback, backgroundHandler)
         return@runCatching true
     }
@@ -793,10 +826,10 @@ internal open class Camera2(
             stopPreview()
             camera?.close()
             camera = null
-            captureImageReader?.close()
-            captureImageReader = null
-            previewImageReader?.close()
-            previewImageReader = null
+            singleCaptureReader?.close()
+            singleCaptureReader = null
+            continuousFrameReader?.close()
+            continuousFrameReader = null
             videoManager.release()
         } catch (e: InterruptedException) {
             listener.onCameraError(CameraViewException("Interrupted while trying to lock camera closing.", e))
@@ -807,11 +840,11 @@ internal open class Camera2(
 
     private fun stopPreview() {
         if (!previewStartStopLock.tryAcquire()) return
-        captureSession?.run {
+        captureSession?.runCatching {
             stopRepeating()
             abortCaptures()
-            close()
         }
+        captureSession?.close()
         captureSession = null
         previewStartStopLock.release()
     }
@@ -823,7 +856,7 @@ internal open class Camera2(
     }
 
     override fun setAspectRatio(ratio: AspectRatio) {
-        prepareCaptureImageReader()
+        prepareSingleCaptureReader()
         restartPreview()
     }
 
@@ -968,25 +1001,32 @@ internal open class Camera2(
         map.getOutputSizes(ImageReader::class.java).forEach { pictureSizes.add(it.width, it.height) }
     }
 
-    private fun preparePreviewImageReader() {
+    private fun prepareContinuousFrameReader() {
 
-        previewImageReader?.close()
+        continuousFrameReader?.close()
 
-        previewImageReader =
+        val (width: Int, height: Int) =
+            config.continuousFrameSize.value
+                .takeIf { it != Size.Invalid && previewSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
+                ?: Size(preview.width, preview.height)
+
+        continuousFrameReader =
             ImageReader.newInstance(
-                preview.width,
-                preview.height,
+                width,
+                height,
                 ImageFormat.YUV_420_888,
                 4 // maxImages
             ).apply { setOnImageAvailableListener(onPreviewImageAvailableListener, backgroundHandler) }
     }
 
-    private fun prepareCaptureImageReader() {
+    private fun prepareSingleCaptureReader() {
 
-        captureImageReader?.close()
+        singleCaptureReader?.close()
 
         val (pictureWidth: Int, pictureHeight: Int) =
-            pictureSizes.sizes(config.sensorAspectRatio).lastOrNull()
+            config.singleCaptureSize.value
+                .takeIf { it != Size.Invalid && pictureSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
+                ?: pictureSizes.sizes(config.sensorAspectRatio).lastOrNull()
                 ?: run {
                     listener.onCameraError(
                         CameraViewException("No supported picture size found for this camera. Try reopening this camera or use another one."),
@@ -995,7 +1035,7 @@ internal open class Camera2(
                     return
                 }
 
-        captureImageReader =
+        singleCaptureReader =
             ImageReader.newInstance(
                 pictureWidth,
                 pictureHeight,
@@ -1021,11 +1061,15 @@ internal open class Camera2(
 
         val (width: Int, height: Int) =
             previewSizes.sizes(config.sensorAspectRatio)
-                .chooseOptimalPreviewSize(preview.width, preview.height)
+                .runCatching { chooseOptimalPreviewSize(preview.width, preview.height) }
+                .getOrElse {
+                    listener.onCameraError(CameraViewException("No supported preview size available. This camera device (id $cameraId) is not supported.", it))
+                    return
+                }
 
         preview.setBufferSize(width, height)
 
-        preparePreviewImageReader()
+        prepareContinuousFrameReader()
 
         val template: Int =
             if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
@@ -1072,12 +1116,12 @@ internal open class Camera2(
             ?: throw IllegalStateException("Preview surface is null")
 
         // Setup capture image reader surface
-        if (config.isSingleCaptureModeEnabled) captureImageReader?.surface
+        if (config.isSingleCaptureModeEnabled) singleCaptureReader?.surface
             ?.let { surfaces.add(it) }
             ?: throw IllegalStateException("Capture image reader surface is null")
 
         // Setup preview image reader surface
-        if (config.isContinuousFrameModeEnabled) previewImageReader?.surface
+        if (config.isContinuousFrameModeEnabled) continuousFrameReader?.surface
             ?.let {
                 surfaces.add(it)
                 captureRequestBuilder.addTarget(it)
@@ -1213,26 +1257,14 @@ internal open class Camera2(
         }.onFailure { listener.onCameraError(CameraViewException("Failed to lock focus.", it)) }
     }
 
-    // Calculate output orientation based on device sensor orientation.
-    private val outputOrientation: Int
-        @Throws(IllegalStateException::class)
-        get() {
-            val cameraSensorOrientation: Int = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
-                ?: throw IllegalStateException("Camera characteristics not available")
-
-            return (cameraSensorOrientation
-                + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
-                + 360) % 360
-        }
-
     /** Captures a still picture. */
     private fun captureStillPicture() {
 
         try {
-            val surface = captureImageReader?.surface
+            val surface: Surface = singleCaptureReader?.surface
                 ?: throw IllegalStateException("Image reader surface not available")
 
-            val template = when {
+            val template: Int = when {
                 videoManager.isVideoRecording -> CameraDevice.TEMPLATE_VIDEO_SNAPSHOT
                 config.zsl.value -> CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
                 else -> CameraDevice.TEMPLATE_STILL_CAPTURE
@@ -1263,7 +1295,7 @@ internal open class Camera2(
 
                 set(CaptureRequest.FLASH_MODE, flashMode)
 
-                if (captureImageReader?.imageFormat == ImageFormat.JPEG) {
+                if (singleCaptureReader?.imageFormat == ImageFormat.JPEG) {
                     set(CaptureRequest.JPEG_ORIENTATION, outputOrientation)
                 }
 
@@ -1275,6 +1307,31 @@ internal open class Camera2(
             captureSession?.capture(captureRequestBuilder.build(), stillCaptureCallback, backgroundHandler)
         } catch (e: Exception) {
             listener.onCameraError(CameraViewException("Unable to capture still picture.", e))
+        }
+    }
+
+    /**
+     * Unlocks the auto-focus and restart camera preview. This is supposed to be called after
+     * capturing a still picture.
+     */
+    private fun unlockFocus() {
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
+        try {
+            captureSession?.capture(
+                previewRequestBuilder.build(),
+                defaultCaptureCallback,
+                backgroundHandler
+            )
+            updateModes()
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
+            captureSession?.setRepeatingRequest(
+                previewRequestBuilder.build(),
+                defaultCaptureCallback,
+                backgroundHandler
+            )
+            defaultCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW)
+        } catch (e: Exception) {
+            listener.onCameraError(CameraViewException("Failed to restart camera preview.", e))
         }
     }
 
@@ -1304,7 +1361,8 @@ internal open class Camera2(
             shouldAddMediaRecorderSurface = true
         )
 
-        camera?.createCaptureSession(surfaces, videoSessionStateCallback, backgroundHandler) ?: Unit
+        camera?.createCaptureSession(surfaces, videoSessionStateCallback, backgroundHandler)
+            ?: Unit
     }
 
     override fun pauseVideoRecording(): Boolean {
@@ -1329,29 +1387,4 @@ internal open class Camera2(
             listener.onVideoRecordStopped(it)
             restartPreview()
         }
-
-    /**
-     * Unlocks the auto-focus and restart camera preview. This is supposed to be called after
-     * capturing a still picture.
-     */
-    private fun unlockFocus() {
-        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
-        try {
-            captureSession?.capture(
-                previewRequestBuilder.build(),
-                defaultCaptureCallback,
-                backgroundHandler
-            )
-            updateModes()
-            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
-            captureSession?.setRepeatingRequest(
-                previewRequestBuilder.build(),
-                defaultCaptureCallback,
-                backgroundHandler
-            )
-            defaultCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW)
-        } catch (e: Exception) {
-            listener.onCameraError(CameraViewException("Failed to restart camera preview.", e))
-        }
-    }
 }

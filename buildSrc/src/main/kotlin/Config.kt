@@ -19,9 +19,9 @@ object Config {
     const val jvmTarget = "1.8"
 
     private const val majorVersion = 3
-    private const val minorVersion = 4
-    private const val patchVersion = 3
-    private const val versionClassifier = ""
+    private const val minorVersion = 5
+    private const val patchVersion = 1
+    private const val versionClassifier = "alpha"
 
     val versionName: String
         get() = "$majorVersion.$minorVersion.$patchVersion${if (versionClassifier.isNotBlank()) "-" else ""}$versionClassifier"
@@ -33,7 +33,7 @@ object Config {
             patchVersion
 
     object Versions {
-        const val kotlin = "1.3.30"
+        const val kotlin = "1.3.31"
         const val support = "28.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"
@@ -44,7 +44,7 @@ object Config {
         const val firebaseCore = "16.0.5"
         const val firebaseMlVision = "18.0.1"
         const val koin = "1.0.2"
-        const val coroutines = "1.0.1"
+        const val coroutines = "1.2.0"
         const val timber = "4.7.1"
         const val glide = "4.8.0"
 

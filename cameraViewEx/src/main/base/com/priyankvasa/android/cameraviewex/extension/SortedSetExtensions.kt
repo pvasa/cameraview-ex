@@ -30,10 +30,11 @@ import java.util.SortedSet
  * If set is empty return [Size.Invalid].
  *
  * @return The picked optimal size.
+ * @throws UnsupportedOperationException when the receiver set is empty
  */
 internal fun SortedSet<Size>.chooseOptimalPreviewSize(previewWidth: Int, previewHeight: Int): Size {
 
-    if (isEmpty()) return Size.Invalid
+    if (isEmpty()) throw UnsupportedOperationException("No preview sizes to choose from.")
 
     val (surfaceLonger: Int, surfaceShorter: Int) =
         if (previewWidth > previewHeight) previewWidth to previewHeight

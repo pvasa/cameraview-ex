@@ -24,33 +24,29 @@ import com.priyankvasa.android.cameraviewex.exif.ExifInterface
  * @param data preview/capture frame data [ByteArray]
  * @param width of the frame
  * @param height of the frame
- * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated
- *   The orientation [ExifInterface.TAG_ORIENTATION] would be one of
- *   [ExifInterface.ORIENTATION_NORMAL] // does not need rotation
- *   [ExifInterface.ORIENTATION_ROTATE_90] // needs 90 degree rotation
- *   [ExifInterface.ORIENTATION_ROTATE_180] // needs 180 degree rotation
- *   [ExifInterface.ORIENTATION_ROTATE_270] // needs 270 degree rotation
- * @param format image format of preview frame from [android.graphics.ImageFormat].
- *   Usually this would be [android.graphics.ImageFormat.NV21]
+ * @param exifInterface contains frame metadata like orientation by which the frame needs to be rotated.
+ *   For the image to be upright, it should be rotated by [ExifInterface.getRotation]
+ * @param format image format of frame from [Modes.OutputFormat].
  */
-data class Image(
+data class Image internal constructor(
     val data: ByteArray,
     val width: Int,
     val height: Int,
     val exifInterface: ExifInterface,
-    val format: Int
+    @Modes.OutputFormat val format: Int
 ) {
 
-    override fun equals(other: Any?): Boolean = this === other ||
-        (other is Image &&
-            width == other.width &&
-            height == other.height &&
-            format == other.format &&
-            exifInterface == other.exifInterface &&
-            data.contentEquals(other.data))
+    override fun equals(other: Any?): Boolean =
+        this === other ||
+            (other is Image &&
+                width == other.width &&
+                height == other.height &&
+                format == other.format &&
+                exifInterface == other.exifInterface &&
+                data.contentEquals(other.data))
 
     override fun hashCode(): Int {
-        var result = data.contentHashCode()
+        var result: Int = data.contentHashCode()
         result = 31 * result + width
         result = 31 * result + height
         result = 31 * result + format

@@ -31,7 +31,7 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
 
     val pictureTakenListeners: HashSet<(image: Image) -> Unit> by lazy { HashSet<(image: Image) -> Unit>() }
 
-    var previewFrameListener: ((image: Image) -> Unit)? = null
+    var continuousFrameListener: ((image: Image) -> Unit)? = null
 
     val cameraErrorListeners: HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>
         by lazy { HashSet<(t: Throwable, errorLevel: ErrorLevel) -> Unit>() }
@@ -54,7 +54,7 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
     }
 
     override fun onPreviewFrame(image: Image) {
-        previewFrameListener?.invoke(image)
+        continuousFrameListener?.invoke(image)
     }
 
     override fun onPictureTaken(image: Image) {
@@ -90,7 +90,7 @@ internal class CameraListenerManager(private val handlerJob: Job) : CameraInterf
 
     fun clear() {
         cameraOpenedListeners.clear()
-        previewFrameListener = null
+        continuousFrameListener = null
         pictureTakenListeners.clear()
         cameraErrorListeners.clear()
         cameraClosedListeners.clear()

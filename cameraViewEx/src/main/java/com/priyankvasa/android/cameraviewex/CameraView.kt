@@ -109,20 +109,22 @@ class CameraView @JvmOverloads constructor(
         }
     }
 
-    private var camera: CameraInterface =
-        // Based on OS version select the best camera implementation
-        when {
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
-                Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.M ->
-                Camera2(listenerManager, preview, config, SupervisorJob(parentJob), context)
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.N ->
-                Camera2Api23(listenerManager, preview, config, SupervisorJob(parentJob), context)
-            else -> Camera2Api24(listenerManager, preview, config, SupervisorJob(parentJob), context)
-        }
+    private lateinit var camera: CameraInterface
 
     init {
         if (!isInEditMode) {
+
+            // Based on OS version select the best camera implementation
+            camera = when {
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
+                    Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.M ->
+                    Camera2(listenerManager, preview, config, SupervisorJob(parentJob), context)
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.N ->
+                    Camera2Api23(listenerManager, preview, config, SupervisorJob(parentJob), context)
+                else -> Camera2Api24(listenerManager, preview, config, SupervisorJob(parentJob), context)
+            }
+
             config.aspectRatio.observe(camera) {
                 camera.setAspectRatio(it)
                 coroutineScope.launch { requestLayout() }
@@ -181,6 +183,30 @@ class CameraView @JvmOverloads constructor(
             }
             config.aspectRatio.value = ratio
         }
+
+    /**
+     * Set desired size for continuous frames. This only affects dimensions of frame, the orientation is decided by [aspectRatio].
+     *
+     * Valid formats are [W1440,H1080], [H1440,W1080], [W1440,1080], [1440,W1080], [H1440,1080], [1440,H1080]
+     * The output is not guaranteed to be of this size.
+     * If it is not supported by camera device or in wrong format,
+     * it will silently fallback to using best size based on aspect ratio.
+     *
+     * NOTE: Behaviour for camera1 (API < 21) is different.
+     * On setting this value, the actual preview will also be of this size but will be squeezed into [aspectRatio].
+     * This is due to how camera1 api does not allow setting different sizes for preview surface and output.
+     */
+    var continuousFrameSize: Size by config.continuousFrameSize::value
+
+    /**
+     * Set desired size for single capture images. This only affects dimensions of image, the orientation is decided by [aspectRatio].
+     *
+     * Valid formats are [W1440,H1080], [H1440,W1080], [W1440,1080], [1440,W1080], [H1440,1080], [1440,H1080]
+     * The output is not guaranteed to be of this size.
+     * If it is not supported by camera device or in wrong format,
+     * it will silently fallback to using best size based on aspect ratio.
+     */
+    var singleCaptureSize: Size by config.singleCaptureSize::value
 
     /**
      * Set format of the output of image data produced from the camera for [Modes.CameraMode.SINGLE_CAPTURE] mode.
@@ -298,7 +324,7 @@ class CameraView @JvmOverloads constructor(
     var shutter: Int by config.shutter::value
 
     /**
-     * Set zero shutter lag mode capture.
+     * Set zero shutter lag capture mode.
      * See [android.hardware.camera2.CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG]
      */
     var zsl: Boolean
@@ -376,6 +402,8 @@ class CameraView @JvmOverloads constructor(
             jpegQuality,
             facing,
             config.aspectRatio.value,
+            continuousFrameSize,
+            singleCaptureSize,
             autoFocus,
             touchToFocus,
             pinchToZoom,
@@ -399,6 +427,8 @@ class CameraView @JvmOverloads constructor(
                     outputFormat.value = state.outputFormat
                     jpegQuality.value = state.jpegQuality
                     aspectRatio.value = state.ratio
+                    continuousFrameSize.value = state.continuousFrameSize
+                    singleCaptureSize.value = state.singleCaptureSize
                     autoFocus.value = state.autoFocus
                     touchToFocus.value = state.touchToFocus
                     pinchToZoom.value = state.pinchToZoom
@@ -476,22 +506,13 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * Open a camera device and start showing camera preview. This is typically called from
-     * [Activity.onResume].
-     * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
-     */
-    @RequiresPermission(Manifest.permission.CAMERA)
-    fun start() {
-        start(Modes.NO_CAMERA_ID)
-    }
-
-    /**
      * Open a camera device by camera ID and start showing camera preview. This is typically called from
      * [Activity.onResume].
      * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
      */
+    @JvmOverloads
     @RequiresPermission(Manifest.permission.CAMERA)
-    fun start(id: Int) {
+    fun start(id: Int = Modes.NO_CAMERA_ID) {
 
         if (!requireActive()) return
 
@@ -667,12 +688,13 @@ class CameraView @JvmOverloads constructor(
      * Set preview frame [listener].
      *
      * @param listener lambda with image of type [Image] as its argument
-     * which contains the preview frame from camera and its metadata in form of [android.support.media.ExifInterface].
+     * which contains the frame data from camera and its metadata
+     * in form of [com.priyankvasa.android.cameraviewex.exif.ExifInterface].
      * @param maxFrameRate is maximum number of frames per second.
      *   Actual frame rate might be less based on device capabilities but will not be more than this value.
-     *   A float can be set for eg., max frame rate of 0.5f will produce one frame every 2 seconds.
+     *   A float can be set for eg., max frame rate of 0.5f will produce one frame every 2 seconds and so on.
      *   Any value less than or equal to zero (<= 0f) will produce maximum frames per second supported by device.
-     *   Not providing this value uses the maximum possible frame rate.
+     *   Not providing this value also defaults to maximum possible frame rate.
      *
      * @return instance of [CameraView] it is called on
      *
@@ -680,10 +702,10 @@ class CameraView @JvmOverloads constructor(
      */
     @JvmOverloads
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    fun setPreviewFrameListener(maxFrameRate: Float = 0f, listener: (image: Image) -> Unit): CameraView {
+    fun setContinuousFrameListener(maxFrameRate: Float = 0f, listener: (image: Image) -> Unit): CameraView {
         if (listenerManager.isEnabled) {
             camera.maxPreviewFrameRate = maxFrameRate
-            listenerManager.previewFrameListener = listener
+            listenerManager.continuousFrameListener = listener
         }
         return this
     }
@@ -692,8 +714,8 @@ class CameraView @JvmOverloads constructor(
      * Remove preview frame listener.
      * @return instance of [CameraView] it is called on
      */
-    fun removePreviewFrameListener(): CameraView {
-        listenerManager.previewFrameListener = null
+    fun removeContinuousFrameListener(): CameraView {
+        listenerManager.continuousFrameListener = null
         return this
     }
 
@@ -814,6 +836,8 @@ class CameraView @JvmOverloads constructor(
         val jpegQuality: Int,
         val facing: Int,
         val ratio: AspectRatio,
+        val continuousFrameSize: Size,
+        val singleCaptureSize: Size,
         val autoFocus: Int,
         val touchToFocus: Boolean,
         val pinchToZoom: Boolean,

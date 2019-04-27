@@ -201,7 +201,7 @@ internal class Camera1(
                 listener.onCameraError(CameraViewException("Unable to setup preview.", it))
                 return
             }
-        adjustCameraParameters()
+        if (isCameraOpened) adjustCameraParameters()
     }
 
     init {
@@ -218,6 +218,14 @@ internal class Camera1(
                 stop()
                 start(it)
             }
+        }
+
+        continuousFrameSize.observe(this@Camera1) {
+            if (isCameraOpened) adjustCameraParameters()
+        }
+
+        singleCaptureSize.observe(this@Camera1) {
+            if (isCameraOpened) adjustCameraParameters()
         }
 
         cameraMode.observe(this@Camera1) {
@@ -327,7 +335,7 @@ internal class Camera1(
         }
 
     override fun setAspectRatio(ratio: AspectRatio) {
-        adjustCameraParameters()
+        if (isCameraOpened) adjustCameraParameters()
     }
 
     override fun takePicture() {
@@ -484,13 +492,20 @@ internal class Camera1(
         if (!preview.isReady) return
 
         val previewSize: Size =
-            previewSizes.sizes(config.sensorAspectRatio)
-                .chooseOptimalPreviewSize(preview.width, preview.height)
+            config.continuousFrameSize.value
+                .takeIf { it != Size.Invalid && previewSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
+                ?: previewSizes.sizes(config.sensorAspectRatio)
+                    .runCatching { chooseOptimalPreviewSize(preview.width, preview.height) }
+                    .getOrElse {
+                        listener.onCameraError(CameraViewException("No supported preview size available. This camera device (id $cameraId) is not supported.", it))
+                        return
+                    }
 
-        // Largest picture size in this ratio
-        val pictureSize: Size = pictureSizes.sizes(config.sensorAspectRatio)
-            .lastOrNull()
-            ?: previewSize
+        val pictureSize: Size =
+            config.singleCaptureSize.value
+                .takeIf { it != Size.Invalid && pictureSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
+                ?: pictureSizes.sizes(config.sensorAspectRatio).lastOrNull()
+                ?: previewSize
 
         if (showingPreview) stopPreview()
 
