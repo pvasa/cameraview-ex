@@ -49,9 +49,9 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
     /**
      * @return `true` if the implementation was able to start the passed in cameraId
      */
-    fun start(cameraId: Int): Boolean
+    fun start(cameraId: String): Boolean
 
-    fun getNextCameraId(): Int
+    fun getNextCameraId(): String
 
     fun stop() {
         if (isVideoRecording) stopVideoRecording()

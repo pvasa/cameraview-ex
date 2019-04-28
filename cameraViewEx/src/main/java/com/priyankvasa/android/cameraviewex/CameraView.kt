@@ -512,7 +512,7 @@ class CameraView @JvmOverloads constructor(
      */
     @JvmOverloads
     @RequiresPermission(Manifest.permission.CAMERA)
-    fun start(id: Int = Modes.NO_CAMERA_ID) {
+    fun start(cameraId: String = Modes.DEFAULT_CAMERA_ID) {
 
         if (!requireActive()) return
 
@@ -527,7 +527,7 @@ class CameraView @JvmOverloads constructor(
         // Save original state and restore later if camera falls back to using Camera1
         val state: Parcelable = onSaveInstanceState()
 
-        if (camera.start(id)) return // Camera started successfully, return.
+        if (camera.start(cameraId)) return // Camera started successfully, return.
 
         // This camera instance is no longer useful, destroy it.
         camera.destroy()
@@ -536,11 +536,11 @@ class CameraView @JvmOverloads constructor(
         // Errors leading to this situation are already posted from Camera1 api
         if (camera is Camera1) return
 
-        // Device uses legacy hardware layer; fall back to Camera1
-        fallback(id, state)
+        // Device uses legacy hardware; fall back to Camera1
+        fallback(cameraId, state)
     }
 
-    private fun fallback(id: Int, savedState: Parcelable) {
+    private fun fallback(cameraId: String, savedState: Parcelable) {
 
         camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
 
@@ -549,7 +549,7 @@ class CameraView @JvmOverloads constructor(
 
         // Try to start camera again using Camera1 api
         // Return if successful
-        if (camera.start(id)) return
+        if (camera.start(cameraId)) return
 
         // Unable to start camera using any api. Post a critical error.
         listenerManager.onCameraError(
@@ -560,11 +560,15 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * This will switch to the next camera, looping through all back and front cameras
-     * in the order that the device presents them. Ex: 0 (back), 1 (front), 2 (back), etc.
+     * Open next camera in sequence of sorted camera ids for current [facing]
+     *
+     * If current open camera has a different facing then what is set currently
+     * then this method will open the first camera for set [facing].
      */
+    @RequiresPermission(Manifest.permission.CAMERA)
     fun nextCamera() {
-        facing = camera.getNextCameraId()
+        stop()
+        start(camera.getNextCameraId())
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */
