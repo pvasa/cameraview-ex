@@ -182,6 +182,13 @@ camera.capture()
 // The listeners will receive their respective outputs
 ```
 
+#### Switch through cameras for set facing
+```kotlin
+camera.facing = Modes.Facing.FACING_BACK // Open default back facing camera
+camera.nextCamera() // Switch to next back facing camera
+```
+
+
 ## Sample apps
 - [Kotlin sample app](https://github.com/pvasa/cameraview-ex/tree/master/CameraEx) - Advanced usage
 - [Java sample app](https://github.com/pvasa/cameraview-ex/tree/master/sampleAppJava) - Very simple usage
@@ -191,7 +198,7 @@ camera.capture()
 | CameraView property                          | XML Attribute            | Possible Values <br/> (bold value is the default one)                                                                           | Camera1 Support (API 14 to 20) | Camera2 Support (API 21+)   |
 |----------------------------------------------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------|--------------------------------|-----------------------------|
 | cameraMode                                   | app:cameraMode           | **single_capture**, continuous_frame, video_capture                                                                             | :heavy_check_mark:             | :heavy_check_mark:          |
-| facing                                       | app:facing               | **back**, front                                                                                                                 | :heavy_check_mark:             | :heavy_check_mark:          |
+| facing                                       | app:facing               | **back**, front, external                                                                                                       | :heavy_check_mark:             | :heavy_check_mark:          |
 | aspectRatio                                  | app:aspectRatio          | **4:3**, 16:9, 3:2, 16:10, 17:10, 8:5 <br/> _(or any other ratio supported by device)_                                          | :heavy_check_mark:             | :heavy_check_mark:          |
 | continuousFrameSize                          | app:continuousFrameSize  | `W1920,H1080`, `W1440,1080`, `1280,H720` <br/> _(or any other size)_                                                            | :heavy_check_mark:             | :heavy_check_mark:          |
 | singleCaptureSize                            | app:singleCaptureSize    | `W1920,H1080`, `W1440,1080`, `1280,H720` <br/> _(or any other size)_                                                            | :heavy_check_mark:             | :heavy_check_mark:          |
