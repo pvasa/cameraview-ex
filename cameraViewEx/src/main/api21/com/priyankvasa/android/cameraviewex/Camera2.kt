@@ -59,8 +59,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.SortedSet
-import java.util.TreeSet
+import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
@@ -881,19 +880,41 @@ internal open class Camera2(
      */
     override fun getNextCameraId(): String {
 
-        val sortedIds: SortedSet<String> = cameraManager.cameraIdList
-            .asSequence()
-            .filter { id: String ->
-                val characteristics: CameraCharacteristics = cameraManager.getCameraCharacteristics(id)
-                characteristics.isHardwareLevelSupported() &&
-                    characteristics[CameraCharacteristics.LENS_FACING] == internalFacing
-            }
-            .mapTo(TreeSet<String>()) { it }
+        val sortedIds = getCameraIdsByFacing(internalFacing)
 
         // For invalid `cameraId`, new index will be -1 + 1 = 0 ie. first index of the group
         val newIdIndex: Int = sortedIds.indexOf(cameraId) + 1
 
         return if (newIdIndex in 0 until sortedIds.size) sortedIds.elementAt(newIdIndex) else Modes.DEFAULT_CAMERA_ID
+    }
+
+    /**
+     * Gets a list of camera ids for the current facing direction
+     */
+    override fun getCameraIdsByFacing(): Set<String> {
+        return getCameraIdsByFacing(internalFacing)
+    }
+
+    /**
+     * Gets a list of cameraIds for the passed in facing direction, expects internalfacing direction
+     */
+    private fun getCameraIdsByFacing(facing: Int) : Set<String> {
+
+        return cameraManager.cameraIdList
+                .asSequence()
+                .filter { id: String ->
+                    val characteristics: CameraCharacteristics = cameraManager.getCameraCharacteristics(id)
+                    characteristics.isHardwareLevelSupported() &&
+                            characteristics[CameraCharacteristics.LENS_FACING] == facing
+                }
+                .mapTo(TreeSet<String>()) { it }
+    }
+
+    /**
+     * Returns the current cameraId
+     */
+    override fun getCameraId(): String {
+        return cameraId
     }
 
     /**

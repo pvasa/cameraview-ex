@@ -125,6 +125,7 @@ class CameraView @JvmOverloads constructor(
                 else -> Camera2Api24(listenerManager, preview, config, SupervisorJob(parentJob), context)
             }
 
+
             config.aspectRatio.observe(camera) {
                 camera.setAspectRatio(it)
                 coroutineScope.launch { requestLayout() }
@@ -569,6 +570,21 @@ class CameraView @JvmOverloads constructor(
     fun nextCamera() {
         stop()
         start(camera.getNextCameraId())
+    }
+
+    /**
+     * Returns a list of camera ids for the current facing direction
+     */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun getCameraIdsByFacing(): Set<String> {
+        return camera.getCameraIdsByFacing()
+    }
+
+    /**
+     * Returns the current camera id being used
+     */
+    fun getCameraId(): String {
+        return camera.getCameraId()
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */

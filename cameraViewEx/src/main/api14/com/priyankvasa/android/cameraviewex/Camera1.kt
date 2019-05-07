@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
+import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -460,16 +461,40 @@ internal class Camera1(
      */
     override fun getNextCameraId(): String {
 
-        val filteredIds: List<Int> = (0 until Camera.getNumberOfCameras())
-            .filter { id: Int ->
-                val info = Camera.CameraInfo()
-                runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
-                    info.facing == internalFacing
-            }
+        val sortedIds = getCameraIdsByFacing(internalFacing)
 
-        return filteredIds.firstOrNull { it > cameraId }?.toString()
-            ?: filteredIds.getOrNull(0)?.toString()
-            ?: Modes.DEFAULT_CAMERA_ID
+        // For invalid `cameraId`, new index will be -1 + 1 = 0 ie. first index of the group
+        val newIdIndex: Int = sortedIds.indexOf(cameraId.toString()) + 1
+
+        return if (newIdIndex in 0 until sortedIds.size) sortedIds.elementAt(newIdIndex) else Modes.DEFAULT_CAMERA_ID
+    }
+
+    /**
+     * Gets a list of camera ids for the current facing direction
+     */
+    override fun getCameraIdsByFacing(): Set<String> {
+        return getCameraIdsByFacing(internalFacing)
+    }
+
+    /**
+     * Gets a list of cameraIds for the passed in facing direction, expects internalfacing direction
+     */
+    private fun getCameraIdsByFacing(facing: Int) : Set<String> {
+
+        return (0 until Camera.getNumberOfCameras())
+                .filter { id: Int ->
+                    val info = Camera.CameraInfo()
+                    runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
+                            info.facing == internalFacing
+                }
+                .mapTo(TreeSet<String>()) { Integer.toString(it) }
+    }
+
+    /**
+     * Returns the current cameraId
+     */
+    override fun getCameraId(): String {
+        return cameraId.toString()
     }
 
     private fun Camera.CameraInfo.copyFrom(other: Camera.CameraInfo) {

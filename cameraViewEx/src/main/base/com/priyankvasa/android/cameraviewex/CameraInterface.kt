@@ -53,6 +53,10 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
     fun getNextCameraId(): String
 
+    fun getCameraId(): String
+
+    fun getCameraIdsByFacing(): Set<String>
+
     fun stop() {
         if (isVideoRecording) stopVideoRecording()
     }
