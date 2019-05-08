@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.BuildConfig
 import timber.log.Timber
 import java.io.File
+import java.util.SortedSet
 
 class CameraView @JvmOverloads constructor(
     context: Context,
@@ -145,6 +146,14 @@ class CameraView @JvmOverloads constructor(
 
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean get() = camera.isCameraOpened
+
+    /** Id of currently opened camera device */
+    val cameraId: String get() = camera.cameraId
+
+    /**
+     * List of ids of camera devices for selected [facing]
+     */
+    val cameraIdsForFacing: SortedSet<String> get() = camera.cameraIdsForFacing
 
     /** `true` if there is a video recording in progress, `false` otherwise. */
     val isVideoRecording: Boolean get() = camera.isVideoRecording
@@ -570,21 +579,6 @@ class CameraView @JvmOverloads constructor(
     fun nextCamera() {
         stop()
         start(camera.getNextCameraId())
-    }
-
-    /**
-     * Returns a list of camera ids for the current facing direction
-     */
-    @RequiresPermission(Manifest.permission.CAMERA)
-    fun getCameraIdsByFacing(): Set<String> {
-        return camera.getCameraIdsByFacing()
-    }
-
-    /**
-     * Returns the current camera id being used
-     */
-    fun getCameraId(): String {
-        return camera.getCameraId()
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */

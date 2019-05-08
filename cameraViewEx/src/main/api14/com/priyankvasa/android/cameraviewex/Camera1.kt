@@ -38,7 +38,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.SortedSet
+import java.util.TreeSet
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -64,7 +65,21 @@ internal class Camera1(
     /** A [Semaphore] to prevent concurrent starting or stopping preview. */
     private val previewStartStopLock: Semaphore by lazy { Semaphore(1, true) }
 
-    private var cameraId: Int = Modes.Facing.FACING_BACK
+    private var cameraIdInternal: Int = Modes.Facing.FACING_BACK
+
+    override val cameraId: String get() = cameraIdInternal.toString()
+
+    /**
+     * Gets a list of camera ids for the current facing direction
+     */
+    override val cameraIdsForFacing: SortedSet<String>
+        get() = (0 until Camera.getNumberOfCameras())
+            .filter { id: Int ->
+                val info = Camera.CameraInfo()
+                runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
+                    info.facing == internalFacing
+            }
+            .mapTo(TreeSet<String>()) { Integer.toString(it) }
 
     private val isPictureCaptureInProgress: AtomicBoolean by lazy { AtomicBoolean(false) }
 
@@ -256,8 +271,8 @@ internal class Camera1(
     }
 
     /**
-     * Start camera with given [cameraId].
-     * If [cameraId] is [Modes.DEFAULT_CAMERA_ID] then
+     * Start camera with given [cameraIdInternal].
+     * If [cameraIdInternal] is [Modes.DEFAULT_CAMERA_ID] then
      * camera is selected based on provided facing from [CameraConfiguration.facing]
      */
     override fun start(cameraId: String): Boolean {
@@ -412,7 +427,7 @@ internal class Camera1(
         runCatching {
             videoManager.setupMediaRecorder(
                 camera ?: return,
-                cameraId,
+                cameraIdInternal,
                 preview.surface,
                 outputFile,
                 videoConfig,
@@ -452,7 +467,7 @@ internal class Camera1(
         }
 
     /**
-     * Returns a camera ID next to current [cameraId] for facing ([CameraConfiguration.facing]).
+     * Returns a camera ID next to current [cameraIdInternal] for facing ([CameraConfiguration.facing]).
      *
      * If current camera ID has a different facing then what is set currently
      * then this method will return the first camera ID for set facing.
@@ -461,40 +476,12 @@ internal class Camera1(
      */
     override fun getNextCameraId(): String {
 
-        val sortedIds = getCameraIdsByFacing(internalFacing)
+        val sortedIds: SortedSet<String> = cameraIdsForFacing
 
         // For invalid `cameraId`, new index will be -1 + 1 = 0 ie. first index of the group
-        val newIdIndex: Int = sortedIds.indexOf(cameraId.toString()) + 1
+        val newIdIndex: Int = sortedIds.indexOf(cameraId) + 1
 
         return if (newIdIndex in 0 until sortedIds.size) sortedIds.elementAt(newIdIndex) else Modes.DEFAULT_CAMERA_ID
-    }
-
-    /**
-     * Gets a list of camera ids for the current facing direction
-     */
-    override fun getCameraIdsByFacing(): Set<String> {
-        return getCameraIdsByFacing(internalFacing)
-    }
-
-    /**
-     * Gets a list of cameraIds for the passed in facing direction, expects internalfacing direction
-     */
-    private fun getCameraIdsByFacing(facing: Int) : Set<String> {
-
-        return (0 until Camera.getNumberOfCameras())
-                .filter { id: Int ->
-                    val info = Camera.CameraInfo()
-                    runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
-                            info.facing == internalFacing
-                }
-                .mapTo(TreeSet<String>()) { Integer.toString(it) }
-    }
-
-    /**
-     * Returns the current cameraId
-     */
-    override fun getCameraId(): String {
-        return cameraId.toString()
     }
 
     private fun Camera.CameraInfo.copyFrom(other: Camera.CameraInfo) {
@@ -505,7 +492,7 @@ internal class Camera1(
         orientation = other.orientation
     }
 
-    /** This rewrites [.cameraId] and [.cameraInfo]. */
+    /** This rewrites [.cameraIdInternal] and [.cameraInfo]. */
     private fun chooseCameraIdByFacing() {
 
         (0 until Camera.getNumberOfCameras()).forEach { id ->
@@ -514,14 +501,14 @@ internal class Camera1(
                 .getOrElse { return@forEach }
             if (info.facing != config.facing.value) return@forEach
             cameraInfo.copyFrom(info)
-            cameraId = id
+            cameraIdInternal = id
             return
         }
 
-        cameraId = INVALID_CAMERA_ID
+        cameraIdInternal = INVALID_CAMERA_ID
     }
 
-    /** This rewrites [.cameraId] and [.cameraInfo]. */
+    /** This rewrites [.cameraIdInternal] and [.cameraInfo]. */
     @Throws(IllegalArgumentException::class)
     private fun setCameraId(id: String) {
 
@@ -530,7 +517,7 @@ internal class Camera1(
         runCatching { Camera.getCameraInfo(intId, cameraInfo) }
             .onFailure { throw IllegalArgumentException("Id must be an integer and a valid camera id.", it) }
 
-        cameraId = intId
+        cameraIdInternal = intId
     }
 
     @Throws(RuntimeException::class)
@@ -538,7 +525,7 @@ internal class Camera1(
 
         // It is recommended to open camera on another thread
         // https://developer.android.com/training/camera/cameradirect.html#TaskOpenCamera
-        camera = runBlocking(coroutineContext) { Camera.open(cameraId) }.apply {
+        camera = runBlocking(coroutineContext) { Camera.open(cameraIdInternal) }.apply {
 
             // Supported preview sizes
             previewSizes.clear()

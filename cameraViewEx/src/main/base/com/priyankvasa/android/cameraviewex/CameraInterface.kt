@@ -21,6 +21,7 @@ package com.priyankvasa.android.cameraviewex
 import android.arch.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
+import java.util.SortedSet
 
 internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 
@@ -46,16 +47,16 @@ internal interface CameraInterface : LifecycleOwner, CoroutineScope {
      */
     var maxPreviewFrameRate: Float
 
+    val cameraId: String
+
+    val cameraIdsForFacing: SortedSet<String>
+
     /**
      * @return `true` if the implementation was able to start the passed in cameraId
      */
     fun start(cameraId: String): Boolean
 
     fun getNextCameraId(): String
-
-    fun getCameraId(): String
-
-    fun getCameraIdsByFacing(): Set<String>
 
     fun stop() {
         if (isVideoRecording) stopVideoRecording()
