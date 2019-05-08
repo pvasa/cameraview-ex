@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.BuildConfig
 import timber.log.Timber
 import java.io.File
+import java.util.SortedSet
 
 class CameraView @JvmOverloads constructor(
     context: Context,
@@ -125,6 +126,7 @@ class CameraView @JvmOverloads constructor(
                 else -> Camera2Api24(listenerManager, preview, config, SupervisorJob(parentJob), context)
             }
 
+
             config.aspectRatio.observe(camera) {
                 camera.setAspectRatio(it)
                 coroutineScope.launch { requestLayout() }
@@ -144,6 +146,14 @@ class CameraView @JvmOverloads constructor(
 
     /** `true` if the camera is opened `false` otherwise. */
     val isCameraOpened: Boolean get() = camera.isCameraOpened
+
+    /** Id of currently opened camera device */
+    val cameraId: String get() = camera.cameraId
+
+    /**
+     * List of ids of camera devices for selected [facing]
+     */
+    val cameraIdsForFacing: SortedSet<String> get() = camera.cameraIdsForFacing
 
     /** `true` if there is a video recording in progress, `false` otherwise. */
     val isVideoRecording: Boolean get() = camera.isVideoRecording
@@ -506,12 +516,13 @@ class CameraView @JvmOverloads constructor(
     }
 
     /**
-     * Open a camera device and start showing camera preview. This is typically called from
+     * Open a camera device by camera ID and start showing camera preview. This is typically called from
      * [Activity.onResume].
      * @throws [CameraViewException] if [destroy] is already called and this [CameraView] instance is no longer active.
      */
+    @JvmOverloads
     @RequiresPermission(Manifest.permission.CAMERA)
-    fun start() {
+    fun start(cameraId: String = Modes.DEFAULT_CAMERA_ID) {
 
         if (!requireActive()) return
 
@@ -526,7 +537,7 @@ class CameraView @JvmOverloads constructor(
         // Save original state and restore later if camera falls back to using Camera1
         val state: Parcelable = onSaveInstanceState()
 
-        if (camera.start()) return // Camera started successfully, return.
+        if (camera.start(cameraId)) return // Camera started successfully, return.
 
         // This camera instance is no longer useful, destroy it.
         camera.destroy()
@@ -535,11 +546,11 @@ class CameraView @JvmOverloads constructor(
         // Errors leading to this situation are already posted from Camera1 api
         if (camera is Camera1) return
 
-        // Device uses legacy hardware layer; fall back to Camera1
-        fallback(state)
+        // Device uses legacy hardware; fall back to Camera1
+        fallback(cameraId, state)
     }
 
-    private fun fallback(savedState: Parcelable) {
+    private fun fallback(cameraId: String, savedState: Parcelable) {
 
         camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
 
@@ -548,7 +559,7 @@ class CameraView @JvmOverloads constructor(
 
         // Try to start camera again using Camera1 api
         // Return if successful
-        if (camera.start()) return
+        if (camera.start(cameraId)) return
 
         // Unable to start camera using any api. Post a critical error.
         listenerManager.onCameraError(
@@ -556,6 +567,18 @@ class CameraView @JvmOverloads constructor(
                 " Please check if the camera hardware is usable and CameraView is correctly configured."),
             ErrorLevel.ErrorCritical
         )
+    }
+
+    /**
+     * Open next camera in sequence of sorted camera ids for current [facing]
+     *
+     * If current open camera has a different facing then what is set currently
+     * then this method will open the first camera for set [facing].
+     */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    fun nextCamera() {
+        stop()
+        start(camera.getNextCameraId())
     }
 
     /** Take a picture. The result will be returned to listeners added by [addPictureTakenListener]. */

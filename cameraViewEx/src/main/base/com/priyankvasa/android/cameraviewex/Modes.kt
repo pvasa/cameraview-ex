@@ -64,13 +64,14 @@ object Modes {
     }
 
     /** Direction the camera faces relative to device screen. */
-    @IntDef(Facing.FACING_BACK, Facing.FACING_FRONT)
+    @IntDef(Facing.FACING_BACK, Facing.FACING_FRONT, Facing.FACING_EXTERNAL)
     @Retention(AnnotationRetention.SOURCE)
     @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.PROPERTY, AnnotationTarget.PROPERTY_GETTER)
     annotation class Facing {
         companion object {
             const val FACING_BACK = 0
             const val FACING_FRONT = 1
+            const val FACING_EXTERNAL = 2
         }
     }
 
@@ -189,4 +190,6 @@ object Modes {
     const val DEFAULT_SHUTTER: Int = Shutter.SHUTTER_OFF
     const val DEFAULT_AWB: Int = AutoWhiteBalance.AWB_OFF
     const val DEFAULT_ZSL = false
+
+    const val DEFAULT_CAMERA_ID = "default"
 }

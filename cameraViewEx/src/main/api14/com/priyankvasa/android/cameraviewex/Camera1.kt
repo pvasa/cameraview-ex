@@ -24,8 +24,10 @@ import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.ImageFormat
 import android.hardware.Camera
+import android.os.Build
 import android.os.SystemClock
 import android.support.v4.util.SparseArrayCompat
+import android.util.SparseIntArray
 import android.view.SurfaceHolder
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
@@ -36,6 +38,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
+import java.util.SortedSet
+import java.util.TreeSet
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -61,7 +65,21 @@ internal class Camera1(
     /** A [Semaphore] to prevent concurrent starting or stopping preview. */
     private val previewStartStopLock: Semaphore by lazy { Semaphore(1, true) }
 
-    private var cameraId: Int = Modes.Facing.FACING_BACK
+    private var cameraIdInternal: Int = Modes.Facing.FACING_BACK
+
+    override val cameraId: String get() = cameraIdInternal.toString()
+
+    /**
+     * Gets a list of camera ids for the current facing direction
+     */
+    override val cameraIdsForFacing: SortedSet<String>
+        get() = (0 until Camera.getNumberOfCameras())
+            .filter { id: Int ->
+                val info = Camera.CameraInfo()
+                runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
+                    info.facing == internalFacing
+            }
+            .mapTo(TreeSet<String>()) { Integer.toString(it) }
 
     private val isPictureCaptureInProgress: AtomicBoolean by lazy { AtomicBoolean(false) }
 
@@ -135,6 +153,16 @@ internal class Camera1(
             }
         }
     }
+
+    private val internalFacings: SparseIntArray by lazy {
+        SparseIntArray().apply {
+            put(Modes.Facing.FACING_BACK, Camera.CameraInfo.CAMERA_FACING_BACK)
+            put(Modes.Facing.FACING_FRONT, Camera.CameraInfo.CAMERA_FACING_FRONT)
+            put(Modes.Facing.FACING_EXTERNAL, 2) // CameraCharacteristics.LENS_FACING_EXTERNAL
+        }
+    }
+
+    private val internalFacing: Int get() = internalFacings[config.facing.value]
 
     private val cameraInfo: Camera.CameraInfo by lazy { Camera.CameraInfo() }
 
@@ -216,7 +244,7 @@ internal class Camera1(
         facing.observe(this@Camera1) {
             if (isCameraOpened) {
                 stop()
-                start()
+                start(Modes.DEFAULT_CAMERA_ID)
             }
         }
 
@@ -242,9 +270,20 @@ internal class Camera1(
         jpegQuality.observe(this@Camera1) { updateCameraParams { jpegQuality = it } }
     }
 
-    override fun start(): Boolean {
+    /**
+     * Start camera with given [cameraIdInternal].
+     * If [cameraIdInternal] is [Modes.DEFAULT_CAMERA_ID] then
+     * camera is selected based on provided facing from [CameraConfiguration.facing]
+     */
+    override fun start(cameraId: String): Boolean {
+
         if (!cameraOpenCloseLock.tryAcquire()) return false
-        chooseCamera()
+
+        when (cameraId) {
+            Modes.DEFAULT_CAMERA_ID -> chooseCameraIdByFacing()
+            else -> setCameraId(cameraId)
+        }
+
         runCatching { openCamera() }
             .onFailure {
                 cameraOpenCloseLock.release()
@@ -254,36 +293,45 @@ internal class Camera1(
                 )
                 return false
             }
+
         if (preview.isReady) runCatching { setUpPreview() }
             .onFailure {
                 cameraOpenCloseLock.release()
                 listener.onCameraError(CameraViewException("Unable to setup preview.", it))
                 return false
             }
+
         cameraOpenCloseLock.release()
+
         return startPreview()
     }
 
-    private fun startPreview(): Boolean = runCatching {
-        if (!previewStartStopLock.tryAcquire()) return@runCatching false
-        if (config.isContinuousFrameModeEnabled) camera?.setPreviewCallback(previewCallback)
-        camera?.startPreview()
-        showingPreview = true
-        return@runCatching true
-    }.getOrElse {
-        listener.onCameraError(CameraViewException("Unable to start preview.", it))
-        return@getOrElse false
-    }.also { previewStartStopLock.release() }
+    private fun startPreview(): Boolean =
+        runCatching {
+            if (!previewStartStopLock.tryAcquire()) return@runCatching false
+            if (config.isContinuousFrameModeEnabled) camera?.setPreviewCallback(previewCallback)
+            camera?.startPreview()
+            showingPreview = true
+            return@runCatching true
+        }
+            .getOrElse {
+                listener.onCameraError(CameraViewException("Unable to start preview.", it))
+                return@getOrElse false
+            }
+            .also { previewStartStopLock.release() }
 
-    private fun stopPreview(): Boolean = runCatching {
-        if (!previewStartStopLock.tryAcquire()) return@runCatching false
-        camera?.setPreviewCallback(null)
-        camera?.stopPreview()
-        return@runCatching true
-    }.getOrElse {
-        listener.onCameraError(CameraViewException("Unable to stop preview.", it))
-        return@getOrElse false
-    }.also { previewStartStopLock.release() }
+    private fun stopPreview(): Boolean =
+        runCatching {
+            if (!previewStartStopLock.tryAcquire()) return@runCatching false
+            camera?.setPreviewCallback(null)
+            camera?.stopPreview()
+            return@runCatching true
+        }
+            .getOrElse {
+                listener.onCameraError(CameraViewException("Unable to stop preview.", it))
+                return@getOrElse false
+            }
+            .also { previewStartStopLock.release() }
 
     override fun stop() {
         if (!cameraOpenCloseLock.tryAcquire()) return
@@ -379,7 +427,7 @@ internal class Camera1(
         runCatching {
             videoManager.setupMediaRecorder(
                 camera ?: return,
-                cameraId,
+                cameraIdInternal,
                 preview.surface,
                 outputFile,
                 videoConfig,
@@ -418,17 +466,58 @@ internal class Camera1(
             return it
         }
 
-    /** This rewrites [.cameraId] and [.cameraInfo]. */
-    private fun chooseCamera() {
+    /**
+     * Returns a camera ID next to current [cameraIdInternal] for facing ([CameraConfiguration.facing]).
+     *
+     * If current camera ID has a different facing then what is set currently
+     * then this method will return the first camera ID for set facing.
+     *
+     * Camera IDs are grouped by facing.
+     */
+    override fun getNextCameraId(): String {
+
+        val sortedIds: SortedSet<String> = cameraIdsForFacing
+
+        // For invalid `cameraId`, new index will be -1 + 1 = 0 ie. first index of the group
+        val newIdIndex: Int = sortedIds.indexOf(cameraId) + 1
+
+        return if (newIdIndex in 0 until sortedIds.size) sortedIds.elementAt(newIdIndex) else Modes.DEFAULT_CAMERA_ID
+    }
+
+    private fun Camera.CameraInfo.copyFrom(other: Camera.CameraInfo) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            canDisableShutterSound = other.canDisableShutterSound
+        }
+        facing = other.facing
+        orientation = other.orientation
+    }
+
+    /** This rewrites [.cameraIdInternal] and [.cameraInfo]. */
+    private fun chooseCameraIdByFacing() {
 
         (0 until Camera.getNumberOfCameras()).forEach { id ->
-            Camera.getCameraInfo(id, cameraInfo)
-            if (cameraInfo.facing != config.facing.value) return@forEach
-            cameraId = id
+            val info = Camera.CameraInfo()
+            runCatching { Camera.getCameraInfo(id, info) }
+                .getOrElse { return@forEach }
+            if (info.facing != config.facing.value) return@forEach
+            cameraInfo.copyFrom(info)
+            cameraIdInternal = id
             return
         }
 
-        cameraId = INVALID_CAMERA_ID
+        cameraIdInternal = INVALID_CAMERA_ID
+    }
+
+    /** This rewrites [.cameraIdInternal] and [.cameraInfo]. */
+    @Throws(IllegalArgumentException::class)
+    private fun setCameraId(id: String) {
+
+        val intId: Int = id.toIntOrNull() ?: INVALID_CAMERA_ID
+
+        runCatching { Camera.getCameraInfo(intId, cameraInfo) }
+            .onFailure { throw IllegalArgumentException("Id must be an integer and a valid camera id.", it) }
+
+        cameraIdInternal = intId
     }
 
     @Throws(RuntimeException::class)
@@ -436,7 +525,7 @@ internal class Camera1(
 
         // It is recommended to open camera on another thread
         // https://developer.android.com/training/camera/cameradirect.html#TaskOpenCamera
-        camera = runBlocking(coroutineContext) { Camera.open(cameraId) }.apply {
+        camera = runBlocking(coroutineContext) { Camera.open(cameraIdInternal) }.apply {
 
             // Supported preview sizes
             previewSizes.clear()

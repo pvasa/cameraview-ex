@@ -25,6 +25,8 @@
             <enum name="back" value="0" />
             <!-- The camera device faces the same direction as the device's screen. -->
             <enum name="front" value="1" />
+            <!-- External camera device -->
+            <enum name="external" value="2" />
         </attr>
         <!--
             Aspect ratio of camera preview and pictures.
