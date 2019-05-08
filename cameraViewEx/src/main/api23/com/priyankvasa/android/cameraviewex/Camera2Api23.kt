@@ -18,8 +18,10 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.TargetApi
 import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.os.Build
+import android.util.SparseIntArray
 import kotlinx.coroutines.Job
 
 @TargetApi(Build.VERSION_CODES.M)
@@ -30,6 +32,9 @@ internal open class Camera2Api23(
     job: Job,
     context: Context
 ) : Camera2(listener, preview, config, job, context) {
+
+    override val internalFacings: SparseIntArray = super.internalFacings
+        .apply { put(Modes.Facing.FACING_EXTERNAL, CameraCharacteristics.LENS_FACING_EXTERNAL) }
 
     override fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
         // Try to get hi-res output sizes

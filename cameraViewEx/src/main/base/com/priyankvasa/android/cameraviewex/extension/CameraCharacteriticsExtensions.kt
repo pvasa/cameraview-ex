@@ -22,6 +22,11 @@ import android.support.annotation.RequiresApi
 import com.priyankvasa.android.cameraviewex.Modes
 
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+internal fun CameraCharacteristics.isHardwareLevelSupported(): Boolean =
+    get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+        .let { it != null && it != CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY }
+
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 internal fun CameraCharacteristics.isAfSupported(mode: Int): Boolean =
     get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES)?.contains(mode) == true
 
