@@ -431,8 +431,8 @@ internal class Camera1(
                 preview.surface,
                 outputFile,
                 videoConfig,
-                config.aspectRatio.value,
-                calcCameraRotation(deviceRotation)
+                calcCameraRotation(deviceRotation),
+                Size(preview.width, preview.height)
             ) { stopVideoRecording() }
             videoManager.startMediaRecorder()
             listener.onVideoRecordStarted()

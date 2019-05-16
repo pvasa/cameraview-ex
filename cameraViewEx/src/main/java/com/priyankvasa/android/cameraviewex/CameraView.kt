@@ -628,7 +628,7 @@ class CameraView @JvmOverloads constructor(
         )
 
         else -> runCatching { camera.startVideoRecording(outputFile, VideoConfiguration().apply(videoConfig)) }
-            .getOrElse { listenerManager.onCameraError(CameraViewException("Unable to start video recording.")) }
+            .getOrElse { listenerManager.onCameraError(CameraViewException("Unable to start video recording.", it)) }
     }
 
     /**
