@@ -133,8 +133,8 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         previewSurface: Surface?,
         outputFile: File,
         videoConfig: VideoConfiguration,
-        previewAspectRatio: AspectRatio,
         outputOrientation: Int,
+        maxSize: Size,
         maxDurationAction: () -> Any
     ) {
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
@@ -145,8 +145,8 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
                 cameraId,
                 outputFile,
                 videoConfig,
-                previewAspectRatio,
                 outputOrientation,
+                maxSize,
                 maxDurationAction
             )
         }
@@ -158,8 +158,8 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         cameraId: Int?,
         outputFile: File,
         videoConfig: VideoConfiguration,
-        previewAspectRatio: AspectRatio,
         outputOrientation: Int,
+        maxSize: Size,
         maxDurationAction: () -> Any
     ) {
         mediaRecorder = (mediaRecorder?.apply { reset() } ?: MediaRecorder()).apply {
@@ -168,8 +168,8 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
                 cameraId,
                 outputFile,
                 videoConfig,
-                previewAspectRatio,
                 outputOrientation,
+                maxSize,
                 maxDurationAction
             )
         }
@@ -180,8 +180,8 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         cameraId: Int?,
         outputFile: File,
         videoConfig: VideoConfiguration,
-        previewAspectRatio: AspectRatio,
         outputOrientation: Int,
+        maxSize: Size,
         maxDurationAction: () -> Any
     ) {
 
@@ -190,7 +190,7 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         setAudioSource(videoConfig.audioSource.value)
 
         if (!setCamcorderProfile(cameraId, videoConfig.videoSize)) {
-            manualProfileSetup(videoConfig, previewAspectRatio)
+            manualProfileSetup(videoConfig, maxSize)
         }
 
         setOutputFile(outputFile.absolutePath)
@@ -237,14 +237,11 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         return true
     }
 
-    private fun MediaRecorder.manualProfileSetup(
-        videoConfig: VideoConfiguration,
-        previewAspectRatio: AspectRatio
-    ) {
+    private fun MediaRecorder.manualProfileSetup(videoConfig: VideoConfiguration, maxSize: Size) {
         setOutputFormat(videoConfig.outputFormat.value)
         setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
         setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-        videoConfig.videoSize.parseSize(previewAspectRatio)
+        videoConfig.videoSize.parseSize(maxSize)
             .run {
                 setVideoSize(width, height)
                 setVideoEncodingBitRate(calculateVideoBitRate())
@@ -256,32 +253,32 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
      * Parse the video size from popular [VideoSize] choices. If the [VideoSize]
      * is not supported then an optimal size sill be chosen.
      */
-    private fun VideoSize.parseSize(previewAspectRatio: AspectRatio): Size = when (this) {
+    private fun VideoSize.parseSize(maxSize: Size): Size = when (this) {
 
-        VideoSize.Min -> chooseOptimalVideoSize(previewAspectRatio, chooseSmallest = true)
+        VideoSize.Min -> chooseOptimalVideoSize(this, maxSize, chooseSmallest = true)
 
         VideoSize.Min16x9,
         VideoSize.Min11x9,
         VideoSize.Min4x3,
         VideoSize.Min3x2,
-        VideoSize.Min1x1 -> chooseOptimalVideoSize(aspectRatio, chooseSmallest = true)
+        VideoSize.Min1x1 -> chooseOptimalVideoSize(this, maxSize, chooseSmallest = true)
 
-        VideoSize.Max -> chooseOptimalVideoSize(previewAspectRatio)
+        VideoSize.Max -> chooseOptimalVideoSize(this, maxSize)
 
         VideoSize.Max16x9,
         VideoSize.Max11x9,
         VideoSize.Max4x3,
         VideoSize.Max3x2,
-        VideoSize.Max1x1 -> chooseOptimalVideoSize(aspectRatio)
+        VideoSize.Max1x1 -> chooseOptimalVideoSize(this, maxSize)
 
         VideoSize.P2160, VideoSize.P1440, VideoSize.P1080, VideoSize.P720, VideoSize.P480 -> {
             if (videoSizes.containsSize(size)) size
-            else chooseOptimalVideoSize(aspectRatio)
+            else chooseOptimalVideoSize(this, maxSize)
         }
 
         VideoSize.CIF, VideoSize.QVGA, VideoSize.QCIF -> {
             if (videoSizes.containsSize(size)) size
-            else chooseOptimalVideoSize(aspectRatio, chooseSmallest = true)
+            else chooseOptimalVideoSize(this, maxSize, chooseSmallest = true)
         }
     }
 
@@ -300,15 +297,22 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
     }
 
     private fun chooseOptimalVideoSize(
-        aspectRatio: AspectRatio,
+        requestedVideoSize: VideoSize,
+        maxSize: Size,
         chooseSmallest: Boolean = false
-    ): Size = videoSizes.sizes(aspectRatio).run {
+    ): Size {
 
-        if (chooseSmallest) firstOrNull {
-            it.longerEdge == it.shorterEdge * aspectRatio.x / aspectRatio.y
-        } ?: first()
-        else lastOrNull {
-            it.longerEdge == it.shorterEdge * aspectRatio.x / aspectRatio.y
-        } ?: last()
+        val ar: AspectRatio =
+            when (requestedVideoSize) {
+                VideoSize.Min,
+                VideoSize.Max -> AspectRatio.of(maxSize.longerEdge, maxSize.shorterEdge)
+                else -> requestedVideoSize.aspectRatio
+            }
+
+        return videoSizes.sizes(ar).run {
+            if (chooseSmallest) first()
+            else lastOrNull { it.width <= maxSize.longerEdge || it.height <= maxSize.longerEdge }
+                ?: last()
+        }
     }
 }

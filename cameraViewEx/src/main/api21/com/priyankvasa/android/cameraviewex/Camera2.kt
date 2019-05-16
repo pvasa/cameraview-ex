@@ -1345,8 +1345,8 @@ internal open class Camera2(
             camera?.id?.toIntOrNull(),
             outputFile,
             videoConfig,
-            config.sensorAspectRatio,
-            outputOrientation
+            outputOrientation,
+            Size(preview.width, preview.height)
         ) { stopVideoRecording() }
 
         if (!isCameraOpened || !preview.isReady) {
