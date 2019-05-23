@@ -275,8 +275,35 @@ internal open class Camera2(
             }
         }
 
-    /** Return `true` if the image size was adjusted, `false` if using original size. */
-    private fun android.media.Image.setCropRect(): Boolean {
+    private fun isValidOutputOrientation(outputOrientation: Int): Boolean =
+        when (outputOrientation) {
+            0, 90, 180, 270 -> true
+            else -> false
+        }
+
+    /**
+     * Return output orientation set on receiver jpeg [android.media.Image] by image reader.
+     * If image is not in jpeg format, return `-1`.
+     */
+    private fun android.media.Image.getJpegOutputOrientation(): Int =
+        if (format == ImageFormat.JPEG)
+            with(planes[0].buffer) {
+                rewind()
+                val jpegData = ByteArray(remaining())
+                get(jpegData)
+                ExifInterface().run { if (readExifSafe(jpegData)) rotation else -1 }
+            }
+        else -1
+
+    /**
+     * Set a crop rect if size adjustments required.
+     * @return [Pair] of [Boolean] stating if adjustments were made and
+     *   [Int] which is the exif rotation set by camera api on the image.
+     */
+    private fun android.media.Image.setCropRect(
+        sensorOutputOrientation: Int,
+        imageOutputOrientation: Int
+    ): Boolean {
 
         val isScreenPortrait: Boolean = screenRotation % 180 == 0
 
@@ -289,26 +316,27 @@ internal open class Camera2(
         val needOutputSizeAdjustment: Boolean =
             (isScreenPortrait && x > y) || (!isScreenPortrait && y > x)
 
-        if (needOutputSizeAdjustment) {
+        if (!needOutputSizeAdjustment) return false
 
-            val ratio: Float = if (isScreenPortrait) y / x else x / y
+        val ratio: Float = if (isScreenPortrait) y / x else x / y
 
-            // When size adjustment is needed then based on screen rotation
-            // decide which dimension should be adjusted, `width` or `height`
-            val adjustWidth: Boolean = deviceRotation % 180 != outputOrientation % 180
+        // When size adjustment is needed then based on screen rotation
+        // decide which dimension should be adjusted, `width` or `height`
+        val adjustWidth: Boolean = deviceRotation % 180 != imageOutputOrientation % 180
 
-            // Set the crop rect with new adjusted dimensions which will be used later to produce final output
-            cropRect = Rect(
-                0, // left
-                0, // top
-                if (adjustWidth) (height * ratio).roundToInt() else width, // right
-                if (!adjustWidth) (width * ratio).roundToInt() else height // bottom
-            )
+        val (iWidth, iHeight) =
+            if (imageOutputOrientation != sensorOutputOrientation) height to width
+            else width to height
 
-            return true
-        }
+        // Set the crop rect with new adjusted dimensions which will be used later to produce final output
+        cropRect = Rect(
+            0, // left
+            0, // top
+            if (adjustWidth) (iHeight * ratio).roundToInt() else iWidth, // right
+            if (!adjustWidth) (iWidth * ratio).roundToInt() else iHeight // bottom
+        )
 
-        return false
+        return true
     }
 
     private val onPreviewImageAvailableListener: ImageReader.OnImageAvailableListener by lazy {
@@ -354,7 +382,9 @@ internal open class Camera2(
                         return@launch
                     }
 
-                internalImage.setCropRect()
+                val outputOrientation: Int = getSensorOutputOrientation()
+
+                internalImage.setCropRect(outputOrientation, outputOrientation)
 
                 val imageData: ByteArray =
                     runCatching { imageProcessor.decode(internalImage, Modes.OutputFormat.YUV_420_888) }
@@ -394,7 +424,13 @@ internal open class Camera2(
                 return@OnImageAvailableListener
             }
 
-            val isImageSizeAdjusted: Boolean = internalImage.setCropRect()
+            val sensorOutputOrientation: Int = getSensorOutputOrientation()
+            val imageOutputOrientation: Int = internalImage.getJpegOutputOrientation()
+                .takeIf(::isValidOutputOrientation)
+                ?: sensorOutputOrientation
+
+            val isImageSizeAdjusted: Boolean =
+                internalImage.setCropRect(sensorOutputOrientation, imageOutputOrientation)
 
             val imageData: ByteArray =
                 runCatching { imageProcessor.decode(internalImage, config.outputFormat.value) }
@@ -411,7 +447,7 @@ internal open class Camera2(
 
             val finalImageData: ByteArray =
                 if (isImageSizeAdjusted || !isExifAlreadyRead) {
-                    exif.rotation = outputOrientation
+                    exif.rotation = imageOutputOrientation
                     exif.writeExif(imageData)
                 } else {
                     imageData
@@ -650,16 +686,16 @@ internal open class Camera2(
     }
 
     // Calculate output orientation based on device sensor orientation.
-    private val outputOrientation: Int
-        @Throws(IllegalStateException::class)
-        get() {
-            val cameraSensorOrientation: Int = cameraCharacteristics[CameraCharacteristics.SENSOR_ORIENTATION]
-                ?: throw IllegalStateException("Camera characteristics not available")
+    @Throws(IllegalStateException::class)
+    private fun getSensorOutputOrientation(): Int {
 
-            return (cameraSensorOrientation
-                + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
-                + 360) % 360
-        }
+        val cameraSensorOrientation: Int = cameraCharacteristics[CameraCharacteristics.SENSOR_ORIENTATION]
+            ?: throw IllegalStateException("Camera characteristics not available")
+
+        return (cameraSensorOrientation
+            + (deviceRotation * if (config.facing.value == Modes.Facing.FACING_FRONT) 1 else -1)
+            + 360) % 360
+    }
 
     final override fun getLifecycle(): Lifecycle = lifecycleRegistry
 
@@ -1300,7 +1336,7 @@ internal open class Camera2(
                 set(CaptureRequest.FLASH_MODE, flashMode)
 
                 if (singleCaptureReader?.imageFormat == ImageFormat.JPEG) {
-                    set(CaptureRequest.JPEG_ORIENTATION, outputOrientation)
+                    set(CaptureRequest.JPEG_ORIENTATION, getSensorOutputOrientation())
                 }
 
                 set(CaptureRequest.JPEG_QUALITY, config.jpegQuality.value.toByte())
@@ -1345,7 +1381,7 @@ internal open class Camera2(
             camera?.id?.toIntOrNull(),
             outputFile,
             videoConfig,
-            outputOrientation,
+            getSensorOutputOrientation(),
             Size(preview.width, preview.height)
         ) { stopVideoRecording() }
 
