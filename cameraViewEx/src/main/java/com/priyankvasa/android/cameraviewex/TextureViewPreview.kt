@@ -99,7 +99,7 @@ internal class TextureViewPreview(
 
         val matrix = Matrix()
 
-        val tWidth: Float = width.toFloat()
+        var tWidth: Float = width.toFloat()
         val tHeight: Float = height.toFloat()
 
         if (displayOrientation % 180 == 90) {
@@ -110,6 +110,9 @@ internal class TextureViewPreview(
                 0f, tHeight, // bottom left
                 tWidth, tHeight // bottom right
             )
+
+            // Adjust camera preview width to fill texture view
+            if (tHeight > tWidth) tWidth = tHeight * tHeight / tWidth
 
             val dst: FloatArray =
                 if (displayOrientation == 90) // rotate clockwise
