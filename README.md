@@ -4,6 +4,8 @@
 
 # CameraViewEx
 
+<img src="Banner.png" width="60%" height="60%" />
+
 _This is an extended version of [Google's cameraview library](https://github.com/google/cameraview) with better stability and many more features._
 
 CameraViewEx highly simplifies integration of camera implementation and various camera features into any Android project. It uses new camera2 api with advanced features on API level 21 and higher and smartly switches to camera1 on older devices (API < 21).
