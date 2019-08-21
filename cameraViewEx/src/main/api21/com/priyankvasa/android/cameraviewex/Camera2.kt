@@ -46,7 +46,7 @@ import android.renderscript.RenderScript
 import android.util.SparseIntArray
 import android.view.Surface
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
-import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
+import com.priyankvasa.android.cameraviewex.extension.chooseOptimalSize
 import com.priyankvasa.android.cameraviewex.extension.cropHeight
 import com.priyankvasa.android.cameraviewex.extension.cropWidth
 import com.priyankvasa.android.cameraviewex.extension.isAfSupported
@@ -1046,8 +1046,10 @@ internal open class Camera2(
         continuousFrameReader?.close()
 
         val (width: Int, height: Int) =
-            config.continuousFrameSize.value
-                .takeIf { it != Size.Invalid && previewSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
+            previewSizes.chooseOptimalSize(
+                config.continuousFrameSize.value,
+                config.sensorAspectRatio
+            )
                 ?: Size(preview.width, preview.height)
 
         continuousFrameReader =
@@ -1064,9 +1066,10 @@ internal open class Camera2(
         singleCaptureReader?.close()
 
         val (pictureWidth: Int, pictureHeight: Int) =
-            config.singleCaptureSize.value
-                .takeIf { it != Size.Invalid && pictureSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
-                ?: pictureSizes.sizes(config.sensorAspectRatio).lastOrNull()
+            pictureSizes.chooseOptimalSize(
+                config.singleCaptureSize.value,
+                config.sensorAspectRatio
+            )
                 ?: run {
                     listener.onCameraError(
                         CameraViewException("No supported picture size found for this camera. Try reopening this camera or use another one."),
@@ -1101,7 +1104,7 @@ internal open class Camera2(
 
         val (width: Int, height: Int) =
             previewSizes.sizes(config.sensorAspectRatio)
-                .runCatching { chooseOptimalPreviewSize(preview.width, preview.height) }
+                .runCatching { chooseOptimalSize(preview.width, preview.height) }
                 .getOrElse {
                     listener.onCameraError(CameraViewException("No supported preview size available. This camera device (id $cameraId) is not supported.", it))
                     return
