@@ -1038,7 +1038,7 @@ internal open class Camera2(
     }
 
     protected open fun collectPictureSizes(sizes: SizeMap, map: StreamConfigurationMap) {
-        map.getOutputSizes(ImageReader::class.java).forEach { pictureSizes.add(it.width, it.height) }
+        map.getOutputSizes(internalOutputFormat).forEach { pictureSizes.add(it.width, it.height) }
     }
 
     private fun prepareContinuousFrameReader() {
