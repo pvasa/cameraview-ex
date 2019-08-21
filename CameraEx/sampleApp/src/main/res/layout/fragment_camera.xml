@@ -92,7 +92,7 @@
         android:layout_height="wrap_content"
         android:adjustViewBounds="true"
         android:keepScreenOn="true"
-        app:aspectRatio="3:4"
+        app:aspectRatio="4:3"
         app:autoFocus="continuous_picture"
         app:awb="auto"
         app:cameraMode="single_capture|video_capture|continuous_frame"
@@ -111,6 +111,7 @@
         app:outputFormat="jpeg"
         app:pinchToZoom="true"
         app:shutter="short_time"
+        app:singleCaptureSize="W1440,H1080"
         app:touchToFocus="true"
         app:zsl="false" />
 
