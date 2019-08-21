@@ -17,6 +17,7 @@
 package com.priyankvasa.android.cameraviewex
 
 import android.support.v4.util.ArrayMap
+import com.priyankvasa.android.cameraviewex.extension.chooseOptimalSize
 import java.util.SortedSet
 import java.util.TreeSet
 
@@ -83,6 +84,38 @@ internal class SizeMap {
      * looping through previewSizes in [Camera1.supportedAspectRatios] has null elements. Seems like a ghost bug.
      */
     fun sizes(ratio: AspectRatio?): SortedSet<Size> = map[ratio] ?: sortedSetOf()
+
+    /**
+     * If [requestedSize] is [Size.Invalid], choose highest size from
+     * set of sizes with aspect ratio of [fallbackRatio].
+     *
+     * Else if [requestedSize] is valid, choose best size from set of sizes
+     * which has same aspect ratio as [requestedSize].
+     *  Best case would be [requestedSize] itself.
+     *
+     * If this set is empty, choose best size from set of sizes
+     * with aspect ratio of [fallbackRatio]
+     *
+     * Even if this set is empty, return `null`.
+     */
+    fun chooseOptimalSize(requestedSize: Size, fallbackRatio: AspectRatio): Size? {
+
+        val fallbackRatioSizes by lazy { sizes(fallbackRatio) }
+
+        return if (requestedSize == Size.Invalid) {
+            fallbackRatioSizes.lastOrNull()
+        } else {
+            runCatching {
+                sizes(AspectRatio.of(requestedSize))
+                    .chooseOptimalSize(requestedSize.width, requestedSize.height)
+            }
+                .recoverCatching {
+                    fallbackRatioSizes
+                        .chooseOptimalSize(requestedSize.width, requestedSize.height)
+                }
+                .getOrNull()
+        }
+    }
 
     fun clear() = map.clear()
 }

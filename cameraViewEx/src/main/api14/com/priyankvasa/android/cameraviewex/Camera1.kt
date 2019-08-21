@@ -30,7 +30,6 @@ import android.support.v4.util.SparseArrayCompat
 import android.util.SparseIntArray
 import android.view.SurfaceHolder
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
-import com.priyankvasa.android.cameraviewex.extension.chooseOptimalPreviewSize
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -79,7 +78,7 @@ internal class Camera1(
                 runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
                     info.facing == internalFacing
             }
-            .mapTo(TreeSet<String>()) { Integer.toString(it) }
+            .mapTo(TreeSet<String>()) { it.toString() }
 
     private val isPictureCaptureInProgress: AtomicBoolean by lazy { AtomicBoolean(false) }
 
@@ -554,19 +553,23 @@ internal class Camera1(
         if (!preview.isReady) return
 
         val previewSize: Size =
-            config.continuousFrameSize.value
-                .takeIf { it != Size.Invalid && previewSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
-                ?: previewSizes.sizes(config.sensorAspectRatio)
-                    .runCatching { chooseOptimalPreviewSize(preview.width, preview.height) }
-                    .getOrElse {
-                        listener.onCameraError(CameraViewException("No supported preview size available. This camera device (id $cameraId) is not supported.", it))
-                        return
-                    }
+            previewSizes.chooseOptimalSize(
+                config.continuousFrameSize.value,
+                config.sensorAspectRatio
+            )
+                ?: run {
+                    listener.onCameraError(
+                        CameraViewException("No supported preview size available. This camera device (id $cameraId) is not supported."),
+                        ErrorLevel.Error
+                    )
+                    return
+                }
 
         val pictureSize: Size =
-            config.singleCaptureSize.value
-                .takeIf { it != Size.Invalid && pictureSizes.containsSize(Size(it.longerEdge, it.shorterEdge)) }
-                ?: pictureSizes.sizes(config.sensorAspectRatio).lastOrNull()
+            pictureSizes.chooseOptimalSize(
+                config.singleCaptureSize.value,
+                config.sensorAspectRatio
+            )
                 ?: previewSize
 
         if (showingPreview) stopPreview()
