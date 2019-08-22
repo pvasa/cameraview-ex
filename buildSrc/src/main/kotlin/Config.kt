@@ -20,7 +20,7 @@ object Config {
 
     private const val majorVersion = 3
     private const val minorVersion = 5
-    private const val patchVersion = 4
+    private const val patchVersion = 5
     private const val versionClassifier = "alpha"
 
     val versionName: String

@@ -396,7 +396,7 @@ internal open class Camera2(
                 val exif: ExifInterface = ExifInterface().apply { rotation = outputOrientation }
 
                 internalImage
-                    .runCatching { Image(imageData, cropWidth, cropHeight, exif, format) }
+                    .runCatching { Image(imageData, cropWidth, cropHeight, exif, Modes.OutputFormat.YUV_420_888) }
                     .onSuccess { image: Image -> listener.onPreviewFrame(image) }
 
                 internalImage.close()
@@ -448,7 +448,8 @@ internal open class Camera2(
             val finalImageData: ByteArray =
                 if (isImageSizeAdjusted || !isExifAlreadyRead) {
                     exif.rotation = imageOutputOrientation
-                    exif.writeExif(imageData)
+                    if (internalImage.format == ImageFormat.JPEG) exif.writeExif(imageData)
+                    else imageData
                 } else {
                     imageData
                 }
@@ -480,7 +481,7 @@ internal open class Camera2(
                 characteristics.isHardwareLevelSupported() &&
                     characteristics[CameraCharacteristics.LENS_FACING] == internalFacing
             }
-            .mapTo(TreeSet<String>()) { it }
+            .mapTo(TreeSet()) { it }
 
     private lateinit var cameraCharacteristics: CameraCharacteristics
 
