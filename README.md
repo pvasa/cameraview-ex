@@ -19,8 +19,6 @@ Minimum API 14 is required to use CameraViewEx.
 #### Why another camera library?
 Every camera library out there has some issues. Some good ones uses only camera1 api which cannot give best performance possible with today's devices, some are not updated anymore, some does not have all the features while some has a lot of features but uses complex api. CameraViewEx tries to solve all these issues while providing simpler api and more features.
 
-> Note: This is alpha version with more advanced features like any size preview and customizable output sizes. If you need more stable version or find any issues with this version, please switch to [version v3.4.3](https://github.com/pvasa/cameraview-ex/tree/v3.4.3).
-
 ## Features
 - High quality image capture
 - Multiple camera modes like single capture, continuous frame, and video capture
@@ -46,7 +44,7 @@ In app build.gradle,
 ```gradle
 dependencies {
     // ...
-    implementation "com.priyankvasa.android:cameraview-ex:3.5.4-alpha"
+    implementation "com.priyankvasa.android:cameraview-ex:3.5.5-alpha"
 }
 ```
 
