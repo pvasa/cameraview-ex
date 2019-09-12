@@ -118,7 +118,7 @@ class CameraView @JvmOverloads constructor(
             // Based on OS version select the best camera implementation
             camera = when {
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ->
-                    Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
+                    Camera1(listenerManager, preview, config, SupervisorJob(parentJob), context)
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.M ->
                     Camera2(listenerManager, preview, config, SupervisorJob(parentJob), context)
                 Build.VERSION.SDK_INT < Build.VERSION_CODES.N ->
@@ -552,7 +552,7 @@ class CameraView @JvmOverloads constructor(
 
     private fun fallback(cameraId: String, savedState: Parcelable) {
 
-        camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob))
+        camera = Camera1(listenerManager, preview, config, SupervisorJob(parentJob), context)
 
         // Restore original state
         onRestoreInstanceState(savedState)

@@ -22,13 +22,17 @@ package com.priyankvasa.android.cameraviewex
 
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleRegistry
+import android.content.Context
+import android.content.Context.WINDOW_SERVICE
 import android.graphics.ImageFormat
 import android.hardware.Camera
 import android.os.Build
 import android.os.SystemClock
 import android.support.v4.util.SparseArrayCompat
 import android.util.SparseIntArray
+import android.view.Surface
 import android.view.SurfaceHolder
+import android.view.WindowManager
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +53,8 @@ internal class Camera1(
     private val listener: CameraInterface.Listener,
     private val preview: PreviewImpl,
     private val config: CameraConfiguration,
-    private val cameraJob: Job
+    private val cameraJob: Job,
+    private val context: Context
 ) : CameraInterface {
 
     override val coroutineContext: CoroutineContext get() = Dispatchers.Default + cameraJob
@@ -542,7 +547,7 @@ internal class Camera1(
             parameters.supportedPictureSizes
                 ?.forEach { pictureSizes.add(it.width, it.height) }
 
-            setDisplayOrientation(calcDisplayOrientation(deviceRotation))
+            setDisplayOrientation(calcDisplayOrientation())
         }
         adjustCameraParameters()
         listener.onCameraOpened()
@@ -596,15 +601,28 @@ internal class Camera1(
      *
      * Note: This is not the same calculation as the camera rotation
      *
-     * @param rotationDegrees Screen orientation in degrees
      * @return Number of degrees required to rotate preview
      */
-    private fun calcDisplayOrientation(rotationDegrees: Int): Int =
+    private fun calcDisplayOrientation(): Int {
+        var cameraDegrees = getCameraDegrees()
         if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            (360 - ((cameraInfo.orientation + rotationDegrees) % 360)) % 360
+            return (360 - ((cameraInfo.orientation + cameraDegrees) % 360)) % 360
         } else { // back-facing
-            (cameraInfo.orientation - rotationDegrees + 360) % 360
+            return (cameraInfo.orientation - cameraDegrees + 360) % 360
         }
+    }
+
+    private fun getCameraDegrees(): Int {
+        val rotation = (context.getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.rotation
+        var degrees = 0
+        when (rotation) {
+            Surface.ROTATION_0 -> degrees = 0
+            Surface.ROTATION_90 -> degrees = 90
+            Surface.ROTATION_180 -> degrees = 180
+            Surface.ROTATION_270 -> degrees = 270
+        }
+        return degrees
+    }
 
     /**
      * Calculate camera rotation
