@@ -1115,9 +1115,10 @@ internal open class Camera2(
 
         prepareContinuousFrameReader()
 
-        val template: Int =
-            if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
-            else CameraDevice.TEMPLATE_PREVIEW
+//        val template: Int =
+//            if (config.zsl.value) CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG
+//            else CameraDevice.TEMPLATE_PREVIEW
+        val template: Int = CameraDevice.TEMPLATE_PREVIEW
 
         runCatching {
             previewRequestBuilder = camera?.createCaptureRequest(template)
