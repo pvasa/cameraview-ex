@@ -37,10 +37,33 @@ Every camera library out there has some issues. Some good ones uses only camera1
 - Zero shutter lag mode
 - Shutter animation for single capture
 
+## jcenter() to mavenCentral() migration
+
+Change the import from,
+
+```gradle
+implementation "com.priyankvasa.android:cameraview-ex:3.5.5-alpha"
+```
+
+to
+
+```gradle
+implementation "dev.priyankvasa.android:cameraview-ex:3.5.5-alpha"
+```
+
+The top level domain has changed from `com` to `dev`.
+
+#### Only the following versions are migrated
+
+- [3.5.5-alpha](https://github.com/pvasa/cameraview-ex/releases/tag/v3.5.5-alpha)
+- [3.5.4-alpha](https://github.com/pvasa/cameraview-ex/releases/tag/v3.5.4-alpha)
+
 ## Usage
 
 #### Import dependency
+
 In app build.gradle,
+
 ```gradle
 dependencies {
     // ...
