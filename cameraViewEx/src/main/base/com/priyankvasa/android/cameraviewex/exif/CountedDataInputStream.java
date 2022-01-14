@@ -17,7 +17,8 @@
 package com.priyankvasa.android.cameraviewex.exif;
 
 import android.os.Build;
-import android.support.annotation.RequiresApi;
+
+import androidx.annotation.RequiresApi;
 
 import java.io.EOFException;
 import java.io.FilterInputStream;

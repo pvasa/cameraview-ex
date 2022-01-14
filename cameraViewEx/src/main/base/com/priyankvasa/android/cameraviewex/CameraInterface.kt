@@ -18,10 +18,10 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.arch.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
-import java.util.SortedSet
+import java.util.*
 
 internal interface CameraInterface : LifecycleOwner, CoroutineScope {
 

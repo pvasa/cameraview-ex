@@ -16,10 +16,9 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.support.v4.util.ArrayMap
+import androidx.collection.ArrayMap
 import com.priyankvasa.android.cameraviewex.extension.chooseOptimalSize
-import java.util.SortedSet
-import java.util.TreeSet
+import java.util.*
 
 /**
  * A collection class that automatically groups [Size]s by their [AspectRatio]s.

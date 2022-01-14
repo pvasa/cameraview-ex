@@ -25,9 +25,9 @@ import android.hardware.camera2.CaptureRequest
 import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.os.Build
-import android.support.annotation.RequiresApi
-import android.support.v4.math.MathUtils
 import android.view.Surface
+import androidx.annotation.RequiresApi
+import androidx.core.math.MathUtils
 import java.io.File
 import java.io.IOException
 import kotlin.math.roundToInt
@@ -205,8 +205,10 @@ internal class VideoManager(private val warn: (message: String) -> Unit) {
         when {
             videoConfig.maxDuration >= VideoConfiguration.DEFAULT_MIN_DURATION -> setMaxDuration(videoConfig.maxDuration)
             else -> {
-                warn("${videoConfig.maxDuration} is not a valid max duration value for video recording." +
-                    " Using minimum default ${VideoConfiguration.DEFAULT_MIN_DURATION}.")
+                warn(
+                    "${videoConfig.maxDuration} is not a valid max duration value for video recording." +
+                        " Using minimum default ${VideoConfiguration.DEFAULT_MIN_DURATION}."
+                )
                 setMaxDuration(VideoConfiguration.DEFAULT_MIN_DURATION)
             }
         }

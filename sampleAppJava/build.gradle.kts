@@ -37,12 +37,12 @@ android {
         }
     }
 
-    compileSdkVersion(Config.Android.sdk)
+    compileSdk = Config.Android.sdk
 
     defaultConfig {
         applicationId = "com.priyankvasa.android.cameraviewex"
-        minSdkVersion(Config.Android.minSdk)
-        targetSdkVersion(Config.Android.sdk)
+        minSdk = Config.Android.minSdk
+        targetSdk = Config.Android.sdk
         versionCode = Config.versionCode
         versionName = Config.versionName
         renderscriptTargetApi = 21
@@ -72,11 +72,11 @@ android {
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
-        setTargetCompatibility(JavaVersion.VERSION_1_8)
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     packagingOptions {
-        pickFirst("META-INF/atomicfu.kotlin_module")
+        resources.pickFirsts.add("META-INF/atomicfu.kotlin_module")
     }
 }
 

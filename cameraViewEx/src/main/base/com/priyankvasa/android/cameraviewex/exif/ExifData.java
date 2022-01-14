@@ -17,7 +17,8 @@
 package com.priyankvasa.android.cameraviewex.exif;
 
 import android.os.Build;
-import android.support.annotation.RequiresApi;
+
+import androidx.annotation.RequiresApi;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteOrder;
@@ -49,7 +50,7 @@ class ExifData {
     private final IfdData[] mIfdDatas = new IfdData[IfdId.TYPE_IFD_COUNT];
     private final ByteOrder mByteOrder;
     private byte[] mThumbnail;
-    private ArrayList<byte[]> mStripBytes = new ArrayList<byte[]>();
+    private final ArrayList<byte[]> mStripBytes = new ArrayList<byte[]>();
 
     ExifData(ByteOrder order) {
         mByteOrder = order;

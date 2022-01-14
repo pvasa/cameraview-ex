@@ -40,9 +40,10 @@ val srcDirs: Array<out String> = arrayOf(
     "src/main/api24"
 )
 
-group = "com.priyankvasa.android"
+group = "dev.priyankvasa.android"
 version = Config.versionName
-description = "CameraViewEx highly simplifies integration of camera implementation and various camera features into any Android project. It uses new camera2 api with advanced features on API level 21 and higher and smartly switches to camera1 on older devices (API < 21)."
+description =
+    "This is an extended version of Google's cameraview library."
 
 android {
 
@@ -63,13 +64,12 @@ android {
         }
     }
 
-    compileSdkVersion(Config.Android.sdk)
+    compileSdk = Config.Android.sdk
 
     defaultConfig {
-        minSdkVersion(Config.Android.minSdkLib)
-        targetSdkVersion(Config.Android.sdk)
-        versionCode = Config.versionCode
-        versionName = Config.versionName
+        minSdk = Config.Android.minSdkLib
+        targetSdk = Config.Android.sdk
+        version = Config.versionName
         testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("proguard-rules.pro")
         renderscriptTargetApi = 21
@@ -78,12 +78,7 @@ android {
     testBuildType = "stage"
 
     buildTypes {
-
-        getByName("debug") {
-            isDebuggable = true
-        }
-
-        getByName("release") {
+        release {
             initWith(buildTypes["debug"])
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs["release"]
@@ -91,7 +86,6 @@ android {
 
         create("stage").apply {
             initWith(buildTypes["release"])
-            versionNameSuffix = "-stage"
             signingConfig = signingConfigs["stage"]
         }
     }
@@ -104,7 +98,7 @@ android {
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
-        setTargetCompatibility(JavaVersion.VERSION_1_8)
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
 
@@ -254,9 +248,8 @@ tasks.getByName<DokkaAndroidTask>("dokka") {
     })
 }
 
-tasks.register<Jar>("sourcesJar") {
-    from(android.sourceSets["main"].java.srcDirs)
-    classifier = "sources"
+apply {
+    from("$rootDir/scripts/publish-module.gradle")
 }
 
 publishing {
@@ -275,7 +268,7 @@ publishing {
                 version = "${project.version}$versionSuffix"
 
                 artifact("$buildDir/outputs/aar/cameraViewEx-$buildType.aar")
-                artifact(tasks["sourcesJar"])
+                artifact(tasks["androidSourcesJar"])
 
                 pom {
                     packaging = "aar"
@@ -293,9 +286,7 @@ publishing {
                         developer {
                             id.set("pvasa")
                             name.set("Priyank Vasa")
-                            email.set("pv.ryan14@gmail.com")
-                            organization.set("TradeRev")
-                            organizationUrl.set("https://www.traderev.com/en-ca/")
+                            email.set("priyankvasa0@gmail.com")
                             url.set("https://priyankvasa.dev")
                         }
                     }
@@ -314,7 +305,10 @@ publishing {
                                 appendNode("scope", scope)
                             }
                         }
-                        configurations.implementation.dependencies.forEach { appendDependency(it, "runtime") }
+                        configurations.implementation
+                            .get()
+                            .dependencies
+                            .forEach { appendDependency(it, "runtime") }
                     }
                 }
             }
@@ -324,8 +318,4 @@ publishing {
     repositories {
         maven { url = uri("file:$rootDir/mavenRepo/") }
     }
-}
-
-apply {
-    from("publish.gradle")
 }

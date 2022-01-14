@@ -20,25 +20,20 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleRegistry
 import android.graphics.ImageFormat
 import android.hardware.Camera
 import android.os.Build
 import android.os.SystemClock
-import android.support.v4.util.SparseArrayCompat
 import android.util.SparseIntArray
 import android.view.SurfaceHolder
+import androidx.collection.SparseArrayCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleRegistry
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import java.io.File
 import java.io.IOException
-import java.util.SortedSet
-import java.util.TreeSet
+import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -76,9 +71,9 @@ internal class Camera1(
             .filter { id: Int ->
                 val info = Camera.CameraInfo()
                 runCatching { Camera.getCameraInfo(id, info) }.getOrNull() != null &&
-                    info.facing == internalFacing
+                        info.facing == internalFacing
             }
-            .mapTo(TreeSet<String>()) { it.toString() }
+            .mapTo(TreeSet()) { it.toString() }
 
     private val isPictureCaptureInProgress: AtomicBoolean by lazy { AtomicBoolean(false) }
 
@@ -408,7 +403,7 @@ internal class Camera1(
 
         camera?.parameters?.pictureFormat = outputFormat
         camera?.takePicture(
-            Camera.ShutterCallback { launch(Dispatchers.Main) { preview.shutterView.show() } },
+            { launch(Dispatchers.Main) { preview.shutterView.show() } },
             null,
             null,
             pictureCallback

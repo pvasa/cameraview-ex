@@ -18,7 +18,7 @@ package com.priyankvasa.android.cameraviewex
 
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.v4.util.SparseArrayCompat
+import androidx.collection.SparseArrayCompat
 
 /** Immutable class for describing proportional relationship between width and height. */
 class AspectRatio private constructor(val x: Int, val y: Int) : Comparable<AspectRatio>, Parcelable {

@@ -20,17 +20,23 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        jcenter()
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:3.3.2")
+        classpath("com.android.tools.build:gradle:7.0.4")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${Config.Versions.kotlin}")
         classpath("com.google.gms:google-services:${Config.Versions.googleServices}") // google-services plugin
-        classpath("com.github.dcendents:android-maven-gradle-plugin:${Config.Versions.mavenGradlePlugin}")
-        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:${Config.Versions.bintrayPlugin}")
         classpath("org.jetbrains.dokka:dokka-android-gradle-plugin:${Config.Versions.dokka}")
     }
+}
+
+plugins {
+    id("maven-publish")
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
+}
+
+apply {
+    from("${rootDir}/scripts/publish-root.gradle")
 }
 
 allprojects {
@@ -38,7 +44,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        jcenter()
     }
 
     dependencies {

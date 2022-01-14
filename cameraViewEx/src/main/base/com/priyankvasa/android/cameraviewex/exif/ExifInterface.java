@@ -19,8 +19,9 @@ package com.priyankvasa.android.cameraviewex.exif;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
-import android.support.annotation.RequiresApi;
 import android.util.SparseIntArray;
+
+import androidx.annotation.RequiresApi;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -330,7 +331,7 @@ public class ExifInterface {
      * Tags that contain offset markers. These are included in the banned
      * defines.
      */
-    private static HashSet<Short> sOffsetTags = new HashSet<Short>();
+    private static final HashSet<Short> sOffsetTags = new HashSet<Short>();
     /**
      * Tags with definitions that cannot be overridden (banned defines).
      */

@@ -22,12 +22,12 @@ import android.content.Context
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
-import android.support.transition.TransitionManager
-import android.support.v4.math.MathUtils
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.math.MathUtils
+import androidx.transition.TransitionManager
 import com.priyankvasa.android.cameraviewex.extension.convertDpToPixelF
 import kotlin.math.roundToInt
 

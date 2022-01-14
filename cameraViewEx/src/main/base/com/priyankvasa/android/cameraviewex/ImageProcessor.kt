@@ -22,12 +22,8 @@ import android.graphics.ImageFormat
 import android.media.Image
 import android.os.Build
 import android.os.SystemClock
-import android.renderscript.Allocation
-import android.renderscript.Element
-import android.renderscript.RenderScript
-import android.renderscript.ScriptIntrinsicYuvToRGB
-import android.renderscript.Type
-import android.support.annotation.RequiresApi
+import android.renderscript.*
+import androidx.annotation.RequiresApi
 import com.priyankvasa.android.cameraviewex.extension.cropHeight
 import com.priyankvasa.android.cameraviewex.extension.cropWidth
 import kotlinx.coroutines.CoroutineScope

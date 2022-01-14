@@ -16,9 +16,8 @@
 
 package com.priyankvasa.android.cameraviewex
 
-import android.arch.lifecycle.LifecycleOwner
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.MutableLiveData
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
 
 internal class NonNullableLiveData<T>(private val defaultValue: T) : MutableLiveData<T>() {
@@ -49,7 +48,7 @@ internal class NonNullableLiveData<T>(private val defaultValue: T) : MutableLive
     }
 
     fun observe(owner: LifecycleOwner, observer: (t: T) -> Unit) {
-        super.observe(owner, Observer { observer(it ?: defaultValue) })
+        super.observe(owner, { observer(it ?: defaultValue) })
     }
 
     fun observeForeverNullSafe(observer: (t: T) -> Unit) {

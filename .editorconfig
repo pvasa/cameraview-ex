@@ -1,0 +1,25 @@
+root = true
+
+[*.{kt, kts}]
+indent_style = space
+indent_size = 4
+continuation_indent_size = 4
+# possible values: number (e.g. 120) (package name, imports & comments are ignored), "off"
+# it's automatically set to 100 on `ktlint --android ...` (per Android Kotlin Style Guide)
+max_line_length = off
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+# Keep the Android IDE import ordering
+disabled_rules = import-ordering
+
+[*.{xml, json}]
+indent_size = 4
+continuation_indent_size = 4
+
+[*.yml]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

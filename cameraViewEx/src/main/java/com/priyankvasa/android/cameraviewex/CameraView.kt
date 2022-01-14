@@ -24,26 +24,22 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.annotation.RequiresApi
-import android.support.annotation.RequiresPermission
-import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
+import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresPermission
+import androidx.core.view.ViewCompat
 import com.priyankvasa.android.cameraviewex.R.attr.outputFormat
 import com.priyankvasa.android.cameraviewex.extension.getValue
 import com.priyankvasa.android.cameraviewex.extension.isUiThread
 import com.priyankvasa.android.cameraviewex.extension.setValue
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.koin.android.BuildConfig
 import timber.log.Timber
 import java.io.File
-import java.util.SortedSet
+import java.util.*
 
 class CameraView @JvmOverloads constructor(
     context: Context,
@@ -185,8 +181,10 @@ class CameraView @JvmOverloads constructor(
             // Check if new aspect ratio is supported
             if (!supportedAspectRatios.contains(ratio)) {
                 listenerManager.onCameraError(
-                    CameraViewException("Aspect ratio $this is not supported by this device." +
-                        " Valid ratios are CameraView.supportedAspectRatios $supportedAspectRatios."),
+                    CameraViewException(
+                        "Aspect ratio $this is not supported by this device." +
+                            " Valid ratios are CameraView.supportedAspectRatios $supportedAspectRatios."
+                    ),
                     ErrorLevel.ErrorCritical
                 )
                 return
@@ -563,8 +561,10 @@ class CameraView @JvmOverloads constructor(
 
         // Unable to start camera using any api. Post a critical error.
         listenerManager.onCameraError(
-            CameraViewException("Unable to use camera or camera2 api." +
-                " Please check if the camera hardware is usable and CameraView is correctly configured."),
+            CameraViewException(
+                "Unable to use camera or camera2 api." +
+                    " Please check if the camera hardware is usable and CameraView is correctly configured."
+            ),
             ErrorLevel.ErrorCritical
         )
     }
@@ -588,10 +588,12 @@ class CameraView @JvmOverloads constructor(
         !requireActive() || !requireCameraOpened() -> Unit
 
         !config.isSingleCaptureModeEnabled -> listenerManager.onCameraError(
-            CameraViewException("Single capture mode is disabled." +
-                " Update camera mode by" +
-                " `CameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE`" +
-                " to enable and capture images."),
+            CameraViewException(
+                "Single capture mode is disabled." +
+                    " Update camera mode by" +
+                    " `CameraView.cameraMode = Modes.CameraMode.SINGLE_CAPTURE`" +
+                    " to enable and capture images."
+            ),
             ErrorLevel.ErrorCritical
         )
 
@@ -603,27 +605,33 @@ class CameraView @JvmOverloads constructor(
      * @param outputFile where video will be saved
      * @param videoConfig lambda on [VideoConfiguration] (optional) (if not provided, it uses default configuration)
      */
-    @RequiresPermission(allOf = [
-        Manifest.permission.CAMERA,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.RECORD_AUDIO
-    ])
+    @RequiresPermission(
+        allOf = [
+            Manifest.permission.CAMERA,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.RECORD_AUDIO
+        ]
+    )
     @JvmOverloads
     fun startVideoRecording(outputFile: File, videoConfig: VideoConfiguration.() -> Unit = {}): Unit = when {
 
         !requireActive() || !requireCameraOpened() -> Unit
 
         !config.isVideoCaptureModeEnabled -> listenerManager.onCameraError(
-            CameraViewException("Video capture mode is disabled." +
-                " Update camera mode by" +
-                " `CameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE`" +
-                " to enable and capture videos."),
+            CameraViewException(
+                "Video capture mode is disabled." +
+                    " Update camera mode by" +
+                    " `CameraView.cameraMode = Modes.CameraMode.VIDEO_CAPTURE`" +
+                    " to enable and capture videos."
+            ),
             ErrorLevel.ErrorCritical
         )
 
         isVideoRecording -> listenerManager.onCameraError(
-            CameraViewException("Video recording already in progress." +
-                " Call CameraView.stopVideoRecording() before calling start."),
+            CameraViewException(
+                "Video recording already in progress." +
+                    " Call CameraView.stopVideoRecording() before calling start."
+            ),
             ErrorLevel.Warning
         )
 

@@ -83,7 +83,7 @@ internal class TextureViewPreview(
     // This method is called only from Camera2.
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
     override fun setBufferSize(width: Int, height: Int) {
-        textureView.surfaceTexture.setDefaultBufferSize(width, height)
+        textureView.surfaceTexture?.setDefaultBufferSize(width, height)
     }
 
     override fun setDisplayOrientation(displayOrientation: Int) {

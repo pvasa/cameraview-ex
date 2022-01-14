@@ -33,7 +33,7 @@ object Config {
             patchVersion
 
     object Versions {
-        const val kotlin = "1.3.31"
+        const val kotlin = "1.4.32"
         const val support = "28.0.0"
         const val constraintLayout = "1.1.3"
         const val dokka = "0.9.17"
@@ -43,13 +43,10 @@ object Config {
         const val googleServices = "4.2.0"
         const val firebaseCore = "16.0.5"
         const val firebaseMlVision = "18.0.1"
-        const val koin = "1.0.2"
+        const val koin = "3.1.5"
         const val coroutines = "1.2.0"
         const val timber = "4.7.1"
         const val glide = "4.8.0"
-
-        const val mavenGradlePlugin = "2.1"
-        const val bintrayPlugin = "1.8.1"
 
         // Unit tests
         const val jUnit5 = "5.3.1"
@@ -64,7 +61,7 @@ object Config {
     object Android {
         const val minSdk = 21
         const val minSdkLib = 14
-        const val sdk = 28
+        const val sdk = 30
     }
 
     object Libs {
@@ -77,7 +74,7 @@ object Config {
         const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
         const val lifecycleLivedata = "android.arch.lifecycle:livedata-core:${Versions.lifecycle}"
-        const val koin = "org.koin:koin-android:${Versions.koin}"
+        const val koin = "io.insert-koin:koin-android:${Versions.koin}"
         const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
         const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
 
