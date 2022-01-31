@@ -502,7 +502,7 @@ internal open class Camera2(
     final override var screenRotation: Int = 0
 
     final override val isActive: Boolean
-        get() = cameraJob.isActive && backgroundHandler.looper.thread.isAlive == true
+        get() = cameraJob.isActive && backgroundHandler.looper.thread.isAlive
 
     final override val isCameraOpened: Boolean get() = camera != null
 
@@ -850,7 +850,7 @@ internal open class Camera2(
         }
         collectCameraInfo()
         prepareSingleCaptureReader()
-        cameraManager.openCamera(this.cameraId, cameraDeviceCallback, backgroundHandler)
+        cameraManager.openCamera(this.cameraId, cameraDeviceCallback, null)
         return@runCatching true
     }
         .getOrElse {
